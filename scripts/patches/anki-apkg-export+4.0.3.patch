@@ -1,0 +1,326 @@
+diff --git a/node_modules/anki-apkg-export/dist/exporter.js b/node_modules/anki-apkg-export/dist/exporter.js
+index b2df9ec..b803c57 100644
+--- a/node_modules/anki-apkg-export/dist/exporter.js
++++ b/node_modules/anki-apkg-export/dist/exporter.js
+@@ -104,16 +104,25 @@ function () {
+     }
+   }, {
+     key: "addCard",
+-    value: function addCard(front, back) {
+-      var _ref2 = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {},
+-          tags = _ref2.tags;
++    value: function addCard() {
++      var _options = arguments.length <= 0 ? undefined : arguments[arguments.length - 1];
++
++      for (var _len = arguments.length, fields = new Array(_len), _key = 0; _key < _len; _key++) {
++        fields[_key] = arguments[_key];
++      }
++
++      var options = typeof _options === 'object' ? fields.pop() : undefined;
++      var sortField = options === null || options === void 0 ? void 0 : options.sortField,
++          tags = options === null || options === void 0 ? void 0 : options.tags;
+ 
+       var topDeckId = this.topDeckId,
+           topModelId = this.topModelId,
+           separator = this.separator;
+       var now = Date.now();
+ 
+-      var note_guid = this._getNoteGuid(topDeckId, front, back);
++      var joinedFields = fields.join(separator);
++
++      var note_guid = this._getNoteGuid(topDeckId, joinedFields);
+ 
+       var note_id = this._getNoteId(note_guid, now);
+ 
+@@ -125,6 +134,20 @@ function () {
+         strTags = this._tagsToStr(tags);
+       }
+ 
++      var intSortField = 0;
++
++      if (typeof sortField === 'number') {
++        if (Number.isSafeInteger(sortField)) {
++          intSortField = Math.max(Math.min(sortField, fields.length - 1), 0);
++        }
++      } else if (typeof sortField === 'string') {
++        var index = fields.indexOf(sortField);
++
++        if (index !== -1) {
++          intSortField = index;
++        }
++      }
++
+       this._update('insert or replace into notes values(:id,:guid,:mid,:mod,:usn,:tags,:flds,:sfld,:csum,:flags,:data)', {
+         ':id': note_id,
+         // integer primary key,
+@@ -138,11 +161,11 @@ function () {
+         // integer not null,
+         ':tags': strTags,
+         // text not null,
+-        ':flds': front + separator + back,
++        ':flds': joinedFields,
+         // text not null,
+-        ':sfld': front,
++        ':sfld': intSortField,
+         // integer not null,
+-        ':csum': this._checksum(front + separator + back),
++        ':csum': this._checksum(joinedFields),
+         //integer not null,
+         ':flags': 0,
+         // integer not null,
+@@ -239,8 +262,8 @@ function () {
+     }
+   }, {
+     key: "_getNoteGuid",
+-    value: function _getNoteGuid(topDeckId, front, back) {
+-      return (0, _sha["default"])("".concat(topDeckId).concat(front).concat(back));
++    value: function _getNoteGuid(topDeckId, joinedFields) {
++      return (0, _sha["default"])("".concat(topDeckId).concat(this.separator).concat(joinedFields));
+     }
+   }, {
+     key: "_getCardId",
+diff --git a/node_modules/anki-apkg-export/dist/index.d.ts b/node_modules/anki-apkg-export/dist/index.d.ts
+new file mode 100644
+index 0000000..24ca294
+--- /dev/null
++++ b/node_modules/anki-apkg-export/dist/index.d.ts
+@@ -0,0 +1,51 @@
++export interface CreateTemplateOptions {
++  fields?: string[];
++  questionFormat?: string;
++  answerFormat?: string;
++  css?: string;
++}
++
++export interface AddCardOptions {
++  sortField?: number | string;
++  tags?: string | string[];
++}
++
++export interface SaveOptions {
++  type?: "blob" | "nodebuffer" | "arraybuffer" | "uint8array";
++  base64?: boolean;
++  compression?: "STORE" | "DEFLATE";
++}
++
++export type BinaryData = string | ArrayBuffer | Uint8Array | Blob;
++
++export interface SqlJsLike {
++  Database: new () => {
++    run: (query: string) => void;
++    export: () => Uint8Array;
++    prepare: (query: string) => {
++      getAsObject: (params?: Record<string, unknown>) => Record<string, unknown>;
++    };
++    exec: (query: string) => Array<{ values: unknown[][] }>;
++  };
++}
++
++export interface ExporterConstructorOptions {
++  template: string;
++  sql: SqlJsLike;
++}
++
++export class Exporter {
++  constructor(deckName: string, options: ExporterConstructorOptions);
++  save(options?: SaveOptions): Promise<Blob | ArrayBuffer | Uint8Array>;
++  addMedia(filename: string, data: BinaryData): void;
++  addCard(...fieldsAndMaybeOptions: [...string[], AddCardOptions?]): void;
++}
++
++export interface AnkiExportFactory {
++  (deckName: string, templateOptions?: CreateTemplateOptions): Exporter;
++  new (deckName: string, templateOptions?: CreateTemplateOptions): Exporter;
++}
++
++declare const AnkiExport: AnkiExportFactory;
++
++export default AnkiExport;
+diff --git a/node_modules/anki-apkg-export/dist/template.js b/node_modules/anki-apkg-export/dist/template.js
+index 3d088ca..9b14263 100644
+--- a/node_modules/anki-apkg-export/dist/template.js
++++ b/node_modules/anki-apkg-export/dist/template.js
+@@ -7,6 +7,8 @@ exports["default"] = createTemplate;
+ 
+ function createTemplate() {
+   var _ref = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
++      _ref$fields = _ref.fields,
++      fields = _ref$fields === void 0 ? ['Front', 'Back'] : _ref$fields,
+       _ref$questionFormat = _ref.questionFormat,
+       questionFormat = _ref$questionFormat === void 0 ? '{{Front}}' : _ref$questionFormat,
+       _ref$answerFormat = _ref.answerFormat,
+@@ -37,23 +39,17 @@ function createTemplate() {
+       did: 1435588830424,
+       usn: -1,
+       req: [[0, 'all', [0]]],
+-      flds: [{
+-        name: 'Front',
+-        media: [],
+-        sticky: false,
+-        rtl: false,
+-        ord: 0,
+-        font: 'Arial',
+-        size: 20
+-      }, {
+-        name: 'Back',
+-        media: [],
+-        sticky: false,
+-        rtl: false,
+-        ord: 1,
+-        font: 'Arial',
+-        size: 20
+-      }],
++      flds: fields.map(function (name, i) {
++        return {
++          name: name,
++          media: [],
++          sticky: false,
++          rtl: false,
++          ord: i,
++          font: 'Arial',
++          size: 20
++        };
++      }),
+       sortf: 0,
+       latexPre: "\\documentclass[12pt]{article}\n\\special{papersize=3in,5in}\n\\usepackage[utf8]{inputenc}\n\\usepackage{amssymb,amsmath}\n\\pagestyle{empty}\n\\setlength{\\parindent}{0in}\n\\begin{document}\n",
+       tmpls: [{
+diff --git a/node_modules/anki-apkg-export/package.json b/node_modules/anki-apkg-export/package.json
+index 827648d..ee71dd4 100644
+--- a/node_modules/anki-apkg-export/package.json
++++ b/node_modules/anki-apkg-export/package.json
+@@ -3,6 +3,7 @@
+   "description": "Generate decks for Anki (spaced repetition software)",
+   "version": "4.0.3",
+   "main": "dist/index.js",
++  "types": "dist/index.d.ts",
+   "dependencies": {
+     "jszip": "^3.2.2",
+     "sha1": "^1.1.1",
+@@ -15,7 +16,7 @@
+     "@babel/preset-env": "^7.0.0",
+     "@babel/register": "^7.0.0",
+     "arraybuffer-equal": "1.0.4",
+-    "ava": "^2.4.0",
++    "ava": "^6.2.0",
+     "babel-eslint": "^10.0.3",
+     "eslint": "^6.8.0",
+     "eslint-config-prettier": "^6.9.0",
+@@ -27,7 +28,7 @@
+     "prettier": "^1.19.1",
+     "proxyquire": "^2.1.3",
+     "sinon": "^8.0.2",
+-    "sqlite3": "4.1.1"
++    "sqlite3": "^5.1.7"
+   },
+   "author": "ewnd9 <ewndnine@gmail.com>",
+   "keywords": [
+diff --git a/node_modules/anki-apkg-export/src/exporter.js b/node_modules/anki-apkg-export/src/exporter.js
+index f779725..93e0add 100644
+--- a/node_modules/anki-apkg-export/src/exporter.js
++++ b/node_modules/anki-apkg-export/src/exporter.js
+@@ -67,10 +67,14 @@ export default class {
+     this.media.push({ filename, data });
+   }
+ 
+-  addCard(front, back, { tags } = {}) {
++  addCard(...fields) {
++    const options = typeof fields[fields.length - 1] === 'object' ? fields.pop() : undefined;
++    const { sortField, tags } = options || {};
+     const { topDeckId, topModelId, separator } = this;
+     const now = Date.now();
+-    const note_guid = this._getNoteGuid(topDeckId, front, back);
++
++    const joinedFields = fields.join(separator);
++    const note_guid = this._getNoteGuid(topDeckId, joinedFields);
+     const note_id = this._getNoteId(note_guid, now);
+ 
+     let strTags = '';
+@@ -80,6 +84,18 @@ export default class {
+       strTags = this._tagsToStr(tags);
+     }
+ 
++    let intSortField = 0;
++    if (typeof sortField === 'number') {
++      if (Number.isSafeInteger(sortField)) {
++        intSortField = Math.max(Math.min(sortField, fields.length - 1), 0);
++      }
++    } else if (typeof sortField === 'string') {
++      const index = fields.indexOf(sortField);
++      if (index !== -1) {
++        intSortField = index;
++      }
++    }
++
+     this._update('insert or replace into notes values(:id,:guid,:mid,:mod,:usn,:tags,:flds,:sfld,:csum,:flags,:data)', {
+       ':id': note_id, // integer primary key,
+       ':guid': note_guid, // text not null,
+@@ -87,9 +103,9 @@ export default class {
+       ':mod': this._getId('notes', 'mod', now), // integer not null,
+       ':usn': -1, // integer not null,
+       ':tags': strTags, // text not null,
+-      ':flds': front + separator + back, // text not null,
+-      ':sfld': front, // integer not null,
+-      ':csum': this._checksum(front + separator + back), //integer not null,
++      ':flds': joinedFields, // text not null,
++      ':sfld': intSortField, // integer not null,
++      ':csum': this._checksum(joinedFields), //integer not null,
+       ':flags': 0, // integer not null,
+       ':data': '' // text not null,
+     });
+@@ -154,8 +170,8 @@ export default class {
+     return rowObj.id || this._getId('notes', 'id', ts);
+   }
+ 
+-  _getNoteGuid(topDeckId, front, back) {
+-    return sha1(`${topDeckId}${front}${back}`);
++  _getNoteGuid(topDeckId, joinedFields) {
++    return sha1(`${topDeckId}${this.separator}${joinedFields}`);
+   }
+ 
+   _getCardId(note_id, ts) {
+diff --git a/node_modules/anki-apkg-export/src/template.js b/node_modules/anki-apkg-export/src/template.js
+index 52abe88..3eb260f 100644
+--- a/node_modules/anki-apkg-export/src/template.js
++++ b/node_modules/anki-apkg-export/src/template.js
+@@ -1,4 +1,5 @@
+ export default function createTemplate({
++  fields = ['Front', 'Back'],
+   questionFormat = '{{Front}}',
+   answerFormat = '{{FrontSide}}\n\n<hr id="answer">\n\n{{Back}}',
+   css = '.card {\n font-family: arial;\n font-size: 20px;\n text-align: center;\n color: black;\nbackground-color: white;\n}\n'
+@@ -27,26 +28,15 @@ export default function createTemplate({
+       did: 1435588830424,
+       usn: -1,
+       req: [[0, 'all', [0]]],
+-      flds: [
+-        {
+-          name: 'Front',
+-          media: [],
+-          sticky: false,
+-          rtl: false,
+-          ord: 0,
+-          font: 'Arial',
+-          size: 20
+-        },
+-        {
+-          name: 'Back',
+-          media: [],
+-          sticky: false,
+-          rtl: false,
+-          ord: 1,
+-          font: 'Arial',
+-          size: 20
+-        }
+-      ],
++      flds: fields.map((name, i) => ({
++        name,
++        media: [],
++        sticky: false,
++        rtl: false,
++        ord: i,
++        font: 'Arial',
++        size: 20
++      })),
+       sortf: 0,
+       latexPre:
+         '\\documentclass[12pt]{article}\n\\special{papersize=3in,5in}\n\\usepackage[utf8]{inputenc}\n\\usepackage{amssymb,amsmath}\n\\pagestyle{empty}\n\\setlength{\\parindent}{0in}\n\\begin{document}\n',

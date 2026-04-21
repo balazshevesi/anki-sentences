@@ -4,15 +4,20 @@
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "patch-package": "^8.0.1"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "scripts": {
+    "postinstall": "patch-package",
     "test": "bun test",
     "run": "bun index.ts",
     "update:languages": "bun run sentences/updateTatoebaLanguages.ts",
     "update:words": "bun run words/updateFrequencyWords.ts"
+  },
+  "dependencies": {
+    "anki-apkg-export": "^4.0.3"
   }
 }
