@@ -7,7 +7,7 @@ Build Anki sentence decks from Tatoeba, with word-level translation hints from a
 - `source/index.ts` - deck generator CLI entrypoint
 - `source/modules/deck/` - deck pipeline modules (CLI config, sentence fetching, translation, template loading)
 - `source/modules/sentenceRetrieval/` - typed Tatoeba API wrapper + tests
-- `source/modules/cardTemplate/` - Preact card renderer bundled into a single HTML payload for Anki
+- `source/modules/cardTemplate/` - Svelte card renderer bundled into a single HTML payload for Anki
 - `source/modules/wordTranslator/` - FastAPI server exposing Argos Translate at `/translate`
 - `source/modules/wordFrequencies/` - downloader for frequency list text files
 
@@ -70,8 +70,8 @@ uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 3) Build the deck:
 
 ```bash
-cd scripts
-bun run run -- --word=must --output=output/example.apkg
+cd source
+bun run build
 ```
 
 The generated deck file is written under `scripts/output/` by default.
@@ -81,7 +81,7 @@ The generated deck file is written under `scripts/output/` by default.
 Run from `scripts/` unless noted otherwise.
 
 - `bun run run` - build app bundle and generate deck
-- `bun run app:build` - build the single-file Preact renderer for cards
+- `bun run app:build` - build the single-file Svelte renderer for cards
 - `bun run test` - run sentence wrapper tests
 - `bun run typecheck` - typecheck scripts + app
 - `bun run lint` - run typechecks and Python lint checks

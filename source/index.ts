@@ -10,28 +10,47 @@ import {
   loadQuestionFormatHtml,
 } from "./modules/deck/index";
 
-const main = async () => {
-  const config = loadDeckBuildConfig();
-  const questionFormatHtml = await loadQuestionFormatHtml();
+function escapeSqliteStringLiteral(value: string): string {
+  return value.replaceAll("'", "''");
+}
 
-  const deck = new Anki(config.deckName, {
-    fields: [...DECK_NOTE_FIELDS],
-    questionFormat: `
+function neutralizeAnkiMustacheInBundle(value: string): string {
+  return value.replaceAll("{{", "{ {");
+}
+
+const main = async () => {
+  // Load config + html
+  const config = loadDeckBuildConfig();
+  const questionFormatHtml = neutralizeAnkiMustacheInBundle(
+    await loadQuestionFormatHtml(),
+  );
+
+  const questionFormat = `
     <div id="front">{{Sentence}}</div>
     <div id="wordByWord" hidden>{{wordByWord}}</div>
-    ${questionFormatHtml}`,
-    answerFormat: `{{FrontSide}}<hr id="answer">{{SentenceTranslation}}`,
+    ${questionFormatHtml}`;
+
+  const answerFormat = `{{FrontSide}}<hr id="answer">{{SentenceTranslation}}`;
+
+  // Create new anki deck
+  const deck = new Anki(config.deckName, {
+    fields: [...DECK_NOTE_FIELDS],
+    questionFormat: escapeSqliteStringLiteral(questionFormat),
+    answerFormat: escapeSqliteStringLiteral(answerFormat),
     css: ``,
   });
 
+  // Create word translator
   const translateWord = createWordTranslator({
     endpoint: config.argosTranslateUrl,
     sourceLanguage: config.argosSourceLanguage,
     targetLanguage: config.argosTargetLanguage,
   });
 
+  // Get cards (based on config)
   const cards = await getCardsForWord(config, translateWord);
 
+  // Add each card to the deck
   for (const card of cards) {
     deck.addCard(
       card.sentence,
@@ -50,6 +69,7 @@ const main = async () => {
     );
   }
 
+  // Write the deck to storage
   await mkdir(dirname(config.outputPath), { recursive: true });
   const apkgBlob = await deck.save();
   await Bun.write(config.outputPath, apkgBlob);

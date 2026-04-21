@@ -7,7 +7,7 @@ import type { DeckBuildConfig } from "./types";
 
 const DEFAULT_WORD = "must";
 const DEFAULT_DECK_NAME = "EN-HU sentence deck";
-const DEFAULT_OUTPUT_PATH = "output/example.apkg";
+const DEFAULT_OUTPUT_PATH = "../output/example.apkg";
 const DEFAULT_SENTENCE_LANGUAGE = "eng";
 const DEFAULT_TRANSLATION_LANGUAGE = "hun";
 const DEFAULT_ARGOS_SOURCE = "en";

@@ -20,6 +20,7 @@
     "lint:py": "uvx ruff check modules/wordTranslator",
     "lint": "bun run typecheck && bun run lint:py",
     "template:build": "bun run --cwd modules/cardTemplate build",
+    "template:dev": "bun run --cwd modules/cardTemplate dev",
     "template:install": "bun install --cwd modules/cardTemplate",
     "argos:start": "sh -c 'uv run --directory modules/wordTranslator python -m uvicorn main:app --host ${ARGOS_HOST:-0.0.0.0} --port ${ARGOS_PORT:-8000} --reload'",
     "deck:build": "bun run template:build && bun run index.ts",
