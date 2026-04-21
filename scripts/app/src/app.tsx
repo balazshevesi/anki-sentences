@@ -1,8 +1,29 @@
+// @ts-nocheck
 import { useState } from "preact/hooks";
 import "./app.css";
 
-export function App({ cardText }) {
-  const [count, setCount] = useState(0);
+const Word = ({ word }) => {
+  const [clicked, setClicked] = useState(false);
 
-  return <>{cardText}</>;
+  return (
+    <span
+      onClick={() => {
+        setClicked(!clicked);
+        console.log("clicked", clicked);
+      }}
+      style={{ background: clicked ? "red" : "blue" }}
+    >
+      {word}{" "}
+    </span>
+  );
+};
+
+export function App({ cardText }) {
+  return (
+    <>
+      {cardText.split(" ").map((word) => {
+        return <Word word={word} />;
+      })}
+    </>
+  );
 }

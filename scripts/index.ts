@@ -1,11 +1,8 @@
 import { searchSentences } from "./sentences/sentences";
 import { default as Anki } from "anki-apkg-export";
+import questionFormat from "./app/dist/index.html" with { type: "text" };
 
-const deck = new Anki("EN-HU sentence deck", {
-  fields: ["Sentence", "Translation", "Keyword", "SentenceId"],
-  questionFormat: `<div id="front" class="card">{{Sentence}}</div>`,
-  answerFormat: `{{FrontSide}}<hr id="answer">{{Translation}}`,
-});
+const questionFormatHtml = questionFormat as unknown as string;
 
 type CardData = {
   sentence: string;
@@ -38,6 +35,13 @@ const getSentencesForWord = async (word: string): Promise<CardData[]> => {
 };
 
 const main = async () => {
+  const deck = new Anki("EN-HU sentence deck", {
+    fields: ["Sentence", "Translation", "Keyword", "SentenceId"],
+    questionFormat: `<div id="front" class="card">{{Sentence}}</div> ${questionFormatHtml}`,
+    answerFormat: `{{FrontSide}}<hr id="answer">{{Translation}}`,
+    css: ``,
+  });
+
   const word = "must";
   const cards = await getSentencesForWord(word);
 
