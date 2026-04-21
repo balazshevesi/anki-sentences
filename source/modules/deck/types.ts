@@ -1,4 +1,4 @@
-import type { LanguageCode, WordCountFilter } from "../sentences/index";
+import type { LanguageCode, WordCountFilter } from "../sentenceRetrieval/index";
 
 export type CardData = {
   sentence: string;

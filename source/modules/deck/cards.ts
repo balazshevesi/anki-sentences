@@ -1,7 +1,7 @@
 import {
   DEFAULT_SENTENCE_SEARCH_SORT,
   searchSentences,
-} from "../sentences/index";
+} from "../sentenceRetrieval/index";
 import { buildWordByWord } from "./translate";
 import type { CardData, DeckBuildConfig, TranslateWord } from "./types";
 

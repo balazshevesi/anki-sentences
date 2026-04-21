@@ -26,5 +26,5 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "exclude": ["modules/app", "node_modmodules/translateranslate"]
+  "exclude": ["modules/cardTemplate", "modules/wordTranslator"]
 }

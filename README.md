@@ -4,12 +4,34 @@ Build Anki sentence decks from Tatoeba, with word-level translation hints from a
 
 ## Repo layout
 
-- `scripts/index.ts` - deck generator CLI entrypoint
-- `scripts/deck/` - deck pipeline modules (CLI config, sentence fetching, translation, template loading)
-- `scripts/sentences/` - typed Tatoeba API wrapper + tests
-- `scripts/app/` - Preact card renderer that is bundled into a single HTML payload for Anki
-- `scripts/translate/` - FastAPI server exposing Argos Translate at `/translate`
-- `scripts/words/` - downloader for frequency list text files
+- `source/index.ts` - deck generator CLI entrypoint
+- `source/modules/deck/` - deck pipeline modules (CLI config, sentence fetching, translation, template loading)
+- `source/modules/sentenceRetrieval/` - typed Tatoeba API wrapper + tests
+- `source/modules/cardTemplate/` - Preact card renderer bundled into a single HTML payload for Anki
+- `source/modules/wordTranslator/` - FastAPI server exposing Argos Translate at `/translate`
+- `source/modules/wordFrequencies/` - downloader for frequency list text files
+
+## Nix flake
+
+If you use Nix, you can enter a dev shell with all required tools (Bun, Python, uv, ruff, patch):
+
+```bash
+nix develop
+```
+
+If flakes are not enabled globally:
+
+```bash
+nix develop --extra-experimental-features "nix-command flakes"
+```
+
+Inside the shell, install project dependencies:
+
+```bash
+bun install --cwd source
+bun install --cwd source/modules/cardTemplate
+uv sync --directory source/modules/wordTranslator
+```
 
 ## Quick start
 

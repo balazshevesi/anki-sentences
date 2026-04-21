@@ -12,19 +12,19 @@
   },
   "scripts": {
     "postinstall": "patch-package",
+    "create": "bun run deck:build",
     "test": "bun test",
-    "app:build": "bun run --cwd app build",
+    "template:build": "bun run --cwd modules/cardTemplate build",
     "typecheck:scripts": "bunx tsc -p tsconfig.json --noEmit",
-    "typecheck:app": "bun run --cwd app typecheck",
+    "typecheck:app": "bun run --cwd modules/cardTemplate typecheck",
     "typecheck": "bun run typecheck:scripts && bun run typecheck:app",
-    "lint:py": "cd translate && uvx ruff check .",
+    "lint:py": "uvx ruff check modules/wordTranslator",
     "lint": "bun run typecheck && bun run lint:py",
     "deck:build": "bun run app:build && bun run index.ts",
-    "run": "bun run deck:build",
-    "update:languages": "bun run sentences/updateTatoebaLanguages.ts",
+    "update:languages": "bun run modules/sentenceRetrieval/updateTatoebaLanguages.ts",
     "update:words": "bun run modules/wordFrequencies/updateFrequencyWords.ts"
   },
   "dependencies": {
-    "anki-apkg-export": "^4.0.3"
+    "anki-apkg-export": "4.0.3"
   }
 }

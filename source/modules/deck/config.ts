@@ -2,8 +2,8 @@ import {
   isSupportedLanguageCode,
   SUPPORTED_LANGUAGE_CODES,
   type WordCountFilter,
-} from "../sentences/index";
-import { DEFAULT_ARGOS_TRANSLATE_URL } from "../translate/index";
+} from "../sentenceRetrieval/index";
+import { DEFAULT_ARGOS_TRANSLATE_URL } from "../wordTranslator/index";
 import type { DeckBuildConfig } from "./types";
 
 const DEFAULT_WORD = "must";
