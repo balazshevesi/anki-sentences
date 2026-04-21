@@ -31,6 +31,7 @@ const response = await searchSentences({
   lang: ["eng", "deu"],
   sort: "relevance",
   q: "hello",
+  word_count: "5-10",
   limit: 10,
   "trans:lang": "spa",
 });
@@ -38,6 +39,8 @@ const response = await searchSentences({
 console.log(response.data[0]);
 console.log(response.paging.next);
 ```
+
+`word_count` is strongly typed and supports Tatoeba range syntax, such as `"7"`, `"5-10"`, `"10-"`, `"-10"`, `"!3"`, and comma-separated combinations like `"2-4,10-11"`.
 
 ### Supported language types
 

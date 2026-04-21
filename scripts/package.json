@@ -12,6 +12,7 @@
   "scripts": {
     "test": "bun test",
     "run": "bun index.ts",
-    "update:languages": "bun run tatoeba/updateTatoebaLanguages.ts"
+    "update:languages": "bun run sentences/updateTatoebaLanguages.ts",
+    "update:words": "bun run words/updateFrequencyWords.ts"
   }
 }

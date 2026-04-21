@@ -1,11 +1,11 @@
-import { searchSentences } from "./tatoeba/tatoebaSentences";
+import { searchSentences } from "./sentences/sentences";
 
 const getSentencesForWord = async (word: string) => {
   const result = (
     await searchSentences(
       {
         lang: "eng",
-        "trans:lang": "swe",
+        "trans:lang": "hun",
         sort: "relevance",
         q: word,
         word_count: "4-40",

@@ -5,7 +5,8 @@ import {
   getAfterCursorFromNextPageUrl,
   searchSentences,
   TatoebaApiError,
-} from "./tatoebaSentences";
+  type WordCountFilter,
+} from "./sentences";
 import {
   isSupportedLanguageCode,
   SUPPORTED_LANGUAGE_CODES,
@@ -18,6 +19,7 @@ describe("buildSentenceSearchQuery", () => {
       lang: ["eng", "deu"],
       sort: "relevance",
       q: "hello",
+      word_count: "5-10",
       tag: ["OK", "colloquial"],
       list: [123, 456],
       include: ["audios", "transcriptions"],
@@ -31,6 +33,7 @@ describe("buildSentenceSearchQuery", () => {
     expect(query.get("lang")).toBe("eng,deu");
     expect(query.get("sort")).toBe("relevance");
     expect(query.get("q")).toBe("hello");
+    expect(query.get("word_count")).toBe("5-10");
     expect(query.getAll("tag")).toEqual(["OK", "colloquial"]);
     expect(query.getAll("list")).toEqual(["123", "456"]);
     expect(query.get("include")).toBe("audios,transcriptions");
@@ -39,6 +42,30 @@ describe("buildSentenceSearchQuery", () => {
     expect(query.get("trans:1:is_direct")).toBe("yes");
   });
 });
+
+const validWordCountFilters: WordCountFilter[] = [
+  "7",
+  "10-",
+  "-10",
+  "5-10",
+  "!3",
+  "1,10",
+  "2-4,10-11",
+  "!2-",
+  "!2-5",
+  "!2-5,10-",
+];
+
+void validWordCountFilters;
+
+// @ts-expect-error Invalid word_count format.
+const invalidWordCountFilter1: WordCountFilter = "two-to-five";
+
+// @ts-expect-error Invalid word_count format.
+const invalidWordCountFilter3: WordCountFilter = "1,,2";
+
+void invalidWordCountFilter1;
+void invalidWordCountFilter3;
 
 describe("searchSentences", () => {
   test("returns parsed sentence search payload", async () => {
@@ -66,7 +93,7 @@ describe("searchSentences", () => {
         {
           status: 200,
           headers: { "content-type": "application/json" },
-        }
+        },
       );
     };
 
@@ -78,7 +105,7 @@ describe("searchSentences", () => {
       },
       {
         fetchImpl,
-      }
+      },
     );
 
     expect(fetchCalls).toHaveLength(1);
@@ -101,7 +128,7 @@ describe("searchSentences", () => {
         {
           status: 400,
           headers: { "content-type": "application/json" },
-        }
+        },
       );
 
     await expect(
@@ -110,8 +137,8 @@ describe("searchSentences", () => {
           lang: "eng",
           sort: "relevance",
         },
-        { fetchImpl }
-      )
+        { fetchImpl },
+      ),
     ).rejects.toBeInstanceOf(TatoebaApiError);
 
     try {
@@ -120,7 +147,7 @@ describe("searchSentences", () => {
           lang: "eng",
           sort: "relevance",
         },
-        { fetchImpl }
+        { fetchImpl },
       );
       throw new Error("Expected searchSentences to throw");
     } catch (error) {
@@ -135,7 +162,7 @@ describe("searchSentences", () => {
 describe("getAfterCursorFromNextPageUrl", () => {
   test("extracts after cursor from next page url", () => {
     const cursor = getAfterCursorFromNextPageUrl(
-      "https://api.tatoeba.org/v1/sentences?lang=eng&sort=relevance&limit=1&q=hello&after=10099%2C3613319"
+      "https://api.tatoeba.org/v1/sentences?lang=eng&sort=relevance&limit=1&q=hello&after=10099%2C3613319",
     );
     expect(cursor).toBe("10099,3613319");
   });
