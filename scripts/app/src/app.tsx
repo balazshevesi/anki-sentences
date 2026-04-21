@@ -2,27 +2,27 @@
 import { useState } from "preact/hooks";
 import "./app.css";
 
-const Word = ({ word }) => {
-  const [clicked, setClicked] = useState(false);
+const Word = ({ word, translatedWord }) => {
+  const [popoverIsOpen, setPopoverIsOpen] = useState(false);
 
   return (
     <span
       onClick={() => {
-        setClicked(!clicked);
+        setPopoverIsOpen(!popoverIsOpen);
         console.log("clicked", clicked);
       }}
-      style={{ background: clicked ? "red" : "blue" }}
+      // style={{ background: clicked ? "red" : "blue" }}
     >
-      {word}{" "}
+      {word} {popoverIsOpen && <span>{translatedWord}</span>}
     </span>
   );
 };
 
-export function App({ cardText }) {
+export function App({ cardText, wordByWord }) {
   return (
     <>
-      {cardText.split(" ").map((word) => {
-        return <Word word={word} />;
+      {cardText.split(" ").map((word, idx) => {
+        return <Word word={word} translatedWord={wordByWord[idx]} />;
       })}
     </>
   );
