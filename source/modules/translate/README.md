@@ -41,3 +41,11 @@ ARGOS_PREINSTALL_PAIRS=en:es,en:de uv run uvicorn main:app --host 0.0.0.0 --port
 ```bash
 curl http://127.0.0.1:8000/health
 ```
+
+## Lint
+
+From `scripts/` run:
+
+```bash
+bun run lint:py
+```

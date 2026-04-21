@@ -13,7 +13,14 @@
   "scripts": {
     "postinstall": "patch-package",
     "test": "bun test",
-    "run": "bun index.ts",
+    "app:build": "bun run --cwd app build",
+    "typecheck:scripts": "bunx tsc -p tsconfig.json --noEmit",
+    "typecheck:app": "bun run --cwd app typecheck",
+    "typecheck": "bun run typecheck:scripts && bun run typecheck:app",
+    "lint:py": "cd translate && uvx ruff check .",
+    "lint": "bun run typecheck && bun run lint:py",
+    "deck:build": "bun run app:build && bun run index.ts",
+    "run": "bun run deck:build",
     "update:languages": "bun run sentences/updateTatoebaLanguages.ts",
     "update:words": "bun run words/updateFrequencyWords.ts"
   },

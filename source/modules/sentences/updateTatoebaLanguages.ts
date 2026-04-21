@@ -1,5 +1,8 @@
-const SOURCE_URL = "https://tatoeba.org/en/downloads";
-const TARGET_FILE = new URL("./tatoebaLanguages.ts", import.meta.url);
+export const TATOEBA_LANGUAGE_SOURCE_URL = "https://tatoeba.org/en/downloads";
+export const TATOEBA_LANGUAGES_TARGET_FILE = new URL(
+  "./tatoebaLanguages.ts",
+  import.meta.url,
+);
 
 const NAMED_HTML_ENTITIES: Record<string, string> = {
   amp: "&",
@@ -9,7 +12,7 @@ const NAMED_HTML_ENTITIES: Record<string, string> = {
   quot: '"',
 };
 
-function decodeHtmlEntities(input: string): string {
+export function decodeHtmlEntities(input: string): string {
   return input.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (fullMatch, rawEntity) => {
     if (rawEntity.startsWith("#x") || rawEntity.startsWith("#X")) {
       const codePoint = Number.parseInt(rawEntity.slice(2), 16);
@@ -25,7 +28,7 @@ function decodeHtmlEntities(input: string): string {
   });
 }
 
-function extractLanguagesJson(html: string): Record<string, string> {
+export function extractLanguagesJson(html: string): Record<string, string> {
   const match = html.match(
     /languages-json="(\{.*?\})"\s+selected-language="ctrl\.langFrom"/s,
   );
@@ -58,7 +61,7 @@ function extractLanguagesJson(html: string): Record<string, string> {
   return languages;
 }
 
-function renderLanguagesFile(languages: Record<string, string>): string {
+export function renderLanguagesFile(languages: Record<string, string>): string {
   const lines: string[] = [];
 
   lines.push("// Generated from Tatoeba downloads language selector data.");
@@ -90,18 +93,28 @@ function renderLanguagesFile(languages: Record<string, string>): string {
   return `${lines.join("\n")}\n`;
 }
 
-async function main(): Promise<void> {
-  const response = await fetch(SOURCE_URL);
+export async function updateTatoebaLanguages(options?: {
+  sourceUrl?: string;
+  targetFile?: URL;
+}): Promise<void> {
+  const sourceUrl = options?.sourceUrl ?? TATOEBA_LANGUAGE_SOURCE_URL;
+  const targetFile = options?.targetFile ?? TATOEBA_LANGUAGES_TARGET_FILE;
+
+  const response = await fetch(sourceUrl);
   if (!response.ok) {
-    throw new Error(`Failed to fetch ${SOURCE_URL} (HTTP ${response.status}).`);
+    throw new Error(`Failed to fetch ${sourceUrl} (HTTP ${response.status}).`);
   }
 
   const html = await response.text();
   const languages = extractLanguagesJson(html);
   const output = renderLanguagesFile(languages);
 
-  await Bun.write(TARGET_FILE, output);
-  console.log(`Updated ${TARGET_FILE.pathname} with ${Object.keys(languages).length} languages.`);
+  await Bun.write(targetFile, output);
+  console.log(
+    `Updated ${targetFile.pathname} with ${Object.keys(languages).length} languages.`,
+  );
 }
 
-await main();
+if (import.meta.main) {
+  await updateTatoebaLanguages();
+}

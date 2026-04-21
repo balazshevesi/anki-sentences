@@ -1,0 +1,24 @@
+import type { LanguageCode, WordCountFilter } from "../sentences/index";
+
+export type CardData = {
+  sentence: string;
+  translation: string;
+  keyword: string;
+  sentenceId: string;
+  wordByWord: string;
+};
+
+export type DeckBuildConfig = {
+  deckName: string;
+  outputPath: string;
+  word: string;
+  sentenceLanguage: LanguageCode;
+  translationLanguage: LanguageCode;
+  argosSourceLanguage: string;
+  argosTargetLanguage: string;
+  sentenceWordCount: WordCountFilter;
+  sentenceLimit: number;
+  argosTranslateUrl: string;
+};
+
+export type TranslateWord = (word: string) => Promise<string>;

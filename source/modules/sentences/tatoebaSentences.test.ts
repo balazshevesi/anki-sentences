@@ -3,15 +3,13 @@ import { describe, expect, test } from "bun:test";
 import {
   buildSentenceSearchQuery,
   getAfterCursorFromNextPageUrl,
-  searchSentences,
-  TatoebaApiError,
-  type WordCountFilter,
-} from "./sentences";
-import {
   isSupportedLanguageCode,
+  searchSentences,
   SUPPORTED_LANGUAGE_CODES,
   SUPPORTED_LANGUAGES,
-} from "./tatoebaLanguages";
+  TatoebaApiError,
+  type WordCountFilter,
+} from "./index";
 
 describe("buildSentenceSearchQuery", () => {
   test("serializes comma-separated and repeatable filters", () => {

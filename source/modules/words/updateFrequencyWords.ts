@@ -1,9 +1,9 @@
-const DEFAULT_YEAR = "2018";
-const DEFAULT_SPECS = ["en:50k", "de:50k", "es:50k"];
+export const DEFAULT_FREQUENCY_YEAR = "2018";
+export const DEFAULT_FREQUENCY_SPECS = ["en:50k", "de:50k", "es:50k"];
 
 const SCRIPT_DIR = new URL("./", import.meta.url);
 
-interface FrequencySpec {
+export interface FrequencySpec {
   language: string;
   size: string;
 }
@@ -28,11 +28,11 @@ function printUsage(): void {
   );
 }
 
-function isValidToken(value: string): boolean {
+export function isValidToken(value: string): boolean {
   return /^[a-z0-9_]+$/i.test(value);
 }
 
-function parseSpec(rawSpec: string): FrequencySpec {
+export function parseSpec(rawSpec: string): FrequencySpec {
   const [language, size] = rawSpec.split(":");
 
   if (!language || !size) {
@@ -53,8 +53,10 @@ function parseSpec(rawSpec: string): FrequencySpec {
   };
 }
 
-function parseCliArgs(args: string[]): { year: string; specs: FrequencySpec[] } {
-  let year = DEFAULT_YEAR;
+export function parseCliArgs(
+  args: string[],
+): { year: string; specs: FrequencySpec[] } {
+  let year = DEFAULT_FREQUENCY_YEAR;
   const rawSpecs: string[] = [];
 
   for (const arg of args) {
@@ -79,19 +81,24 @@ function parseCliArgs(args: string[]): { year: string; specs: FrequencySpec[] } 
     throw new Error(`Invalid year token: ${year}`);
   }
 
-  const specs = (rawSpecs.length > 0 ? rawSpecs : DEFAULT_SPECS).map(parseSpec);
+  const specs = (rawSpecs.length > 0 ? rawSpecs : DEFAULT_FREQUENCY_SPECS).map(
+    parseSpec,
+  );
   return { year, specs };
 }
 
-function buildSourceUrl(year: string, spec: FrequencySpec): string {
+export function buildSourceUrl(year: string, spec: FrequencySpec): string {
   return `https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/${year}/${spec.language}/${spec.language}_${spec.size}.txt`;
 }
 
-function getOutputPath(spec: FrequencySpec): URL {
+export function getOutputPath(spec: FrequencySpec): URL {
   return new URL(`${spec.language}${spec.size}.txt`, SCRIPT_DIR);
 }
 
-async function downloadAndWriteWordList(year: string, spec: FrequencySpec): Promise<void> {
+export async function downloadAndWriteWordList(
+  year: string,
+  spec: FrequencySpec,
+): Promise<void> {
   const sourceUrl = buildSourceUrl(year, spec);
   const outputPath = getOutputPath(spec);
 
@@ -109,12 +116,14 @@ async function downloadAndWriteWordList(year: string, spec: FrequencySpec): Prom
   console.log(`Saved ${spec.language}:${spec.size} -> ${outputPath.pathname}`);
 }
 
-async function main(): Promise<void> {
-  const { year, specs } = parseCliArgs(process.argv.slice(2));
+export async function runUpdateFrequencyWords(args = process.argv.slice(2)): Promise<void> {
+  const { year, specs } = parseCliArgs(args);
 
   for (const spec of specs) {
     await downloadAndWriteWordList(year, spec);
   }
 }
 
-await main();
+if (import.meta.main) {
+  await runUpdateFrequencyWords();
+}

@@ -25,7 +25,7 @@ This updates `tatoebaLanguages.ts` from the language list on `https://tatoeba.or
 ## Usage
 
 ```ts
-import { searchSentences } from "./index";
+import { searchSentences } from "./sentences";
 
 const response = await searchSentences({
   lang: ["eng", "deu"],
@@ -50,7 +50,7 @@ import {
   SUPPORTED_LANGUAGE_CODES,
   SUPPORTED_LANGUAGES,
   type SupportedLanguageCode,
-} from "./index";
+} from "./tatoebaLanguages";
 
 const code: SupportedLanguageCode = "eng";
 console.log(SUPPORTED_LANGUAGES[code]); // English
@@ -64,7 +64,7 @@ if (isSupportedLanguageCode("deu")) {
 ### Pagination helper
 
 ```ts
-import { getAfterCursorFromPaging, searchSentences } from "./index";
+import { getAfterCursorFromPaging, searchSentences } from "./sentences";
 
 const firstPage = await searchSentences({
   lang: "eng",
@@ -90,7 +90,7 @@ if (after) {
 Use `extraParams` for dynamic keys such as `trans:1:lang` and `!trans:2:lang`.
 
 ```ts
-import { searchSentences } from "./index";
+import { searchSentences } from "./sentences";
 
 const response = await searchSentences({
   lang: "eng",
