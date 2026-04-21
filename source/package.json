@@ -22,7 +22,7 @@
     "deck:build": "bun run app:build && bun run index.ts",
     "run": "bun run deck:build",
     "update:languages": "bun run sentences/updateTatoebaLanguages.ts",
-    "update:words": "bun run words/updateFrequencyWords.ts"
+    "update:words": "bun run modules/wordFrequencies/updateFrequencyWords.ts"
   },
   "dependencies": {
     "anki-apkg-export": "^4.0.3"
