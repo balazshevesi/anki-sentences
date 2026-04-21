@@ -32,6 +32,11 @@
           shellHook = ''
             export UV_PROJECT_ENVIRONMENT=".venv"
 
+            if [ ! -f source/.env ] && [ -f source/.env.example ]; then
+              cp source/.env.example source/.env
+              echo "Created source/.env from source/.env.example"
+            fi
+
             if [ -f source/package.json ]; then
               echo "Installing JS deps in source/"
               bun install --cwd source

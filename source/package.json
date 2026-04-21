@@ -12,17 +12,19 @@
   },
   "scripts": {
     "postinstall": "patch-package",
-    "create": "bun run deck:build",
+    "build": "sh build-with-argos.sh",
     "test": "bun test",
-    "template:build": "bun run --cwd modules/cardTemplate build",
-    "typecheck:scripts": "bunx tsc -p tsconfig.json --noEmit",
-    "typecheck:app": "bun run --cwd modules/cardTemplate typecheck",
-    "typecheck": "bun run typecheck:scripts && bun run typecheck:app",
+    "typecheck:cardTemplate": "bun run --cwd modules/cardTemplate typecheck",
+    "typecheck:source": "bunx tsc -p tsconfig.json --noEmit",
+    "typecheck": "bun run typecheck:scripts && bun run typecheck:cardTemplate",
     "lint:py": "uvx ruff check modules/wordTranslator",
     "lint": "bun run typecheck && bun run lint:py",
-    "deck:build": "bun run app:build && bun run index.ts",
-    "update:languages": "bun run modules/sentenceRetrieval/updateTatoebaLanguages.ts",
-    "update:words": "bun run modules/wordFrequencies/updateFrequencyWords.ts"
+    "template:build": "bun run --cwd modules/cardTemplate build",
+    "template:install": "bun install --cwd modules/cardTemplate",
+    "argos:start": "sh -c 'uv run --directory modules/wordTranslator python -m uvicorn main:app --host ${ARGOS_HOST:-0.0.0.0} --port ${ARGOS_PORT:-8000} --reload'",
+    "deck:build": "bun run template:build && bun run index.ts",
+    "sentenceRetrieval:update": "bun run modules/sentenceRetrieval/updateTatoebaLanguages.ts",
+    "wordFrequencies:words": "bun run modules/wordFrequencies/updateFrequencyWords.ts"
   },
   "dependencies": {
     "anki-apkg-export": "4.0.3"

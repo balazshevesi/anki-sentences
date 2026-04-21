@@ -3,7 +3,6 @@ import {
   SUPPORTED_LANGUAGE_CODES,
   type WordCountFilter,
 } from "../sentenceRetrieval/index";
-import { DEFAULT_ARGOS_TRANSLATE_URL } from "../wordTranslator/index";
 import type { DeckBuildConfig } from "./types";
 
 const DEFAULT_WORD = "must";
@@ -15,6 +14,11 @@ const DEFAULT_ARGOS_SOURCE = "en";
 const DEFAULT_ARGOS_TARGET = "hu";
 const DEFAULT_WORD_COUNT = "4-40";
 const DEFAULT_LIMIT = 10;
+const DEFAULT_ARGOS_HOST = Bun.env.ARGOS_HOST ?? "127.0.0.1";
+const DEFAULT_ARGOS_PORT = Bun.env.ARGOS_PORT ?? "8000";
+const DEFAULT_ARGOS_TRANSLATE_URL =
+  Bun.env.ARGOS_TRANSLATE_URL ??
+  `http://${DEFAULT_ARGOS_HOST}:${DEFAULT_ARGOS_PORT}/translate`;
 
 function printUsage(): void {
   const languageExamples = SUPPORTED_LANGUAGE_CODES.slice(0, 8).join(", ");
@@ -179,7 +183,6 @@ export function loadDeckBuildConfig(
       parsed.limit ?? `${DEFAULT_LIMIT}`,
       "--limit",
     ),
-    argosTranslateUrl:
-      parsed["argos-url"] ?? Bun.env.ARGOS_TRANSLATE_URL ?? DEFAULT_ARGOS_TRANSLATE_URL,
+    argosTranslateUrl: parsed["argos-url"] ?? DEFAULT_ARGOS_TRANSLATE_URL,
   };
 }

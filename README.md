@@ -33,6 +33,21 @@ bun install --cwd source/modules/cardTemplate
 uv sync --directory source/modules/wordTranslator
 ```
 
+## Argos configuration
+
+Argos host/port defaults are read from `source/.env`.
+
+```bash
+cp source/.env.example source/.env
+```
+
+Then adjust values as needed:
+
+```dotenv
+ARGOS_HOST=127.0.0.1
+ARGOS_PORT=8000
+```
+
 ## Quick start
 
 1) Install Bun dependencies:
