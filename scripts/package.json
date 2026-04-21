@@ -1,0 +1,17 @@
+{
+  "name": "scripts",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "scripts": {
+    "test": "bun test",
+    "run": "bun index.ts",
+    "update:languages": "bun run tatoeba/updateTatoebaLanguages.ts"
+  }
+}
