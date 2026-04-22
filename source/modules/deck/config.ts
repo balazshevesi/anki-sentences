@@ -5,15 +5,28 @@ import {
 } from "../sentenceRetrieval/index";
 import type { DeckBuildConfig } from "./types";
 
-const DEFAULT_WORDS = ["must", "laughing"];
+const DEFAULT_WORDS = [
+  "must",
+  "laughing",
+  "wonder",
+  "amazing",
+  "president",
+  "none",
+  "station",
+  "personal",
+  "professor",
+  "computer",
+  "further",
+  "allowed",
+];
 const DEFAULT_DECK_NAME = "EN-HU sentence deck";
 const DEFAULT_OUTPUT_PATH = "../output/example.apkg";
 const DEFAULT_SENTENCE_LANGUAGE = "eng";
 const DEFAULT_TRANSLATION_LANGUAGE = "hun";
 const DEFAULT_ARGOS_SOURCE = "en";
 const DEFAULT_ARGOS_TARGET = "hu";
-const DEFAULT_WORD_COUNT = "20-50";
-const DEFAULT_LIMIT = 10;
+const DEFAULT_WORD_COUNT = "15-50";
+const DEFAULT_LIMIT = 25;
 const DEFAULT_ARGOS_HOST = Bun.env.ARGOS_HOST ?? "127.0.0.1";
 const DEFAULT_ARGOS_PORT = Bun.env.ARGOS_PORT ?? "8000";
 const DEFAULT_ARGOS_TRANSLATE_URL =

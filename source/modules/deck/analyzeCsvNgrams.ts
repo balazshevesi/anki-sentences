@@ -7,6 +7,11 @@ type CliOptions = {
   topCount: number;
 };
 
+type NgramStats = {
+  occurrenceCount: number;
+  cardCount: number;
+};
+
 function printUsage(): void {
   console.log(
     [
@@ -151,24 +156,46 @@ function tokenizeWords(input: string): string[] {
   return normalizedInput.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu) ?? [];
 }
 
-function countNgrams(sentences: string[], ngramLength: number): Map<string, number> {
-  const counts = new Map<string, number>();
+function countNgrams(
+  sentences: string[],
+  ngramLength: number,
+): Map<string, NgramStats> {
+  const counts = new Map<string, NgramStats>();
 
   for (const sentence of sentences) {
     const words = tokenizeWords(sentence);
+    const ngramsInCurrentSentence = new Set<string>();
+
     for (let index = 0; index <= words.length - ngramLength; index += 1) {
       const ngram = words.slice(index, index + ngramLength).join(" ");
-      counts.set(ngram, (counts.get(ngram) ?? 0) + 1);
+      const existingStats = counts.get(ngram) ?? {
+        occurrenceCount: 0,
+        cardCount: 0,
+      };
+
+      existingStats.occurrenceCount += 1;
+      if (!ngramsInCurrentSentence.has(ngram)) {
+        existingStats.cardCount += 1;
+        ngramsInCurrentSentence.add(ngram);
+      }
+
+      counts.set(ngram, existingStats);
     }
   }
 
   return counts;
 }
 
-function toSortedEntries(counts: Map<string, number>): Array<[string, number]> {
+function toSortedEntries(
+  counts: Map<string, NgramStats>,
+): Array<[string, NgramStats]> {
   return Array.from(counts.entries()).sort((a, b) => {
-    if (b[1] !== a[1]) {
-      return b[1] - a[1];
+    if (b[1].occurrenceCount !== a[1].occurrenceCount) {
+      return b[1].occurrenceCount - a[1].occurrenceCount;
+    }
+
+    if (b[1].cardCount !== a[1].cardCount) {
+      return b[1].cardCount - a[1].cardCount;
     }
 
     return a[0].localeCompare(b[0]);
@@ -193,8 +220,9 @@ function extractSentenceColumn(rows: string[][]): string[] {
 
 function printTopNgrams(
   label: string,
-  sortedEntries: Array<[string, number]>,
+  sortedEntries: Array<[string, NgramStats]>,
   topCount: number,
+  totalCardCount: number,
 ): void {
   console.log(`\n${label}`);
   if (sortedEntries.length === 0) {
@@ -202,8 +230,14 @@ function printTopNgrams(
     return;
   }
 
-  sortedEntries.slice(0, topCount).forEach(([ngram, count], index) => {
-    console.log(`${index + 1}. ${ngram} (${count})`);
+  sortedEntries.slice(0, topCount).forEach(([ngram, stats], index) => {
+    const percentage = totalCardCount === 0
+      ? 0
+      : (stats.cardCount / totalCardCount) * 100;
+
+    console.log(
+      `${index + 1}. ${ngram} (${stats.occurrenceCount} occurrences, ${percentage.toFixed(1)}% of cards)`,
+    );
   });
 }
 
@@ -222,8 +256,8 @@ async function runAnalyzeCsvNgrams(args = process.argv.slice(2)): Promise<void> 
   const trigrams = toSortedEntries(countNgrams(sentences, 3));
 
   console.log(`Read ${sentences.length} sentences from ${inputPath}`);
-  printTopNgrams(`Top ${topCount} word bigrams:`, bigrams, topCount);
-  printTopNgrams(`Top ${topCount} word trigrams:`, trigrams, topCount);
+  printTopNgrams(`Top ${topCount} word bigrams:`, bigrams, topCount, sentences.length);
+  printTopNgrams(`Top ${topCount} word trigrams:`, trigrams, topCount, sentences.length);
 }
 
 if (import.meta.main) {
