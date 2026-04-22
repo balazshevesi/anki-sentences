@@ -42,6 +42,42 @@ const SENTENCE_PROCESS_CONCURRENCY = parseConcurrency(
   DEFAULT_SENTENCE_PROCESS_CONCURRENCY,
 );
 
+function getSentenceTranslations(
+  sentence: { translations?: Array<{ text: string }> },
+  maxTranslations: number,
+): string[] {
+  const uniqueTranslations: string[] = [];
+  const seenTranslations = new Set<string>();
+
+  for (const translation of sentence.translations ?? []) {
+    const normalizedText = translation.text.trim();
+    if (normalizedText.length === 0) {
+      continue;
+    }
+
+    const dedupeKey = normalizedText.toLocaleLowerCase();
+    if (seenTranslations.has(dedupeKey)) {
+      continue;
+    }
+
+    seenTranslations.add(dedupeKey);
+    uniqueTranslations.push(normalizedText);
+    if (uniqueTranslations.length >= maxTranslations) {
+      break;
+    }
+  }
+
+  return uniqueTranslations;
+}
+
+function formatSentenceTranslation(translations: string[]): string {
+  if (translations.length === 0) {
+    return "(no translation)";
+  }
+
+  return translations.join("<br>");
+}
+
 export async function getCardsForWords(
   config: DeckBuildConfig,
   translateWord: TranslateWord,
@@ -66,8 +102,12 @@ export async function getCardsForWords(
         return Promise.all(
           response.data.map((sentence) =>
             sentenceLimit(async (): Promise<CardData> => {
-              const translation =
-                sentence.translations?.[0]?.text ?? "(no translation)";
+              const translation = formatSentenceTranslation(
+                getSentenceTranslations(
+                  sentence,
+                  config.sentenceTranslationLimit,
+                ),
+              );
               const wordByWord = await buildWordByWord(
                 sentence.text,
                 translateWord,

@@ -19,6 +19,7 @@ export type DeckBuildConfig = {
   words: string[];
   sentenceLanguage: LanguageCode;
   translationLanguage: LanguageCode;
+  sentenceTranslationLimit: number;
   argosSourceLanguage: string;
   argosTargetLanguage: string;
   argosAlternatives: number;

@@ -99,6 +99,7 @@ Supported options include:
 - `--output=<path>`
 - `--sentence-lang=<tatoeba-code>` (default: `eng`)
 - `--translation-lang=<tatoeba-code>` (default: `hun`)
+- `--sentence-translations=<int>` (default: `3`)
 - `--word-count=<range>` (default: `4-40`)
 - `--limit=<int>` (default: `10`)
 - `--argos-source=<code>` / `--argos-target=<code>` (default: `en` -> `hu`)

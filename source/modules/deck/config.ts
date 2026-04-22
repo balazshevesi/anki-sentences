@@ -23,6 +23,7 @@ const DEFAULT_DECK_NAME = "EN-HU sentence deck";
 const DEFAULT_OUTPUT_PATH = "../output/example.apkg";
 const DEFAULT_SENTENCE_LANGUAGE = "eng";
 const DEFAULT_TRANSLATION_LANGUAGE = "hun";
+const DEFAULT_SENTENCE_TRANSLATION_LIMIT = 3;
 const DEFAULT_ARGOS_SOURCE = "en";
 const DEFAULT_ARGOS_TARGET = "hu";
 const DEFAULT_ARGOS_ALTERNATIVES = 3;
@@ -50,6 +51,7 @@ function printUsage(): void {
       "  --output=<path>              Output .apkg path (default: output/example.apkg)",
       "  --sentence-lang=<code>       Tatoeba sentence language (default: eng)",
       "  --translation-lang=<code>    Tatoeba translation language (default: hun)",
+      `  --sentence-translations=<int> Maximum sentence translations per card (default: ${DEFAULT_SENTENCE_TRANSLATION_LIMIT})`,
       `  --word-count=<range>         Tatoeba word_count filter (default: ${DEFAULT_WORD_COUNT})`,
       `  --limit=<int>                Number of cards to fetch per keyword (default: ${DEFAULT_LIMIT})`,
       "  --argos-source=<code>        Argos source language (default: en)",
@@ -211,6 +213,11 @@ export function loadDeckBuildConfig(
     outputPath,
     sentenceLanguage,
     translationLanguage,
+    sentenceTranslationLimit: parsePositiveInteger(
+      parsed["sentence-translations"] ??
+        `${DEFAULT_SENTENCE_TRANSLATION_LIMIT}`,
+      "--sentence-translations",
+    ),
     argosSourceLanguage: parseArgosLanguage(
       parsed["argos-source"] ?? DEFAULT_ARGOS_SOURCE,
       "--argos-source",
