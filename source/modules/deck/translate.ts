@@ -70,6 +70,8 @@ async function translateWord(
 
 export async function buildWordByWord(sentence: string, translateWordFn: TranslateWord): Promise<string> {
   const tokens = sentence.trim().length === 0 ? [] : sentence.trim().split(/\s+/);
-  const translated = await Promise.all(tokens.map((token) => translateWordFn(token)));
-  return JSON.stringify(translated);
+  const translatedEntries = await Promise.all(
+    tokens.map(async (token) => [token, await translateWordFn(token)] as const),
+  );
+  return JSON.stringify(Object.fromEntries(translatedEntries));
 }

@@ -4,25 +4,28 @@ import "./index.css";
 
 type CardPayload = {
   cardText: string;
-  wordByWord: string[];
+  wordByWord: Record<string, string>;
 };
 
 type TemplatePayload = CardPayload & {
   target: HTMLElement;
 };
 
-function parseWordByWord(raw: string): string[] {
+function parseWordByWord(raw: string): Record<string, string> {
   try {
     const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) {
-      return [];
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
     }
 
-    return parsed.map((item) =>
-      typeof item === "string" ? item : String(item),
+    return Object.fromEntries(
+      Object.entries(parsed).map(([word, translation]) => [
+        word,
+        typeof translation === "string" ? translation : String(translation),
+      ]),
     );
   } catch {
-    return [];
+    return {};
   }
 }
 
@@ -51,7 +54,15 @@ function readDevelopmentPayload(): TemplatePayload {
   target.id = "front";
   document.body.appendChild(target);
   const cardText = "I am learning a new language today.";
-  const wordByWord = ["Jag", "am", "lär", "en", "ny", "språk", "idag"];
+  const wordByWord = {
+    I: "Jag",
+    am: "är",
+    learning: "lär",
+    a: "en",
+    new: "ny",
+    language: "språk",
+    "today.": "idag",
+  };
   return {
     target,
     cardText,

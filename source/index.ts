@@ -8,6 +8,7 @@ import {
   getCardsForWord,
   loadDeckBuildConfig,
   loadQuestionFormatHtml,
+  type CardData,
 } from "./modules/deck/index";
 
 function escapeSqliteStringLiteral(value: string): string {
@@ -16,6 +17,37 @@ function escapeSqliteStringLiteral(value: string): string {
 
 function neutralizeAnkiMustacheInBundle(value: string): string {
   return value.replaceAll("{{", "{ {");
+}
+
+function escapeCsvField(value: string): string {
+  return `"${value.replaceAll('"', '""')}"`;
+}
+
+function getDeckFieldValues(card: CardData): [string, string, string, string, string] {
+  return [
+    card.sentence,
+    card.translation,
+    card.keyword,
+    card.sentenceId,
+    card.wordByWord,
+  ];
+}
+
+function createDeckCsv(cards: CardData[]): string {
+  const header = DECK_NOTE_FIELDS.join(",");
+  const rows = cards.map((card) =>
+    getDeckFieldValues(card).map(escapeCsvField).join(","),
+  );
+
+  return [header, ...rows].join("\n");
+}
+
+function getCsvOutputPath(outputPath: string): string {
+  if (/\.apkg$/i.test(outputPath)) {
+    return outputPath.replace(/\.apkg$/i, ".csv");
+  }
+
+  return `${outputPath}.csv`;
 }
 
 const main = async () => {
@@ -73,8 +105,11 @@ const main = async () => {
   await mkdir(dirname(config.outputPath), { recursive: true });
   const apkgBlob = await deck.save();
   await Bun.write(config.outputPath, apkgBlob);
+  const csvOutputPath = getCsvOutputPath(config.outputPath);
+  const csvContent = createDeckCsv(cards);
+  await Bun.write(csvOutputPath, csvContent);
   console.log(
-    `Saved ${cards.length} cards for '${config.word}' to ${config.outputPath}`,
+    `Saved ${cards.length} cards for '${config.word}' to ${config.outputPath} and ${csvOutputPath}`,
   );
 };
 
