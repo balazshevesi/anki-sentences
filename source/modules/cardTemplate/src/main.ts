@@ -4,14 +4,53 @@ import "./index.css";
 
 type CardPayload = {
   cardText: string;
-  wordByWord: Record<string, string>;
+  wordByWord: Record<string, WordTranslation>;
+};
+
+type WordTranslation = {
+  translatedText: string;
+  alternatives: string[];
 };
 
 type TemplatePayload = CardPayload & {
   target: HTMLElement;
 };
 
-function parseWordByWord(raw: string): Record<string, string> {
+function parseWordTranslation(value: unknown): WordTranslation {
+  if (typeof value === "string") {
+    return {
+      translatedText: value,
+      alternatives: [],
+    };
+  }
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {
+      translatedText: "",
+      alternatives: [],
+    };
+  }
+
+  const wordTranslation = value as {
+    translatedText?: unknown;
+    alternatives?: unknown;
+  };
+
+  const translatedText =
+    typeof wordTranslation.translatedText === "string"
+      ? wordTranslation.translatedText
+      : "";
+  const alternatives = Array.isArray(wordTranslation.alternatives)
+    ? wordTranslation.alternatives.map((alternative) => String(alternative))
+    : [];
+
+  return {
+    translatedText,
+    alternatives,
+  };
+}
+
+function parseWordByWord(raw: string): Record<string, WordTranslation> {
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
@@ -19,10 +58,7 @@ function parseWordByWord(raw: string): Record<string, string> {
     }
 
     return Object.fromEntries(
-      Object.entries(parsed).map(([word, translation]) => [
-        word,
-        typeof translation === "string" ? translation : String(translation),
-      ]),
+      Object.entries(parsed).map(([word, translation]) => [word, parseWordTranslation(translation)]),
     );
   } catch {
     return {};
@@ -55,13 +91,13 @@ function readDevelopmentPayload(): TemplatePayload {
   document.body.appendChild(target);
   const cardText = "I am learning a new language today.";
   const wordByWord = {
-    I: "Jag",
-    am: "är",
-    learning: "lär",
-    a: "en",
-    new: "ny",
-    language: "språk",
-    "today.": "idag",
+    I: { translatedText: "Jag", alternatives: ["Mig"] },
+    am: { translatedText: "är", alternatives: [] },
+    learning: { translatedText: "lär", alternatives: ["studerar"] },
+    a: { translatedText: "en", alternatives: [] },
+    new: { translatedText: "ny", alternatives: ["nytt"] },
+    language: { translatedText: "språk", alternatives: [] },
+    "today.": { translatedText: "idag", alternatives: ["i dag"] },
   };
   return {
     target,

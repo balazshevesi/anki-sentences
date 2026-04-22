@@ -77,6 +77,7 @@ const main = async () => {
     endpoint: config.argosTranslateUrl,
     sourceLanguage: config.argosSourceLanguage,
     targetLanguage: config.argosTargetLanguage,
+    alternatives: config.argosAlternatives,
   });
 
   // Get cards (based on config)

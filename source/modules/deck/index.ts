@@ -13,4 +13,9 @@ export { loadDeckBuildConfig } from "./config";
 export { loadQuestionFormatHtml } from "./template";
 export { buildWordByWord, createWordTranslator } from "./translate";
 
-export type { CardData, DeckBuildConfig, TranslateWord } from "./types";
+export type {
+  CardData,
+  DeckBuildConfig,
+  TranslateWord,
+  WordTranslation,
+} from "./types";

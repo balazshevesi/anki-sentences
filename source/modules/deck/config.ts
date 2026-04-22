@@ -25,6 +25,7 @@ const DEFAULT_SENTENCE_LANGUAGE = "eng";
 const DEFAULT_TRANSLATION_LANGUAGE = "hun";
 const DEFAULT_ARGOS_SOURCE = "en";
 const DEFAULT_ARGOS_TARGET = "hu";
+const DEFAULT_ARGOS_ALTERNATIVES = 3;
 const DEFAULT_WORD_COUNT = "15-50";
 const DEFAULT_LIMIT = 25;
 const DEFAULT_ARGOS_HOST = Bun.env.ARGOS_HOST ?? "127.0.0.1";
@@ -53,6 +54,7 @@ function printUsage(): void {
       `  --limit=<int>                Number of cards to fetch per keyword (default: ${DEFAULT_LIMIT})`,
       "  --argos-source=<code>        Argos source language (default: en)",
       "  --argos-target=<code>        Argos target language (default: hu)",
+      `  --argos-alternatives=<int>   Number of alternative translations per token (default: ${DEFAULT_ARGOS_ALTERNATIVES})`,
       `  --argos-url=<url>            Argos endpoint (default: ${DEFAULT_ARGOS_TRANSLATE_URL})`,
       "  -h, --help                   Show this message",
       "",
@@ -112,6 +114,17 @@ function parsePositiveInteger(rawValue: string, optionName: string): number {
       `Option ${optionName} must be a positive integer. Received: ${rawValue}`,
     );
   }
+  return value;
+}
+
+function parseNonNegativeInteger(rawValue: string, optionName: string): number {
+  const value = Number.parseInt(rawValue, 10);
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new Error(
+      `Option ${optionName} must be a non-negative integer. Received: ${rawValue}`,
+    );
+  }
+
   return value;
 }
 
@@ -205,6 +218,10 @@ export function loadDeckBuildConfig(
     argosTargetLanguage: parseArgosLanguage(
       parsed["argos-target"] ?? DEFAULT_ARGOS_TARGET,
       "--argos-target",
+    ),
+    argosAlternatives: parseNonNegativeInteger(
+      parsed["argos-alternatives"] ?? `${DEFAULT_ARGOS_ALTERNATIVES}`,
+      "--argos-alternatives",
     ),
     sentenceWordCount: parseWordCountFilter(
       parsed["word-count"] ?? DEFAULT_WORD_COUNT,

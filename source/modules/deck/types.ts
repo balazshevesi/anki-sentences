@@ -8,6 +8,11 @@ export type CardData = {
   wordByWord: string;
 };
 
+export type WordTranslation = {
+  translatedText: string;
+  alternatives: string[];
+};
+
 export type DeckBuildConfig = {
   deckName: string;
   outputPath: string;
@@ -16,9 +21,10 @@ export type DeckBuildConfig = {
   translationLanguage: LanguageCode;
   argosSourceLanguage: string;
   argosTargetLanguage: string;
+  argosAlternatives: number;
   sentenceWordCount: WordCountFilter;
   sentenceLimit: number;
   argosTranslateUrl: string;
 };
 
-export type TranslateWord = (word: string) => Promise<string>;
+export type TranslateWord = (word: string) => Promise<WordTranslation>;

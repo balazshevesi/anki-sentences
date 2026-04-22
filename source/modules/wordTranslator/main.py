@@ -19,10 +19,12 @@ class TranslateRequest(BaseModel):
     q: str = Field(min_length=1)
     source: str = Field(min_length=2)
     target: str = Field(min_length=2)
+    alternatives: int = Field(default=0, ge=0, le=20)
 
 
 class TranslateResponse(BaseModel):
     translatedText: str
+    alternatives: list[str] = Field(default_factory=list)
 
 
 def _refresh_installed_languages() -> None:
@@ -31,9 +33,35 @@ def _refresh_installed_languages() -> None:
 
 def _is_translation_available(from_code: str, to_code: str) -> bool:
     from_lang = argostranslate.translate.get_language_from_code(from_code)
-    if from_lang is None:
+    to_lang = argostranslate.translate.get_language_from_code(to_code)
+    if from_lang is None or to_lang is None:
         return False
-    return any(t.to_lang.code == to_code for t in from_lang.translations_from)
+
+    return any(t.to_lang.code == to_lang.code for t in from_lang.translations_from)
+
+
+def _get_translation(from_code: str, to_code: str):
+    from_lang = argostranslate.translate.get_language_from_code(from_code)
+    to_lang = argostranslate.translate.get_language_from_code(to_code)
+    if from_lang is None:
+        raise HTTPException(
+            status_code=400, detail=f"Unsupported source language: {from_code}"
+        )
+    if to_lang is None:
+        raise HTTPException(
+            status_code=400, detail=f"Unsupported target language: {to_code}"
+        )
+
+    try:
+        return from_lang.get_translation(to_lang)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "No translation package installed for this pair. "
+                f"Requested: {from_code}->{to_code}"
+            ),
+        ) from exc
 
 
 def _get_available_packages() -> list[argostranslate.package.AvailablePackage]:
@@ -114,10 +142,36 @@ def translate(request: TranslateRequest) -> TranslateResponse:
     _install_translation_package(source, target)
 
     try:
-        translated_text = argostranslate.translate.translate(request.q, source, target)
+        translation = _get_translation(source, target)
+
+        translated_text = translation.translate(request.q)
+        alternatives: list[str] = []
+
+        if request.alternatives > 0:
+            try:
+                hypotheses = translation.hypotheses(request.q, request.alternatives + 1)
+            except Exception:
+                hypotheses = []
+
+            seen = {translated_text.strip().casefold()}
+            for hypothesis in hypotheses:
+                alternative = hypothesis.value.strip()
+                if not alternative:
+                    continue
+
+                normalized = alternative.casefold()
+                if normalized in seen:
+                    continue
+
+                seen.add(normalized)
+                alternatives.append(alternative)
+                if len(alternatives) >= request.alternatives:
+                    break
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(
             status_code=500, detail=f"Translation failed: {exc}"
         ) from exc
 
-    return TranslateResponse(translatedText=translated_text)
+    return TranslateResponse(translatedText=translated_text, alternatives=alternatives)

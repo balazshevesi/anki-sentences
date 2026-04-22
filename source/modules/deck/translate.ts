@@ -1,4 +1,4 @@
-import type { TranslateWord } from "./types";
+import type { TranslateWord, WordTranslation } from "./types";
 import promiseLimit from "promise-limit";
 
 type PromiseLimitFn = <T>(fn: () => Promise<T>) => Promise<T>;
@@ -7,10 +7,12 @@ type ArgosTranslateRequest = {
   q: string;
   source: string;
   target: string;
+  alternatives?: number;
 };
 
 type ArgosTranslateResponse = {
   translatedText?: string;
+  alternatives?: string[];
 };
 
 const DEFAULT_TRANSLATION_CONCURRENCY = 1;
@@ -38,8 +40,9 @@ export function createWordTranslator(options: {
   endpoint: string;
   sourceLanguage: string;
   targetLanguage: string;
+  alternatives: number;
 }): TranslateWord {
-  const cache = new Map<string, Promise<string>>();
+  const cache = new Map<string, Promise<WordTranslation>>();
   const translateLimit = promiseLimit(
     TRANSLATION_CONCURRENCY,
   ) as PromiseLimitFn;
@@ -47,7 +50,10 @@ export function createWordTranslator(options: {
   return async (word: string) => {
     const normalizedWord = word.trim();
     if (normalizedWord.length === 0) {
-      return "";
+      return {
+        translatedText: "",
+        alternatives: [],
+      };
     }
 
     const cacheKey = normalizedWord.toLowerCase();
@@ -60,7 +66,10 @@ export function createWordTranslator(options: {
       translateWord(options, normalizedWord),
     ).catch((error: unknown) => {
       console.warn(`Falling back to original word for '${normalizedWord}':`, error);
-      return normalizedWord;
+      return {
+        translatedText: normalizedWord,
+        alternatives: [],
+      };
     });
 
     cache.set(cacheKey, requestPromise);
@@ -73,14 +82,19 @@ async function translateWord(
     endpoint: string;
     sourceLanguage: string;
     targetLanguage: string;
+    alternatives: number;
   },
   word: string,
-): Promise<string> {
+): Promise<WordTranslation> {
   const requestBody: ArgosTranslateRequest = {
     q: word,
     source: options.sourceLanguage,
     target: options.targetLanguage,
   };
+
+  if (options.alternatives > 0) {
+    requestBody.alternatives = options.alternatives;
+  }
 
   const response = await fetch(options.endpoint, {
     method: "POST",
@@ -94,7 +108,19 @@ async function translateWord(
   }
 
   const data = (await response.json()) as ArgosTranslateResponse;
-  return data.translatedText ?? word;
+  const translatedText = data.translatedText?.trim() || word;
+  const alternatives = Array.from(
+    new Set(
+      (data.alternatives ?? [])
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0 && value !== translatedText),
+    ),
+  );
+
+  return {
+    translatedText,
+    alternatives,
+  };
 }
 
 export async function buildWordByWord(sentence: string, translateWordFn: TranslateWord): Promise<string> {

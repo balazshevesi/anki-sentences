@@ -102,6 +102,7 @@ Supported options include:
 - `--word-count=<range>` (default: `4-40`)
 - `--limit=<int>` (default: `10`)
 - `--argos-source=<code>` / `--argos-target=<code>` (default: `en` -> `hu`)
+- `--argos-alternatives=<int>` (default: `3`)
 - `--argos-url=<url>` (default: `http://127.0.0.1:8000/translate`)
 
 ## Data sources
