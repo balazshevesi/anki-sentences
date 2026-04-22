@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import unicodedata
 from threading import Lock
 
 import argostranslate.package
@@ -25,6 +26,70 @@ class TranslateRequest(BaseModel):
 class TranslateResponse(BaseModel):
     translatedText: str
     alternatives: list[str] = Field(default_factory=list)
+
+
+def _is_symbol_or_punctuation(char: str) -> bool:
+    category = unicodedata.category(char)
+    return category.startswith("P") or category.startswith("S")
+
+
+def _strip_edge_symbols(value: str) -> str:
+    trimmed = value.strip()
+    if not trimmed:
+        return ""
+
+    start = 0
+    end = len(trimmed)
+
+    while start < end and _is_symbol_or_punctuation(trimmed[start]):
+        start += 1
+
+    while end > start and _is_symbol_or_punctuation(trimmed[end - 1]):
+        end -= 1
+
+    return trimmed[start:end].strip()
+
+
+def _find_first_letter_index(value: str) -> int | None:
+    for index, char in enumerate(value):
+        if char.isalpha():
+            return index
+    return None
+
+
+def _match_capitalization(source_text: str, translated_text: str) -> str:
+    source_index = _find_first_letter_index(source_text)
+    translated_index = _find_first_letter_index(translated_text)
+
+    if source_index is None or translated_index is None:
+        return translated_text
+
+    source_is_capitalized = source_text[source_index].isupper()
+    first_translated_char = translated_text[translated_index]
+    adjusted_char = (
+        first_translated_char.upper()
+        if source_is_capitalized
+        else first_translated_char.lower()
+    )
+
+    return (
+        translated_text[:translated_index]
+        + adjusted_char
+        + translated_text[translated_index + 1 :]
+    )
+
+
+def _normalize_translation_candidate(candidate: str, source_text: str) -> str:
+    without_edge_symbols = _strip_edge_symbols(candidate)
+    if not without_edge_symbols:
+        return ""
+
+    return _match_capitalization(source_text, without_edge_symbols)
+
+
+def _dedupe_key(value: str) -> str:
+    letters_and_numbers_only = "".join(char for char in value if char.isalnum())
+    return letters_and_numbers_only.casefold()
 
 
 def _refresh_installed_languages() -> None:
@@ -144,7 +209,14 @@ def translate(request: TranslateRequest) -> TranslateResponse:
     try:
         translation = _get_translation(source, target)
 
-        translated_text = translation.translate(request.q)
+        translated_text = _normalize_translation_candidate(
+            translation.translate(request.q), request.q
+        )
+        if not translated_text:
+            translated_text = _normalize_translation_candidate(request.q, request.q)
+        if not translated_text:
+            translated_text = request.q.strip()
+
         alternatives: list[str] = []
 
         if request.alternatives > 0:
@@ -153,13 +225,23 @@ def translate(request: TranslateRequest) -> TranslateResponse:
             except Exception:
                 hypotheses = []
 
-            seen = {translated_text.strip().casefold()}
+            source_key = _dedupe_key(
+                _normalize_translation_candidate(request.q, request.q)
+            )
+            seen = {_dedupe_key(translated_text)}
+            if source_key:
+                seen.add(source_key)
+
             for hypothesis in hypotheses:
-                alternative = hypothesis.value.strip()
+                alternative = _normalize_translation_candidate(
+                    hypothesis.value, request.q
+                )
                 if not alternative:
                     continue
 
-                normalized = alternative.casefold()
+                normalized = _dedupe_key(alternative)
+                if not normalized:
+                    continue
                 if normalized in seen:
                     continue
 
