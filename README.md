@@ -74,41 +74,26 @@ cd source
 bun run build
 ```
 
-The generated deck file is written under `scripts/output/` by default.
-
-## Main commands
-
-Run from `scripts/` unless noted otherwise.
-
-- `bun run run` - build app bundle and generate deck
-- `bun run app:build` - build the single-file Svelte renderer for cards
-- `bun run test` - run sentence wrapper tests
-- `bun run typecheck` - typecheck scripts + app
-- `bun run lint` - run typechecks and Python lint checks
-- `bun run update:languages` - refresh generated language list from Tatoeba
-- `bun run update:words` - download default frequency word files
-
-## Deck generator options
-
-`bun run index.ts --help`
-
-Supported options include:
-
-- `--word=<text,text,...>` (comma-separated; can be repeated)
-- `--deck-name=<text>`
-- `--output=<path>`
-- `--sentence-lang=<tatoeba-code>` (default: `eng`)
-- `--translation-lang=<tatoeba-code>` (default: `hun`)
-- `--sentence-translations=<int>` (default: `3`)
-- `--word-count=<range>` (default: `4-40`)
-- `--limit=<int>` (default: `10`)
-- `--argos-source=<code>` / `--argos-target=<code>` (default: `en` -> `hu`)
-- `--argos-alternatives=<int>` (default: `3`)
-- `--argos-url=<url>` (default: `http://127.0.0.1:8000/translate`)
-
 ## Data sources
 
 - Tatoeba sentence search API: `https://api.tatoeba.org`
 - Tatoeba supported language selector data: `https://tatoeba.org/en/downloads`
 - Frequency lists: `https://github.com/hermitdave/FrequencyWords`
 - Argos Translate: `https://github.com/argosopentech/argos-translate`
+
+## TODO
+
+### Functionality
+
+- [ ] Make the card template prettier
+- [ ] Add scripts for audio generation with AWS Polly
+- [ ] Add UI for audio playback (jump to timestamp of a word, play+pause icons, add some indicator of which word is currently being spoken)
+- [ ] Tweak word frequency categorization to be more accurate
+- [ ] Fix the UI flickering on the card flips (html/js-loading issue)
+
+### Code
+
+- [ ] Make everything even more easily swappable (ex: AWS Polly for 11labs, Argos for google translate, etc)
+- [ ] Add full generation guide in readme
+- [ ] Add more details (license, inspiration, etc) and stuff in the readme 
+- [ ] Finish wiring everything up so that i can generate 10k sentences
