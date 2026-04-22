@@ -1,6 +1,7 @@
 import {
   DEFAULT_SENTENCE_SEARCH_SORT,
   searchSentences,
+  type SentenceWithTranslations,
 } from "../sentenceRetrieval/index";
 import promiseLimit from "promise-limit";
 import {
@@ -22,6 +23,11 @@ const DEFAULT_SENTENCE_PROCESS_CONCURRENCY = 1;
 const DEFAULT_NGRAM_MIN_CARD_COUNT = 2;
 const DEFAULT_NGRAM_MIN_CARD_PERCENTAGE = 3;
 const DEFAULT_NGRAM_TRANSLATION_LIMIT_PER_CARD = 6;
+
+type SentenceJob = {
+  word: string;
+  sentence: SentenceWithTranslations;
+};
 
 function parseConcurrency(
   rawValue: string | undefined,
@@ -90,6 +96,35 @@ function formatSentenceTranslation(translations: string[]): string {
   return translations.join("<br>");
 }
 
+function normalizeSentenceTextForDedupe(text: string): string {
+  return text.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+}
+
+function dedupeSentenceJobs(sentenceJobs: SentenceJob[]): SentenceJob[] {
+  const uniqueSentenceJobs: SentenceJob[] = [];
+  const seenSentenceIds = new Set<number>();
+  const seenSentenceTexts = new Set<string>();
+
+  for (const sentenceJob of sentenceJobs) {
+    const normalizedText = normalizeSentenceTextForDedupe(
+      sentenceJob.sentence.text,
+    );
+
+    if (
+      seenSentenceIds.has(sentenceJob.sentence.id) ||
+      seenSentenceTexts.has(normalizedText)
+    ) {
+      continue;
+    }
+
+    seenSentenceIds.add(sentenceJob.sentence.id);
+    seenSentenceTexts.add(normalizedText);
+    uniqueSentenceJobs.push(sentenceJob);
+  }
+x
+  return uniqueSentenceJobs;
+}
+
 async function buildNgramTranslations(
   sentence: string,
   translatePhrase: TranslatePhrase,
@@ -150,11 +185,13 @@ export async function getCardsForWords(
     ),
   );
 
-  const sentenceJobs = wordResponses.flatMap(({ word, response }) =>
-    response.data.map((sentence) => ({
-      word,
-      sentence,
-    })),
+  const sentenceJobs = dedupeSentenceJobs(
+    wordResponses.flatMap(({ word, response }) =>
+      response.data.map((sentence) => ({
+        word,
+        sentence,
+      })),
+    ),
   );
 
   const candidateMap = selectNgramCandidates(
