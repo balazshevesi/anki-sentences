@@ -65,10 +65,6 @@
         return wordByWord[word] ?? EMPTY_WORD_TRANSLATION;
     }
 
-    function getNgramTranslations(): unknown[] {
-        return Array.isArray(ngramTranslations) ? ngramTranslations : [];
-    }
-
     function normalizeNgramTranslation(value: unknown): NgramTranslation {
         if (!value || typeof value !== "object" || Array.isArray(value)) {
             return {
@@ -93,6 +89,39 @@
             cardPercentage: typeof raw.cardPercentage === "number" ? raw.cardPercentage : 0,
         };
     }
+
+    function tokenizeForMatch(input: string): string[] {
+        return input.toLowerCase().match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu) ?? [];
+    }
+
+    function normalizeTokenForMatch(input: string): string {
+        return tokenizeForMatch(input)[0] ?? "";
+    }
+
+    function getNgramTranslations(): NgramTranslation[] {
+        if (!Array.isArray(ngramTranslations)) {
+            return [];
+        }
+
+        return ngramTranslations
+            .map((item) => normalizeNgramTranslation(item))
+            .filter((item) => item.phrase.length > 0 && item.translatedText.length > 0);
+    }
+
+    function getNgramTranslationsForWord(word: unknown): NgramTranslation[] {
+        if (typeof word !== "string") {
+            return [];
+        }
+
+        const normalizedWord = normalizeTokenForMatch(word);
+        if (!normalizedWord) {
+            return [];
+        }
+
+        return getNgramTranslations().filter((item) =>
+            tokenizeForMatch(item.phrase).includes(normalizedWord)
+        );
+    }
 </script>
 
 <div class="card-words" role="group" aria-label="Sentence words">
@@ -101,6 +130,7 @@
         {@const translatedWord = translation.translatedText}
         {@const alternatives = translation.alternatives}
         {@const frequency = translation.frequency}
+        {@const phraseTranslations = getNgramTranslationsForWord(word)}
         <span
             tabindex="0"
             role="button"
@@ -132,6 +162,26 @@
                                     {/if}
                                 </div>
                             {/if}
+                            {#if phraseTranslations.length > 0}
+                                <div class="mt-3 border-t pt-2">
+                                    <div class="text-xs opacity-70">Common phrases with this word</div>
+                                    {#each phraseTranslations as rawItem, phraseIndex (`phrase-${phraseIndex}`)}
+                                        {@const item = normalizeNgramTranslation(rawItem)}
+                                        <div class="mt-2 text-sm">
+                                            <div class="opacity-70">{item.phrase}</div>
+                                            <div class="font-medium">{item.translatedText}</div>
+                                            {#if item.alternatives.length > 0}
+                                                <div class="text-xs opacity-80">
+                                                    {item.alternatives.join(" | ")}
+                                                </div>
+                                            {/if}
+                                            <div class="text-xs opacity-70">
+                                                {item.ngramLength}-gram, {item.cardPercentage.toFixed(1)}% of cards
+                                            </div>
+                                        </div>
+                                    {/each}
+                                </div>
+                            {/if}
                         {:else}
                             <div class="text-sm opacity-70">(no translation)</div>
                         {/if}
@@ -142,37 +192,3 @@
         </span>
     {/each}
 </div>
-
-{#if getNgramTranslations().length > 0}
-    <div class="mt-4" role="group" aria-label="Common phrase translations">
-        <div class="mb-2 text-xs opacity-70">Common phrase translations</div>
-        <div class="flex flex-wrap gap-2">
-            {#each getNgramTranslations() as rawItem, index (`ngram-${index}`)}
-                {@const item = normalizeNgramTranslation(rawItem)}
-                <Popover.Root>
-                    <Popover.Trigger
-                        class="rounded-full border px-2 py-1 text-xs leading-tight"
-                    >
-                        {item.phrase}
-                    </Popover.Trigger>
-                    <Popover.Portal>
-                        <Popover.Content
-                            class="border-dark-10 bg-background shadow-popover data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--bits-popover-content-transform-origin) z-30 w-full max-w-[328px] rounded-[12px] border p-4"
-                            sideOffset={8}
-                        >
-                            <div class="font-medium">{item.translatedText}</div>
-                            {#if item.alternatives.length > 0}
-                                <div class="mt-2 text-sm opacity-80">
-                                    {item.alternatives.join(" | ")}
-                                </div>
-                            {/if}
-                            <div class="mt-2 text-xs opacity-70">
-                                {item.ngramLength}-gram, {item.cardPercentage.toFixed(1)}% of cards
-                            </div>
-                        </Popover.Content>
-                    </Popover.Portal>
-                </Popover.Root>
-            {/each}
-        </div>
-    </div>
-{/if}
