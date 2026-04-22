@@ -5,7 +5,7 @@ import {
   createWordTranslator,
   DEFAULT_DECK_SORT_FIELD,
   DECK_NOTE_FIELDS,
-  getCardsForWord,
+  getCardsForWords,
   loadDeckBuildConfig,
   loadQuestionFormatHtml,
   type CardData,
@@ -80,7 +80,7 @@ const main = async () => {
   });
 
   // Get cards (based on config)
-  const cards = await getCardsForWord(config, translateWord);
+  const cards = await getCardsForWords(config, translateWord);
 
   // Add each card to the deck
   for (const card of cards) {
@@ -95,7 +95,7 @@ const main = async () => {
         tags: [
           `sentence_lang_${config.sentenceLanguage}`,
           `translation_lang_${config.translationLanguage}`,
-          `keyword_${config.word}`,
+          `keyword_${card.keyword}`,
         ],
       },
     );
@@ -109,7 +109,7 @@ const main = async () => {
   const csvContent = createDeckCsv(cards);
   await Bun.write(csvOutputPath, csvContent);
   console.log(
-    `Saved ${cards.length} cards for '${config.word}' to ${config.outputPath} and ${csvOutputPath}`,
+    `Saved ${cards.length} cards for words [${config.words.join(", ")}] to ${config.outputPath} and ${csvOutputPath}`,
   );
 };
 

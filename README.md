@@ -94,7 +94,7 @@ Run from `scripts/` unless noted otherwise.
 
 Supported options include:
 
-- `--word=<text>`
+- `--word=<text,text,...>` (comma-separated; can be repeated)
 - `--deck-name=<text>`
 - `--output=<path>`
 - `--sentence-lang=<tatoeba-code>` (default: `eng`)

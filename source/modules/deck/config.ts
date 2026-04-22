@@ -5,14 +5,14 @@ import {
 } from "../sentenceRetrieval/index";
 import type { DeckBuildConfig } from "./types";
 
-const DEFAULT_WORD = "must";
+const DEFAULT_WORDS = ["must", "laughing"];
 const DEFAULT_DECK_NAME = "EN-HU sentence deck";
 const DEFAULT_OUTPUT_PATH = "../output/example.apkg";
 const DEFAULT_SENTENCE_LANGUAGE = "eng";
 const DEFAULT_TRANSLATION_LANGUAGE = "hun";
 const DEFAULT_ARGOS_SOURCE = "en";
 const DEFAULT_ARGOS_TARGET = "hu";
-const DEFAULT_WORD_COUNT = "4-40";
+const DEFAULT_WORD_COUNT = "20-50";
 const DEFAULT_LIMIT = 10;
 const DEFAULT_ARGOS_HOST = Bun.env.ARGOS_HOST ?? "127.0.0.1";
 const DEFAULT_ARGOS_PORT = Bun.env.ARGOS_PORT ?? "8000";
@@ -28,16 +28,16 @@ function printUsage(): void {
       "Generate an Anki sentence deck from Tatoeba results.",
       "",
       "Usage:",
-      "  bun run index.ts [--word=must] [--output=output/example.apkg]",
+      "  bun run index.ts [--word=must,should] [--output=output/example.apkg]",
       "",
       "Options:",
-      "  --word=<text>                Search keyword (default: must)",
+      `  --word=<text,text,...>       Search keywords as comma-separated list (default: ${DEFAULT_WORDS.join(",")})`,
       "  --deck-name=<text>           Deck name (default: EN-HU sentence deck)",
       "  --output=<path>              Output .apkg path (default: output/example.apkg)",
       "  --sentence-lang=<code>       Tatoeba sentence language (default: eng)",
       "  --translation-lang=<code>    Tatoeba translation language (default: hun)",
-      "  --word-count=<range>         Tatoeba word_count filter (default: 4-40)",
-      "  --limit=<int>                Number of cards to fetch (default: 10)",
+      `  --word-count=<range>         Tatoeba word_count filter (default: ${DEFAULT_WORD_COUNT})`,
+      `  --limit=<int>                Number of cards to fetch per keyword (default: ${DEFAULT_LIMIT})`,
       "  --argos-source=<code>        Argos source language (default: en)",
       "  --argos-target=<code>        Argos target language (default: hu)",
       `  --argos-url=<url>            Argos endpoint (default: ${DEFAULT_ARGOS_TRANSLATE_URL})`,
@@ -79,6 +79,11 @@ function parseArgs(args: string[]): Record<string, string> {
       }
       value = nextArg;
       index += 1;
+    }
+
+    if (rawKey === "word" && parsed.word) {
+      parsed.word = `${parsed.word},${value}`;
+      continue;
     }
 
     parsed[rawKey] = value;
@@ -134,14 +139,26 @@ function parseWordCountFilter(rawValue: string): WordCountFilter {
   return value as WordCountFilter;
 }
 
+function parseWordList(rawValue: string): string[] {
+  const words = rawValue
+    .split(",")
+    .map((word) => word.trim())
+    .filter((word) => word.length > 0);
+
+  if (words.length === 0) {
+    throw new Error(
+      "Option --word must include at least one non-empty keyword.",
+    );
+  }
+
+  return Array.from(new Set(words));
+}
+
 export function loadDeckBuildConfig(
   args: string[] = process.argv.slice(2),
 ): DeckBuildConfig {
   const parsed = parseArgs(args);
-  const word = (parsed.word ?? DEFAULT_WORD).trim();
-  if (word.length === 0) {
-    throw new Error("Option --word cannot be empty.");
-  }
+  const words = parseWordList(parsed.word ?? DEFAULT_WORDS.join(","));
 
   const sentenceLanguage = parseLanguageCode(
     parsed["sentence-lang"] ?? DEFAULT_SENTENCE_LANGUAGE,
@@ -163,7 +180,7 @@ export function loadDeckBuildConfig(
   }
 
   return {
-    word,
+    words,
     deckName,
     outputPath,
     sentenceLanguage,

@@ -24,10 +24,12 @@
     "template:install": "bun install --cwd modules/cardTemplate",
     "argos:start": "sh -c 'uv run --directory modules/wordTranslator python -m uvicorn main:app --host ${ARGOS_HOST:-0.0.0.0} --port ${ARGOS_PORT:-8000} --reload'",
     "deck:build": "bun run template:build && bun run index.ts",
+    "deck:analyze-ngrams": "bun run modules/deck/analyzeCsvNgrams.ts",
     "sentenceRetrieval:update": "bun run modules/sentenceRetrieval/updateTatoebaLanguages.ts",
     "wordFrequencies:words": "bun run modules/wordFrequencies/updateFrequencyWords.ts"
   },
   "dependencies": {
-    "anki-apkg-export": "4.0.3"
+    "anki-apkg-export": "4.0.3",
+    "promise-limit": "^2.7.0"
   }
 }

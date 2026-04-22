@@ -8,7 +8,7 @@ export const DECK_NOTE_FIELDS = [
 
 export const DEFAULT_DECK_SORT_FIELD = 0;
 
-export { getCardsForWord } from "./cards";
+export { getCardsForWords } from "./cards";
 export { loadDeckBuildConfig } from "./config";
 export { loadQuestionFormatHtml } from "./template";
 export { buildWordByWord, createWordTranslator } from "./translate";

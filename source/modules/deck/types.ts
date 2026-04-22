@@ -11,7 +11,7 @@ export type CardData = {
 export type DeckBuildConfig = {
   deckName: string;
   outputPath: string;
-  word: string;
+  words: string[];
   sentenceLanguage: LanguageCode;
   translationLanguage: LanguageCode;
   argosSourceLanguage: string;

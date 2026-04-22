@@ -1,4 +1,7 @@
 import type { TranslateWord } from "./types";
+import promiseLimit from "promise-limit";
+
+type PromiseLimitFn = <T>(fn: () => Promise<T>) => Promise<T>;
 
 type ArgosTranslateRequest = {
   q: string;
@@ -10,12 +13,36 @@ type ArgosTranslateResponse = {
   translatedText?: string;
 };
 
+const DEFAULT_TRANSLATION_CONCURRENCY = 1;
+
+function parseTranslationConcurrency(rawValue: string | undefined): number {
+  if (rawValue === undefined) {
+    return DEFAULT_TRANSLATION_CONCURRENCY;
+  }
+
+  const parsedValue = Number.parseInt(rawValue, 10);
+  if (!Number.isSafeInteger(parsedValue) || parsedValue <= 0) {
+    throw new Error(
+      `DECK_TRANSLATION_CONCURRENCY must be a positive integer. Received: ${rawValue}`,
+    );
+  }
+
+  return parsedValue;
+}
+
+const TRANSLATION_CONCURRENCY = parseTranslationConcurrency(
+  Bun.env.DECK_TRANSLATION_CONCURRENCY,
+);
+
 export function createWordTranslator(options: {
   endpoint: string;
   sourceLanguage: string;
   targetLanguage: string;
 }): TranslateWord {
   const cache = new Map<string, Promise<string>>();
+  const translateLimit = promiseLimit(
+    TRANSLATION_CONCURRENCY,
+  ) as PromiseLimitFn;
 
   return async (word: string) => {
     const normalizedWord = word.trim();
@@ -29,7 +56,9 @@ export function createWordTranslator(options: {
       return cached;
     }
 
-    const requestPromise = translateWord(options, normalizedWord).catch((error: unknown) => {
+    const requestPromise = translateLimit(() =>
+      translateWord(options, normalizedWord),
+    ).catch((error: unknown) => {
       console.warn(`Falling back to original word for '${normalizedWord}':`, error);
       return normalizedWord;
     });
@@ -73,5 +102,6 @@ export async function buildWordByWord(sentence: string, translateWordFn: Transla
   const translatedEntries = await Promise.all(
     tokens.map(async (token) => [token, await translateWordFn(token)] as const),
   );
+
   return JSON.stringify(Object.fromEntries(translatedEntries));
 }
