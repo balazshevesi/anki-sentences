@@ -1,4 +1,6 @@
-export const FREQUENCY_WORDS_FILE_EXTENSION = ".txt";
+export const FREQUENCY_WORDS_FILE_EXTENSION = ".csv";
+
+export { loadWordFrequencyLookup } from "./lookup";
 
 export {
   buildSourceUrl,
@@ -13,3 +15,4 @@ export {
 } from "./updateFrequencyWords";
 
 export type { FrequencySpec } from "./updateFrequencyWords";
+export type { WordFrequencyInfo, WordRarity } from "./lookup";

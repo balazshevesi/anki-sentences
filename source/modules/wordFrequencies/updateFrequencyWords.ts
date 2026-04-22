@@ -3,6 +3,14 @@ export const DEFAULT_FREQUENCY_SPECS = ["en:50k", "de:50k", "es:50k"];
 
 const SCRIPT_DIR = new URL("./", import.meta.url);
 
+type FrequencyRow = {
+  rank: number;
+  word: string;
+  count: number;
+  occurrencePercentage: number;
+  cumulativePercentage: number;
+};
+
 export interface FrequencySpec {
   language: string;
   size: string;
@@ -23,7 +31,7 @@ function printUsage(): void {
       "  Example: en:50k, zh_cn:50k, en:full",
       "",
       "Output filename:",
-      "  <language><size>.txt  (example: en50k.txt)",
+      "  <language><size>.csv  (example: en50k.csv)",
     ].join("\n"),
   );
 }
@@ -92,7 +100,78 @@ export function buildSourceUrl(year: string, spec: FrequencySpec): string {
 }
 
 export function getOutputPath(spec: FrequencySpec): URL {
-  return new URL(`${spec.language}${spec.size}.txt`, SCRIPT_DIR);
+  return new URL(`${spec.language}${spec.size}.csv`, SCRIPT_DIR);
+}
+
+function parseSourceRows(body: string): Array<{ word: string; count: number }> {
+  const parsedRows: Array<{ word: string; count: number }> = [];
+
+  for (const line of body.split(/\r?\n/)) {
+    const trimmedLine = line.trim();
+    if (trimmedLine.length === 0) {
+      continue;
+    }
+
+    const columns = trimmedLine.split(/\s+/);
+    if (columns.length < 2) {
+      continue;
+    }
+
+    const word = columns[0];
+    const rawCount = columns[1];
+    if (!word || !rawCount) {
+      continue;
+    }
+
+    const count = Number.parseInt(rawCount, 10);
+    if (!Number.isSafeInteger(count) || count <= 0) {
+      continue;
+    }
+
+    parsedRows.push({ word, count });
+  }
+
+  return parsedRows;
+}
+
+function toFrequencyRows(sourceRows: Array<{ word: string; count: number }>): FrequencyRow[] {
+  const totalCount = sourceRows.reduce((total, row) => total + row.count, 0);
+  if (totalCount <= 0) {
+    throw new Error("Downloaded frequency file does not contain valid rows.");
+  }
+
+  let cumulativeCount = 0;
+  return sourceRows.map((row, index) => {
+    cumulativeCount += row.count;
+
+    return {
+      rank: index + 1,
+      word: row.word,
+      count: row.count,
+      occurrencePercentage: (row.count / totalCount) * 100,
+      cumulativePercentage: (cumulativeCount / totalCount) * 100,
+    };
+  });
+}
+
+function escapeCsvCell(value: string): string {
+  return `"${value.replaceAll('"', '""')}"`;
+}
+
+function renderCsv(rows: FrequencyRow[]): string {
+  const header =
+    "rank,word,count,occurrence_percentage,cumulative_percentage";
+  const body = rows.map((row) =>
+    [
+      row.rank,
+      escapeCsvCell(row.word),
+      row.count,
+      row.occurrencePercentage.toFixed(8),
+      row.cumulativePercentage.toFixed(8),
+    ].join(","),
+  );
+
+  return [header, ...body].join("\n");
 }
 
 export async function downloadAndWriteWordList(
@@ -112,7 +191,11 @@ export async function downloadAndWriteWordList(
     throw new Error(`Downloaded file is empty: ${sourceUrl}`);
   }
 
-  await Bun.write(outputPath, body);
+  const parsedRows = parseSourceRows(body);
+  const frequencyRows = toFrequencyRows(parsedRows);
+  const renderedCsv = renderCsv(frequencyRows);
+
+  await Bun.write(outputPath, renderedCsv);
   console.log(`Saved ${spec.language}:${spec.size} -> ${outputPath.pathname}`);
 }
 

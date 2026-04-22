@@ -1,4 +1,5 @@
 import type { TranslateWord, WordTranslation } from "./types";
+import type { WordFrequencyInfo } from "../wordFrequencies/index";
 import promiseLimit from "promise-limit";
 
 type PromiseLimitFn = <T>(fn: () => Promise<T>) => Promise<T>;
@@ -41,6 +42,7 @@ export function createWordTranslator(options: {
   sourceLanguage: string;
   targetLanguage: string;
   alternatives: number;
+  getWordFrequencyInfo: (word: string) => WordFrequencyInfo;
 }): TranslateWord {
   const cache = new Map<string, Promise<WordTranslation>>();
   const translateLimit = promiseLimit(
@@ -53,6 +55,12 @@ export function createWordTranslator(options: {
       return {
         translatedText: "",
         alternatives: [],
+        frequency: {
+          rank: null,
+          occurrencePercentage: null,
+          rarity: "very_rare",
+          hint: "",
+        },
       };
     }
 
@@ -69,6 +77,7 @@ export function createWordTranslator(options: {
       return {
         translatedText: normalizedWord,
         alternatives: [],
+        frequency: options.getWordFrequencyInfo(normalizedWord),
       };
     });
 
@@ -83,6 +92,7 @@ async function translateWord(
     sourceLanguage: string;
     targetLanguage: string;
     alternatives: number;
+    getWordFrequencyInfo: (word: string) => WordFrequencyInfo;
   },
   word: string,
 ): Promise<WordTranslation> {
@@ -120,6 +130,7 @@ async function translateWord(
   return {
     translatedText,
     alternatives,
+    frequency: options.getWordFrequencyInfo(word),
   };
 }
 

@@ -10,6 +10,7 @@ import {
   loadQuestionFormatHtml,
   type CardData,
 } from "./modules/deck/index";
+import { loadWordFrequencyLookup } from "./modules/wordFrequencies/index";
 
 function escapeSqliteStringLiteral(value: string): string {
   return value.replaceAll("'", "''");
@@ -73,11 +74,19 @@ const main = async () => {
   });
 
   // Create word translator
+  const frequencyLookup = await loadWordFrequencyLookup(config.argosSourceLanguage);
+  if (!frequencyLookup.sourceFile) {
+    console.warn(
+      `No frequency list found for '${config.argosSourceLanguage}'. Falling back to default rarity hints.`,
+    );
+  }
+
   const translateWord = createWordTranslator({
     endpoint: config.argosTranslateUrl,
     sourceLanguage: config.argosSourceLanguage,
     targetLanguage: config.argosTargetLanguage,
     alternatives: config.argosAlternatives,
+    getWordFrequencyInfo: frequencyLookup.getWordFrequency,
   });
 
   // Get cards (based on config)

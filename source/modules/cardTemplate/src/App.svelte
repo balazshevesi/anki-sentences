@@ -4,6 +4,14 @@
     type WordTranslation = {
         translatedText: string;
         alternatives: string[];
+        frequency: WordFrequencyInfo;
+    };
+
+    type WordFrequencyInfo = {
+        rank: number | null;
+        occurrencePercentage: number | null;
+        rarity: string;
+        hint: string;
     };
 
     type Props = {
@@ -14,6 +22,12 @@
     const EMPTY_WORD_TRANSLATION: WordTranslation = {
         translatedText: "",
         alternatives: [],
+        frequency: {
+            rank: null,
+            occurrencePercentage: null,
+            rarity: "very_rare",
+            hint: "",
+        },
     };
 
     let { cardText, wordByWord }: Props = $props();
@@ -46,6 +60,7 @@
         {@const translation = getTranslation(word)}
         {@const translatedWord = translation.translatedText}
         {@const alternatives = translation.alternatives}
+        {@const frequency = translation.frequency}
         <span
             tabindex="0"
             role="button"
@@ -67,6 +82,14 @@
                             {#if alternatives.length > 0}
                                 <div class="mt-2 text-sm opacity-80">
                                     {alternatives.join(" | ")}
+                                </div>
+                            {/if}
+                            {#if frequency.hint}
+                                <div class="mt-2 text-xs opacity-70">
+                                    {frequency.hint}
+                                    {#if frequency.occurrencePercentage !== null}
+                                        ({frequency.occurrencePercentage.toFixed(4)}%)
+                                    {/if}
                                 </div>
                             {/if}
                         {:else}

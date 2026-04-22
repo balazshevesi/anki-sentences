@@ -12,9 +12,17 @@ bun run update:words
 
 This fetches and overwrites:
 
-- `en50k.txt`
-- `de50k.txt`
-- `es50k.txt`
+- `en50k.csv`
+- `de50k.csv`
+- `es50k.csv`
+
+Each CSV includes:
+
+- `rank`
+- `word`
+- `count`
+- `occurrence_percentage`
+- `cumulative_percentage`
 
 ## Custom run
 
