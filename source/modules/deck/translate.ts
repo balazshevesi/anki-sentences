@@ -1,4 +1,9 @@
-import type { TranslateWord, WordTranslation } from "./types";
+import type {
+  PhraseTranslation,
+  TranslatePhrase,
+  TranslateWord,
+  WordTranslation,
+} from "./types";
 import type { WordFrequencyInfo } from "../wordFrequencies/index";
 import promiseLimit from "promise-limit";
 
@@ -14,6 +19,18 @@ type ArgosTranslateRequest = {
 type ArgosTranslateResponse = {
   translatedText?: string;
   alternatives?: string[];
+};
+
+type TranslatorOptions = {
+  endpoint: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  alternatives: number;
+};
+
+type BasicTranslation = {
+  translatedText: string;
+  alternatives: string[];
 };
 
 const DEFAULT_TRANSLATION_CONCURRENCY = 1;
@@ -37,47 +54,34 @@ const TRANSLATION_CONCURRENCY = parseTranslationConcurrency(
   Bun.env.DECK_TRANSLATION_CONCURRENCY,
 );
 
-export function createWordTranslator(options: {
-  endpoint: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  alternatives: number;
-  getWordFrequencyInfo: (word: string) => WordFrequencyInfo;
-}): TranslateWord {
-  const cache = new Map<string, Promise<WordTranslation>>();
+function createBaseTranslator(options: TranslatorOptions): TranslatePhrase {
+  const cache = new Map<string, Promise<PhraseTranslation>>();
   const translateLimit = promiseLimit(
     TRANSLATION_CONCURRENCY,
   ) as PromiseLimitFn;
 
-  return async (word: string) => {
-    const normalizedWord = word.trim();
-    if (normalizedWord.length === 0) {
+  return async (text: string) => {
+    const normalizedText = text.trim();
+    if (normalizedText.length === 0) {
       return {
         translatedText: "",
         alternatives: [],
-        frequency: {
-          rank: null,
-          occurrencePercentage: null,
-          rarity: "very_rare",
-          hint: "",
-        },
       };
     }
 
-    const cacheKey = normalizedWord.toLowerCase();
+    const cacheKey = normalizedText.toLowerCase();
     const cached = cache.get(cacheKey);
     if (cached) {
       return cached;
     }
 
     const requestPromise = translateLimit(() =>
-      translateWord(options, normalizedWord),
+      translateText(options, normalizedText),
     ).catch((error: unknown) => {
-      console.warn(`Falling back to original word for '${normalizedWord}':`, error);
+      console.warn(`Falling back to original text for '${normalizedText}':`, error);
       return {
-        translatedText: normalizedWord,
+        translatedText: normalizedText,
         alternatives: [],
-        frequency: options.getWordFrequencyInfo(normalizedWord),
       };
     });
 
@@ -86,18 +90,35 @@ export function createWordTranslator(options: {
   };
 }
 
-async function translateWord(
-  options: {
-    endpoint: string;
-    sourceLanguage: string;
-    targetLanguage: string;
-    alternatives: number;
-    getWordFrequencyInfo: (word: string) => WordFrequencyInfo;
-  },
-  word: string,
-): Promise<WordTranslation> {
+export function createPhraseTranslator(options: TranslatorOptions): TranslatePhrase {
+  return createBaseTranslator(options);
+}
+
+export function createWordTranslator(options: {
+  endpoint: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  alternatives: number;
+  getWordFrequencyInfo: (word: string) => WordFrequencyInfo;
+}): TranslateWord {
+  const baseTranslator = createBaseTranslator(options);
+
+  return async (word: string): Promise<WordTranslation> => {
+    const translation = await baseTranslator(word);
+    return {
+      translatedText: translation.translatedText,
+      alternatives: translation.alternatives,
+      frequency: options.getWordFrequencyInfo(word),
+    };
+  };
+}
+
+async function translateText(
+  options: TranslatorOptions,
+  text: string,
+): Promise<BasicTranslation> {
   const requestBody: ArgosTranslateRequest = {
-    q: word,
+    q: text,
     source: options.sourceLanguage,
     target: options.targetLanguage,
   };
@@ -118,7 +139,7 @@ async function translateWord(
   }
 
   const data = (await response.json()) as ArgosTranslateResponse;
-  const translatedText = data.translatedText?.trim() || word;
+  const translatedText = data.translatedText?.trim() || text;
   const alternatives = Array.from(
     new Set(
       (data.alternatives ?? [])
@@ -130,7 +151,6 @@ async function translateWord(
   return {
     translatedText,
     alternatives,
-    frequency: options.getWordFrequencyInfo(word),
   };
 }
 

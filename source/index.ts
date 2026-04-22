@@ -2,6 +2,7 @@ import { default as Anki } from "anki-apkg-export";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import {
+  createPhraseTranslator,
   createWordTranslator,
   DEFAULT_DECK_SORT_FIELD,
   DECK_NOTE_FIELDS,
@@ -24,13 +25,14 @@ function escapeCsvField(value: string): string {
   return `"${value.replaceAll('"', '""')}"`;
 }
 
-function getDeckFieldValues(card: CardData): [string, string, string, string, string] {
+function getDeckFieldValues(card: CardData): [string, string, string, string, string, string] {
   return [
     card.sentence,
     card.translation,
     card.keyword,
     card.sentenceId,
     card.wordByWord,
+    card.ngramTranslations,
   ];
 }
 
@@ -61,6 +63,7 @@ const main = async () => {
   const questionFormat = `
     <div id="front">{{Sentence}}</div>
     <div id="wordByWord" hidden>{{wordByWord}}</div>
+    <div id="ngramTranslations" hidden>{{ngramTranslations}}</div>
     ${questionFormatHtml}`;
 
   const answerFormat = `{{FrontSide}}<hr id="answer">{{SentenceTranslation}}`;
@@ -88,9 +91,15 @@ const main = async () => {
     alternatives: config.argosAlternatives,
     getWordFrequencyInfo: frequencyLookup.getWordFrequency,
   });
+  const translatePhrase = createPhraseTranslator({
+    endpoint: config.argosTranslateUrl,
+    sourceLanguage: config.argosSourceLanguage,
+    targetLanguage: config.argosTargetLanguage,
+    alternatives: config.argosAlternatives,
+  });
 
   // Get cards (based on config)
-  const cards = await getCardsForWords(config, translateWord);
+  const cards = await getCardsForWords(config, translateWord, translatePhrase);
 
   // Add each card to the deck
   for (const card of cards) {
@@ -100,6 +109,7 @@ const main = async () => {
       card.keyword,
       card.sentenceId,
       card.wordByWord,
+      card.ngramTranslations,
       {
         sortField: DEFAULT_DECK_SORT_FIELD,
         tags: [

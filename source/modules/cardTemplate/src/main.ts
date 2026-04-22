@@ -5,6 +5,7 @@ import "./index.css";
 type CardPayload = {
   cardText: string;
   wordByWord: Record<string, WordTranslation>;
+  ngramTranslations: NgramTranslation[];
 };
 
 type WordTranslation = {
@@ -18,6 +19,16 @@ type WordFrequencyInfo = {
   occurrencePercentage: number | null;
   rarity: string;
   hint: string;
+};
+
+type NgramTranslation = {
+  phrase: string;
+  ngramLength: number;
+  translatedText: string;
+  alternatives: string[];
+  occurrenceCount: number;
+  cardCount: number;
+  cardPercentage: number;
 };
 
 type TemplatePayload = CardPayload & {
@@ -120,9 +131,61 @@ function parseWordByWord(raw: string): Record<string, WordTranslation> {
   }
 }
 
+function parseNgramTranslations(raw: string): NgramTranslation[] {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .filter((item) => !!item && typeof item === "object" && !Array.isArray(item))
+      .map((item) => {
+        const rawItem = item as {
+          phrase?: unknown;
+          ngramLength?: unknown;
+          translatedText?: unknown;
+          alternatives?: unknown;
+          occurrenceCount?: unknown;
+          cardCount?: unknown;
+          cardPercentage?: unknown;
+        };
+
+        return {
+          phrase: typeof rawItem.phrase === "string" ? rawItem.phrase : "",
+          ngramLength:
+            typeof rawItem.ngramLength === "number" && Number.isFinite(rawItem.ngramLength)
+              ? rawItem.ngramLength
+              : 0,
+          translatedText:
+            typeof rawItem.translatedText === "string" ? rawItem.translatedText : "",
+          alternatives: Array.isArray(rawItem.alternatives)
+            ? rawItem.alternatives.map((value) => String(value))
+            : [],
+          occurrenceCount:
+            typeof rawItem.occurrenceCount === "number" && Number.isFinite(rawItem.occurrenceCount)
+              ? rawItem.occurrenceCount
+              : 0,
+          cardCount:
+            typeof rawItem.cardCount === "number" && Number.isFinite(rawItem.cardCount)
+              ? rawItem.cardCount
+              : 0,
+          cardPercentage:
+            typeof rawItem.cardPercentage === "number" && Number.isFinite(rawItem.cardPercentage)
+              ? rawItem.cardPercentage
+              : 0,
+        };
+      })
+      .filter((item) => item.phrase.length > 0 && item.translatedText.length > 0);
+  } catch {
+    return [];
+  }
+}
+
 function readTemplatePayload(): TemplatePayload | null {
   const frontElement = document.getElementById("front");
   const wordByWordElement = document.getElementById("wordByWord");
+  const ngramTranslationsElement = document.getElementById("ngramTranslations");
 
   if (!frontElement || !wordByWordElement) {
     return null;
@@ -130,6 +193,9 @@ function readTemplatePayload(): TemplatePayload | null {
 
   const cardText = frontElement.innerText;
   const wordByWord = parseWordByWord(wordByWordElement.innerText);
+  const ngramTranslations = parseNgramTranslations(
+    ngramTranslationsElement?.innerText ?? "[]",
+  );
 
   frontElement.innerText = "";
 
@@ -137,6 +203,7 @@ function readTemplatePayload(): TemplatePayload | null {
     target: frontElement,
     cardText,
     wordByWord,
+    ngramTranslations,
   };
 }
 
@@ -217,10 +284,31 @@ function readDevelopmentPayload(): TemplatePayload {
       },
     },
   };
+  const ngramTranslations = [
+    {
+      phrase: "i am learning",
+      ngramLength: 3,
+      translatedText: "tanulok",
+      alternatives: ["épp tanulok"],
+      occurrenceCount: 6,
+      cardCount: 5,
+      cardPercentage: 12.5,
+    },
+    {
+      phrase: "new language",
+      ngramLength: 2,
+      translatedText: "új nyelv",
+      alternatives: [],
+      occurrenceCount: 9,
+      cardCount: 7,
+      cardPercentage: 17.5,
+    },
+  ];
   return {
     target,
     cardText,
     wordByWord,
+    ngramTranslations,
   };
 }
 
@@ -237,5 +325,6 @@ mount(App, {
   props: {
     cardText: payload.cardText,
     wordByWord: payload.wordByWord,
+    ngramTranslations: payload.ngramTranslations,
   },
 });

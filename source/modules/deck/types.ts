@@ -7,6 +7,12 @@ export type CardData = {
   keyword: string;
   sentenceId: string;
   wordByWord: string;
+  ngramTranslations: string;
+};
+
+export type PhraseTranslation = {
+  translatedText: string;
+  alternatives: string[];
 };
 
 export type WordTranslation = {
@@ -31,3 +37,4 @@ export type DeckBuildConfig = {
 };
 
 export type TranslateWord = (word: string) => Promise<WordTranslation>;
+export type TranslatePhrase = (phrase: string) => Promise<PhraseTranslation>;

@@ -1,3 +1,5 @@
+import { countNgrams, toSortedEntries, type NgramStats } from "./ngrams";
+
 const DEFAULT_INPUT_PATH = "../output/example.csv";
 const DEFAULT_TOP_COUNT = 25;
 const SENTENCE_FIELD_NAME = "Sentence";
@@ -5,11 +7,6 @@ const SENTENCE_FIELD_NAME = "Sentence";
 type CliOptions = {
   inputPath: string;
   topCount: number;
-};
-
-type NgramStats = {
-  occurrenceCount: number;
-  cardCount: number;
 };
 
 function printUsage(): void {
@@ -149,57 +146,6 @@ function parseCsv(content: string): string[][] {
   }
 
   return rows;
-}
-
-function tokenizeWords(input: string): string[] {
-  const normalizedInput = input.toLowerCase();
-  return normalizedInput.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu) ?? [];
-}
-
-function countNgrams(
-  sentences: string[],
-  ngramLength: number,
-): Map<string, NgramStats> {
-  const counts = new Map<string, NgramStats>();
-
-  for (const sentence of sentences) {
-    const words = tokenizeWords(sentence);
-    const ngramsInCurrentSentence = new Set<string>();
-
-    for (let index = 0; index <= words.length - ngramLength; index += 1) {
-      const ngram = words.slice(index, index + ngramLength).join(" ");
-      const existingStats = counts.get(ngram) ?? {
-        occurrenceCount: 0,
-        cardCount: 0,
-      };
-
-      existingStats.occurrenceCount += 1;
-      if (!ngramsInCurrentSentence.has(ngram)) {
-        existingStats.cardCount += 1;
-        ngramsInCurrentSentence.add(ngram);
-      }
-
-      counts.set(ngram, existingStats);
-    }
-  }
-
-  return counts;
-}
-
-function toSortedEntries(
-  counts: Map<string, NgramStats>,
-): Array<[string, NgramStats]> {
-  return Array.from(counts.entries()).sort((a, b) => {
-    if (b[1].occurrenceCount !== a[1].occurrenceCount) {
-      return b[1].occurrenceCount - a[1].occurrenceCount;
-    }
-
-    if (b[1].cardCount !== a[1].cardCount) {
-      return b[1].cardCount - a[1].cardCount;
-    }
-
-    return a[0].localeCompare(b[0]);
-  });
 }
 
 function extractSentenceColumn(rows: string[][]): string[] {

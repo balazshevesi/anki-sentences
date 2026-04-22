@@ -14,9 +14,20 @@
         hint: string;
     };
 
+    type NgramTranslation = {
+        phrase: string;
+        ngramLength: number;
+        translatedText: string;
+        alternatives: string[];
+        occurrenceCount: number;
+        cardCount: number;
+        cardPercentage: number;
+    };
+
     type Props = {
         cardText: string;
         wordByWord: Record<string, WordTranslation>;
+        ngramTranslations: NgramTranslation[];
     };
 
     const EMPTY_WORD_TRANSLATION: WordTranslation = {
@@ -30,7 +41,7 @@
         },
     };
 
-    let { cardText, wordByWord }: Props = $props();
+    let { cardText, wordByWord, ngramTranslations }: Props = $props();
     let openByIndex = $state<Record<number, boolean>>({});
 
     function tokenizeSentence(input: string): string[] {
@@ -52,6 +63,35 @@
         }
 
         return wordByWord[word] ?? EMPTY_WORD_TRANSLATION;
+    }
+
+    function getNgramTranslations(): unknown[] {
+        return Array.isArray(ngramTranslations) ? ngramTranslations : [];
+    }
+
+    function normalizeNgramTranslation(value: unknown): NgramTranslation {
+        if (!value || typeof value !== "object" || Array.isArray(value)) {
+            return {
+                phrase: "",
+                ngramLength: 0,
+                translatedText: "",
+                alternatives: [],
+                occurrenceCount: 0,
+                cardCount: 0,
+                cardPercentage: 0,
+            };
+        }
+
+        const raw = value as Partial<NgramTranslation>;
+        return {
+            phrase: typeof raw.phrase === "string" ? raw.phrase : "",
+            ngramLength: typeof raw.ngramLength === "number" ? raw.ngramLength : 0,
+            translatedText: typeof raw.translatedText === "string" ? raw.translatedText : "",
+            alternatives: Array.isArray(raw.alternatives) ? raw.alternatives.map((item) => String(item)) : [],
+            occurrenceCount: typeof raw.occurrenceCount === "number" ? raw.occurrenceCount : 0,
+            cardCount: typeof raw.cardCount === "number" ? raw.cardCount : 0,
+            cardPercentage: typeof raw.cardPercentage === "number" ? raw.cardPercentage : 0,
+        };
     }
 </script>
 
@@ -102,3 +142,37 @@
         </span>
     {/each}
 </div>
+
+{#if getNgramTranslations().length > 0}
+    <div class="mt-4" role="group" aria-label="Common phrase translations">
+        <div class="mb-2 text-xs opacity-70">Common phrase translations</div>
+        <div class="flex flex-wrap gap-2">
+            {#each getNgramTranslations() as rawItem, index (`ngram-${index}`)}
+                {@const item = normalizeNgramTranslation(rawItem)}
+                <Popover.Root>
+                    <Popover.Trigger
+                        class="rounded-full border px-2 py-1 text-xs leading-tight"
+                    >
+                        {item.phrase}
+                    </Popover.Trigger>
+                    <Popover.Portal>
+                        <Popover.Content
+                            class="border-dark-10 bg-background shadow-popover data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--bits-popover-content-transform-origin) z-30 w-full max-w-[328px] rounded-[12px] border p-4"
+                            sideOffset={8}
+                        >
+                            <div class="font-medium">{item.translatedText}</div>
+                            {#if item.alternatives.length > 0}
+                                <div class="mt-2 text-sm opacity-80">
+                                    {item.alternatives.join(" | ")}
+                                </div>
+                            {/if}
+                            <div class="mt-2 text-xs opacity-70">
+                                {item.ngramLength}-gram, {item.cardPercentage.toFixed(1)}% of cards
+                            </div>
+                        </Popover.Content>
+                    </Popover.Portal>
+                </Popover.Root>
+            {/each}
+        </div>
+    </div>
+{/if}
