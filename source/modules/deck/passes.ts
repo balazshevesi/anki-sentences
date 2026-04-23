@@ -272,6 +272,7 @@ export async function runBuildApkgPass(
       row.SentenceId,
       row.wordByWord,
       row.ngramTranslations,
+      row.difficulty,
       {
         sortField: DEFAULT_DECK_SORT_FIELD,
         tags: [

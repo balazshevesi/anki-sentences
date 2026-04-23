@@ -5,6 +5,7 @@ export const DECK_NOTE_FIELDS = [
   "SentenceId",
   "wordByWord",
   "ngramTranslations",
+  "difficulty",
 ] as const;
 
 export const DEFAULT_DECK_SORT_FIELD = 0;
