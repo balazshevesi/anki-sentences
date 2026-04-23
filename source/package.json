@@ -26,6 +26,7 @@
     "argos:start": "sh -c 'uv run --directory modules/wordTranslator python -m uvicorn main:app --host ${ARGOS_HOST:-0.0.0.0} --port ${ARGOS_PORT:-8000} --reload'",
     "deck:retrieve": "bun run cli.ts retrieve",
     "deck:enrich-translations": "bun run cli.ts enrich-translations",
+    "deck:enrich-difficulty": "bun run cli.ts enrich-difficulty",
     "deck:enrich-audio": "bun run cli.ts enrich-audio",
     "deck:build-apkg": "bun run template:build && bun run cli.ts build-apkg",
     "deck:pipeline": "bun run template:build && bun run cli.ts pipeline",

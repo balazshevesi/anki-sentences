@@ -65,7 +65,7 @@ cd source
 bun run argos:start
 ```
 
-3) Run the full pass pipeline (retrieve -> enrich translations -> enrich audio -> build apkg):
+3) Run the full pass pipeline (retrieve -> enrich translations -> enrich difficulty -> enrich audio -> build apkg):
 
 ```bash
 cd source
@@ -90,14 +90,21 @@ cd source
 bun run deck:enrich-translations --csv ../output/example.csv
 ```
 
-3) Add audio metadata placeholders to the CSV (audio generation is not implemented yet):
+3) Calculate sentence difficulty + sort CSV from easiest to hardest:
+
+```bash
+cd source
+bun run deck:enrich-difficulty --csv ../output/example.csv
+```
+
+4) Add audio metadata placeholders to the CSV (audio generation is not implemented yet):
 
 ```bash
 cd source
 bun run deck:enrich-audio --csv ../output/example.csv
 ```
 
-4) Build the card template + convert CSV to APKG (CSV is kept):
+5) Build the card template + convert CSV to APKG (CSV is kept):
 
 ```bash
 cd source
@@ -137,4 +144,5 @@ bun run cli.ts --help
 
 - [ ] Change the metadata/datamodel. It would probably be cleaner to bundle one big dictionary in js. This does not even necessary have to be coupled with the card template, it could be a different script tag altogether which just adds a constant (the constant should *probably* be loaded *after* the Svelte app loads). 
 - [ ] Add caching of translations to the Argos server
-- [ ] Look up how ordering of cards work in anki. Then maybe calculate a difficulty score for each sentence (based on the number of words in a sentence as well as the frequency of the words) and order the deck based on that
+- [x] Look up how ordering of cards work in anki. Then maybe calculate a difficulty score for each sentence (based on the number of words in a sentence as well as the frequency of the words) and order the deck based on that
+- [ ] While building, do better console logs so that progress is clearer

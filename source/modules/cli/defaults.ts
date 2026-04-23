@@ -43,6 +43,10 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
     description: "Add word-by-word and n-gram translation metadata to CSV",
   },
   {
+    name: "enrich-difficulty",
+    description: "Calculate sentence difficulty scores and sort CSV ascending",
+  },
+  {
     name: "enrich-audio",
     description: "Add audio metadata placeholders to CSV",
   },
@@ -52,6 +56,7 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
   },
   {
     name: "pipeline",
-    description: "Run retrieve -> enrich-translations -> enrich-audio -> build-apkg",
+    description:
+      "Run retrieve -> enrich-translations -> enrich-difficulty -> enrich-audio -> build-apkg",
   },
 ];

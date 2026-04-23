@@ -19,6 +19,7 @@ describe("pipeline CSV", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]?.Sentence).toBe("Hello world");
     expect(rows[0]?.ngramTranslations).toBe("[]");
+    expect(rows[0]?.difficulty).toBe("");
     expect(rows[0]?.audioMetadata).toBe("[]");
   });
 
@@ -31,6 +32,7 @@ describe("pipeline CSV", () => {
         SentenceId: "42",
         wordByWord: "{}",
         ngramTranslations: "[]",
+        difficulty: "12.34",
         audioMetadata: '{"status":"not_implemented"}',
       },
     ];

@@ -4,6 +4,7 @@ import type { DeckBuildConfig } from "../deck/types";
 export type PipelineCommand =
   | "retrieve"
   | "enrich-translations"
+  | "enrich-difficulty"
   | "enrich-audio"
   | "build-apkg"
   | "pipeline";

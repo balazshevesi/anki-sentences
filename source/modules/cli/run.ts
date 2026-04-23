@@ -1,6 +1,7 @@
 import {
   runAudioMetadataPass,
   runBuildApkgPass,
+  runDifficultyPass,
   runSentenceRetrievalPass,
   runTranslationMetadataPass,
 } from "../deck/passes";
@@ -47,6 +48,14 @@ export async function runCommand(command: PipelineCommand, options: CliOptions):
     return;
   }
 
+  if (command === "enrich-difficulty") {
+    const rows = await runDifficultyPass(config, options.csvPath);
+    console.log(
+      `Calculated difficulty scores and sorted ${rows.length} rows in ${options.csvPath}`,
+    );
+    return;
+  }
+
   if (command === "build-apkg") {
     const result = await runBuildApkgPass(config, options.csvPath);
     console.log(
@@ -61,6 +70,11 @@ export async function runCommand(command: PipelineCommand, options: CliOptions):
   const translatedRows = await runTranslationMetadataPass(config, options.csvPath);
   console.log(
     `Added word and n-gram translation metadata to ${translatedRows.length} rows in ${options.csvPath}`,
+  );
+
+  const difficultyRows = await runDifficultyPass(config, options.csvPath);
+  console.log(
+    `Calculated difficulty scores and sorted ${difficultyRows.length} rows in ${options.csvPath}`,
   );
 
   if (!options.skipAudio) {

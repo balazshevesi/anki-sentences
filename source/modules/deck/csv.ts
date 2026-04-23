@@ -3,8 +3,10 @@ import { dirname } from "node:path";
 import { DECK_NOTE_FIELDS } from "./constants";
 
 export const AUDIO_METADATA_FIELD = "audioMetadata" as const;
+export const DIFFICULTY_FIELD = "difficulty" as const;
 export const PIPELINE_CSV_FIELDS = [
   ...DECK_NOTE_FIELDS,
+  DIFFICULTY_FIELD,
   AUDIO_METADATA_FIELD,
 ] as const;
 
@@ -26,6 +28,7 @@ const DEFAULT_PIPELINE_ROW: PipelineCsvRow = {
   SentenceId: "",
   wordByWord: "{}",
   ngramTranslations: "[]",
+  difficulty: "",
   audioMetadata: "[]",
 };
 

@@ -6,6 +6,7 @@ export { loadQuestionFormatHtml } from "./template";
 export { buildWordByWord, createPhraseTranslator, createWordTranslator } from "./translate";
 export {
   AUDIO_METADATA_FIELD,
+  DIFFICULTY_FIELD,
   PIPELINE_CSV_FIELDS,
   parsePipelineCsvRows,
   readPipelineCsvRows,
@@ -17,6 +18,7 @@ export {
 export {
   runAudioMetadataPass,
   runBuildApkgPass,
+  runDifficultyPass,
   runSentenceRetrievalPass,
   runTranslationMetadataPass,
 } from "./passes";

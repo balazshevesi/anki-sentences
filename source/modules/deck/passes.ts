@@ -20,6 +20,7 @@ import type { DeckBuildConfig, TranslatePhrase } from "./types";
 import { loadWordFrequencyLookup } from "../wordFrequencies/index";
 import type { PipelineCsvRow } from "./csv";
 import { readPipelineCsvRows, writePipelineCsvRows } from "./csv";
+import { calculateSentenceDifficultyScore } from "./difficulty";
 
 type PromiseLimitFn = <T>(fn: () => Promise<T>) => Promise<T>;
 
@@ -106,6 +107,7 @@ export async function runSentenceRetrievalPass(
     SentenceId: String(job.sentence.id),
     wordByWord: "{}",
     ngramTranslations: "[]",
+    difficulty: "",
     audioMetadata: "[]",
   }));
 
@@ -194,6 +196,49 @@ export async function runAudioMetadataPass(
 
   await writePipelineCsvRows(csvPath, enrichedRows);
   return enrichedRows;
+}
+
+function parseDifficultyValue(rawDifficulty: string): number {
+  const parsed = Number.parseFloat(rawDifficulty);
+  if (!Number.isFinite(parsed)) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return parsed;
+}
+
+export async function runDifficultyPass(
+  config: DeckBuildConfig,
+  csvPath: string,
+): Promise<PipelineCsvRow[]> {
+  const rows = await readPipelineCsvRows(csvPath);
+  const frequencyLookup = await loadWordFrequencyLookup(config.argosSourceLanguage);
+  if (!frequencyLookup.sourceFile) {
+    console.warn(
+      `No frequency list found for '${config.argosSourceLanguage}'. Falling back to default rarity hints.`,
+    );
+  }
+
+  const enrichedRows = rows.map((row) => ({
+    ...row,
+    difficulty: calculateSentenceDifficultyScore(
+      row.Sentence,
+      frequencyLookup.getWordFrequency,
+    ).toFixed(2),
+  }));
+
+  const sortedRows = [...enrichedRows].sort((left, right) => {
+    const difficultyDelta =
+      parseDifficultyValue(left.difficulty) - parseDifficultyValue(right.difficulty);
+    if (difficultyDelta !== 0) {
+      return difficultyDelta;
+    }
+
+    return left.Sentence.localeCompare(right.Sentence);
+  });
+
+  await writePipelineCsvRows(csvPath, sortedRows);
+  return sortedRows;
 }
 
 export async function runBuildApkgPass(
