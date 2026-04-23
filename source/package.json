@@ -13,6 +13,7 @@
   "scripts": {
     "postinstall": "patch-package",
     "build": "sh build-with-argos.sh",
+    "cli": "bun run cli.ts",
     "test": "bun test",
     "typecheck:cardTemplate": "bun run --cwd modules/cardTemplate typecheck",
     "typecheck:source": "bunx tsc -p tsconfig.json --noEmit",
@@ -23,7 +24,12 @@
     "template:dev": "bun run --cwd modules/cardTemplate dev",
     "template:install": "bun install --cwd modules/cardTemplate",
     "argos:start": "sh -c 'uv run --directory modules/wordTranslator python -m uvicorn main:app --host ${ARGOS_HOST:-0.0.0.0} --port ${ARGOS_PORT:-8000} --reload'",
-    "deck:build": "bun run template:build && bun run index.ts",
+    "deck:retrieve": "bun run cli.ts retrieve",
+    "deck:enrich-translations": "bun run cli.ts enrich-translations",
+    "deck:enrich-audio": "bun run cli.ts enrich-audio",
+    "deck:build-apkg": "bun run template:build && bun run cli.ts build-apkg",
+    "deck:pipeline": "bun run template:build && bun run cli.ts pipeline",
+    "deck:build": "bun run deck:pipeline",
     "deck:analyze-ngrams": "bun run modules/deck/analyzeCsvNgrams.ts",
     "sentenceRetrieval:update": "bun run modules/sentenceRetrieval/updateTatoebaLanguages.ts",
     "wordFrequencies:words": "bun run modules/wordFrequencies/updateFrequencyWords.ts"
