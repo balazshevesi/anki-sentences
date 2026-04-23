@@ -141,8 +141,6 @@ bun run cli.ts --help
 - [ ] Add full generation guide in readme
 - [ ] Add more details (license, inspiration, etc) and stuff in the readme 
 - [ ] Finish wiring everything up so that i can generate 10k sentences
-
-- [ ] Change the metadata/datamodel. It would probably be cleaner to bundle one big dictionary in js. This does not even necessary have to be coupled with the card template, it could be a different script tag altogether which just adds a constant (the constant should *probably* be loaded *after* the Svelte app loads). 
 - [ ] Add caching of translations to the Argos server
 - [x] Look up how ordering of cards work in anki. Then maybe calculate a difficulty score for each sentence (based on the number of words in a sentence as well as the frequency of the words) and order the deck based on that
 - [ ] While building, do better console logs so that progress is clearer

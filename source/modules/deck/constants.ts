@@ -3,8 +3,7 @@ export const DECK_NOTE_FIELDS = [
   "SentenceTranslation",
   "Keyword",
   "SentenceId",
-  "wordByWord",
-  "ngramTranslations",
+  "cardPayload",
   "difficulty",
 ] as const;
 

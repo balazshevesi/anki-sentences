@@ -2,44 +2,40 @@ import { mount } from "svelte";
 import App from "./App.svelte";
 import "./index.css";
 import {
-  parseNgramTranslationsJson,
-  parseWordByWordJson,
+  parseCardPayloadJson,
+  type CardPayload,
   type NgramTranslation,
   type WordTranslation,
 } from "../../shared/cardPayload";
 
-type CardPayload = {
+type AppCardPayload = {
   cardText: string;
   wordByWord: Record<string, WordTranslation>;
   ngramTranslations: NgramTranslation[];
 };
 
-type TemplatePayload = CardPayload & {
+type TemplatePayload = AppCardPayload & {
   target: HTMLElement;
 };
 
 function readTemplatePayload(): TemplatePayload | null {
   const frontElement = document.getElementById("front");
-  const wordByWordElement = document.getElementById("wordByWord");
-  const ngramTranslationsElement = document.getElementById("ngramTranslations");
+  const cardPayloadElement = document.getElementById("cardPayload");
 
-  if (!frontElement || !wordByWordElement) {
+  if (!frontElement || !cardPayloadElement) {
     return null;
   }
 
   const cardText = frontElement.innerText;
-  const wordByWord = parseWordByWordJson(wordByWordElement.innerText);
-  const ngramTranslations = parseNgramTranslationsJson(
-    ngramTranslationsElement?.innerText ?? "[]",
-  );
+  const cardPayload: CardPayload = parseCardPayloadJson(cardPayloadElement.innerText);
 
   frontElement.innerText = "";
 
   return {
     target: frontElement,
     cardText,
-    wordByWord,
-    ngramTranslations,
+    wordByWord: cardPayload.wordByWord,
+    ngramTranslations: cardPayload.ngramTranslations,
   };
 }
 

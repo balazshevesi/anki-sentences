@@ -8,17 +8,17 @@ import {
 } from "./csv";
 
 describe("pipeline CSV", () => {
-  test("parses legacy CSV headers with safe defaults", () => {
+  test("parses CSV rows with missing optional columns", () => {
     const rows = parsePipelineCsvRows(
       [
-        "Sentence,SentenceTranslation,Keyword,SentenceId,wordByWord",
-        '"Hello world","Szia","hello","123","{}"',
+        "Sentence,SentenceTranslation,Keyword,SentenceId",
+        '"Hello world","Szia","hello","123"',
       ].join("\n"),
     );
 
     expect(rows).toHaveLength(1);
     expect(rows[0]?.Sentence).toBe("Hello world");
-    expect(rows[0]?.ngramTranslations).toBe("[]");
+    expect(rows[0]?.cardPayload).toBe('{"wordByWord":{},"ngramTranslations":[]}');
     expect(rows[0]?.difficulty).toBe("");
     expect(rows[0]?.audioMetadata).toBe("[]");
   });
@@ -30,8 +30,7 @@ describe("pipeline CSV", () => {
         SentenceTranslation: "Egy mondat",
         Keyword: "one",
         SentenceId: "42",
-        wordByWord: "{}",
-        ngramTranslations: "[]",
+        cardPayload: '{"wordByWord":{"one":{"translatedText":"egy","alternatives":[],"frequency":{"rank":10,"occurrencePercentage":0.1,"rarity":"very_common","hint":"Very common"}}},"ngramTranslations":[]}',
         difficulty: "12.34",
         audioMetadata: '{"status":"not_implemented"}',
       },

@@ -21,6 +21,11 @@ import { loadWordFrequencyLookup } from "../wordFrequencies/index";
 import type { PipelineCsvRow } from "./csv";
 import { readPipelineCsvRows, writePipelineCsvRows } from "./csv";
 import { calculateSentenceDifficultyScore } from "./difficulty";
+import {
+  EMPTY_CARD_PAYLOAD_JSON,
+  parseNgramTranslationsJson,
+  parseWordByWordJson,
+} from "../shared/cardPayload";
 
 type PromiseLimitFn = <T>(fn: () => Promise<T>) => Promise<T>;
 
@@ -58,6 +63,16 @@ function escapeSqliteStringLiteral(value: string): string {
 
 function neutralizeAnkiMustacheInBundle(value: string): string {
   return value.replaceAll("{{", "{ {");
+}
+
+function buildCardPayloadJson(
+  wordByWordJson: string,
+  ngramTranslationsJson: string,
+): string {
+  return JSON.stringify({
+    wordByWord: parseWordByWordJson(wordByWordJson),
+    ngramTranslations: parseNgramTranslationsJson(ngramTranslationsJson),
+  });
 }
 
 async function buildNgramTranslations(
@@ -105,8 +120,7 @@ export async function runSentenceRetrievalPass(
     ),
     Keyword: job.word,
     SentenceId: String(job.sentence.id),
-    wordByWord: "{}",
-    ngramTranslations: "[]",
+    cardPayload: EMPTY_CARD_PAYLOAD_JSON,
     difficulty: "",
     audioMetadata: "[]",
   }));
@@ -164,11 +178,13 @@ export async function runTranslationMetadataPass(
     rows.map((row) =>
       sentenceLimit(async () => ({
         ...row,
-        wordByWord: await buildWordByWord(row.Sentence, translateWord),
-        ngramTranslations: await buildNgramTranslations(
-          row.Sentence,
-          translatePhrase,
-          candidateMap,
+        cardPayload: buildCardPayloadJson(
+          await buildWordByWord(row.Sentence, translateWord),
+          await buildNgramTranslations(
+            row.Sentence,
+            translatePhrase,
+            candidateMap,
+          ),
         ),
       })),
     ),
@@ -252,8 +268,7 @@ export async function runBuildApkgPass(
 
   const questionFormat = `
     <div id="front">{{Sentence}}</div>
-    <div id="wordByWord" hidden>{{wordByWord}}</div>
-    <div id="ngramTranslations" hidden>{{ngramTranslations}}</div>
+    <div id="cardPayload" hidden>{{cardPayload}}</div>
     ${questionFormatHtml}`;
   const answerFormat = "{{FrontSide}}<hr id=\"answer\">{{SentenceTranslation}}";
 
@@ -270,8 +285,7 @@ export async function runBuildApkgPass(
       row.SentenceTranslation,
       row.Keyword,
       row.SentenceId,
-      row.wordByWord,
-      row.ngramTranslations,
+      row.cardPayload,
       row.difficulty,
       {
         sortField: DEFAULT_DECK_SORT_FIELD,

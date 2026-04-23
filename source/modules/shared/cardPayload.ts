@@ -28,6 +28,11 @@ export type NgramTranslation = {
   cardPercentage: number;
 };
 
+export type CardPayload = {
+  wordByWord: Record<string, WordTranslation>;
+  ngramTranslations: NgramTranslation[];
+};
+
 const WORD_RARITIES = new Set<WordRarity>([
   "very_common",
   "common",
@@ -48,6 +53,13 @@ export const EMPTY_WORD_TRANSLATION: WordTranslation = {
   alternatives: [],
   frequency: EMPTY_WORD_FREQUENCY,
 };
+
+export const EMPTY_CARD_PAYLOAD: CardPayload = {
+  wordByWord: {},
+  ngramTranslations: [],
+};
+
+export const EMPTY_CARD_PAYLOAD_JSON = JSON.stringify(EMPTY_CARD_PAYLOAD);
 
 export function isWordRarity(value: string): value is WordRarity {
   return WORD_RARITIES.has(value as WordRarity);
@@ -191,5 +203,29 @@ export function parseNgramTranslationsJson(raw: string): NgramTranslation[] {
     return parseNgramTranslations(JSON.parse(raw) as unknown);
   } catch {
     return [];
+  }
+}
+
+export function parseCardPayload(value: unknown): CardPayload {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return EMPTY_CARD_PAYLOAD;
+  }
+
+  const rawPayload = value as {
+    wordByWord?: unknown;
+    ngramTranslations?: unknown;
+  };
+
+  return {
+    wordByWord: parseWordByWord(rawPayload.wordByWord),
+    ngramTranslations: parseNgramTranslations(rawPayload.ngramTranslations),
+  };
+}
+
+export function parseCardPayloadJson(raw: string): CardPayload {
+  try {
+    return parseCardPayload(JSON.parse(raw) as unknown);
+  } catch {
+    return EMPTY_CARD_PAYLOAD;
   }
 }

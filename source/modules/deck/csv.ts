@@ -1,6 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { DECK_NOTE_FIELDS } from "./constants";
+import { EMPTY_CARD_PAYLOAD_JSON } from "../shared/cardPayload";
 
 export const AUDIO_METADATA_FIELD = "audioMetadata" as const;
 export const DIFFICULTY_FIELD = "difficulty" as const;
@@ -25,8 +26,7 @@ const DEFAULT_PIPELINE_ROW: PipelineCsvRow = {
   SentenceTranslation: "",
   Keyword: "",
   SentenceId: "",
-  wordByWord: "{}",
-  ngramTranslations: "[]",
+  cardPayload: EMPTY_CARD_PAYLOAD_JSON,
   difficulty: "",
   audioMetadata: "[]",
 };
