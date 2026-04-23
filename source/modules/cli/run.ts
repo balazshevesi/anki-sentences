@@ -6,7 +6,23 @@ import {
   runTranslationMetadataPass,
 } from "../deck/passes";
 import type { DeckBuildConfig } from "../deck/types";
+import { formatDuration } from "../shared/formatDuration";
 import type { CliOptions, PipelineCommand } from "./types";
+
+async function runStep<T>(
+  label: string,
+  startMessage: string,
+  run: () => Promise<T>,
+  summarize: (result: T) => string,
+): Promise<T> {
+  const startedAt = Date.now();
+  console.log(`[${label}] ${startMessage}`);
+  const result = await run();
+  console.log(
+    `[${label}] ${summarize(result)} (${formatDuration(Date.now() - startedAt)})`,
+  );
+  return result;
+}
 
 function toDeckBuildConfig(options: CliOptions): DeckBuildConfig {
   return {
@@ -30,61 +46,106 @@ export async function runCommand(command: PipelineCommand, options: CliOptions):
   const config = toDeckBuildConfig(options);
 
   if (command === "retrieve") {
-    const rows = await runSentenceRetrievalPass(config, options.csvPath);
-    console.log(`Retrieved ${rows.length} sentence rows into ${options.csvPath}`);
+    await runStep(
+      "retrieve",
+      `Retrieving sentence rows into ${options.csvPath}...`,
+      () => runSentenceRetrievalPass(config, options.csvPath),
+      (rows) => `Retrieved ${rows.length} sentence rows into ${options.csvPath}`,
+    );
     return;
   }
 
   if (command === "enrich-translations") {
-    const rows = await runTranslationMetadataPass(config, options.csvPath);
-    console.log(
-      `Added word and n-gram translation metadata to ${rows.length} rows in ${options.csvPath}`,
+    await runStep(
+      "translations",
+      `Adding translation metadata to rows from ${options.csvPath}...`,
+      () => runTranslationMetadataPass(config, options.csvPath),
+      (rows) =>
+        `Added word and n-gram translation metadata to ${rows.length} rows in ${options.csvPath}`,
     );
     return;
   }
 
   if (command === "enrich-audio") {
-    const rows = await runAudioMetadataPass(options.csvPath);
-    console.log(`Added audio metadata placeholders to ${rows.length} rows in ${options.csvPath}`);
+    await runStep(
+      "audio",
+      `Adding audio metadata placeholders to rows from ${options.csvPath}...`,
+      () => runAudioMetadataPass(options.csvPath),
+      (rows) =>
+        `Added audio metadata placeholders to ${rows.length} rows in ${options.csvPath}`,
+    );
     return;
   }
 
   if (command === "enrich-difficulty") {
-    const rows = await runDifficultyPass(config, options.csvPath);
-    console.log(
-      `Calculated difficulty scores and sorted ${rows.length} rows in ${options.csvPath}`,
+    await runStep(
+      "difficulty",
+      `Calculating difficulty scores for rows from ${options.csvPath}...`,
+      () => runDifficultyPass(config, options.csvPath),
+      (rows) =>
+        `Calculated difficulty scores and sorted ${rows.length} rows in ${options.csvPath}`,
     );
     return;
   }
 
   if (command === "build-apkg") {
-    const result = await runBuildApkgPass(config, options.csvPath);
-    console.log(
-      `Built ${result.cardCount} cards from ${options.csvPath} into ${options.outputPath}`,
+    await runStep(
+      "build",
+      `Building Anki package from ${options.csvPath}...`,
+      () => runBuildApkgPass(config, options.csvPath),
+      (result) =>
+        `Built ${result.cardCount} cards from ${options.csvPath} into ${options.outputPath}`,
     );
     return;
   }
 
-  const retrievedRows = await runSentenceRetrievalPass(config, options.csvPath);
-  console.log(`Retrieved ${retrievedRows.length} sentence rows into ${options.csvPath}`);
+  const pipelineStartedAt = Date.now();
+  console.log(`[pipeline] Starting deck pipeline (${options.csvPath} -> ${options.outputPath})`);
 
-  const translatedRows = await runTranslationMetadataPass(config, options.csvPath);
-  console.log(
-    `Added word and n-gram translation metadata to ${translatedRows.length} rows in ${options.csvPath}`,
+  await runStep(
+    "retrieve",
+    `Retrieving sentence rows into ${options.csvPath}...`,
+    () => runSentenceRetrievalPass(config, options.csvPath),
+    (rows) => `Retrieved ${rows.length} sentence rows into ${options.csvPath}`,
   );
 
-  const difficultyRows = await runDifficultyPass(config, options.csvPath);
-  console.log(
-    `Calculated difficulty scores and sorted ${difficultyRows.length} rows in ${options.csvPath}`,
+  await runStep(
+    "translations",
+    `Adding translation metadata to rows from ${options.csvPath}...`,
+    () => runTranslationMetadataPass(config, options.csvPath),
+    (rows) =>
+      `Added word and n-gram translation metadata to ${rows.length} rows in ${options.csvPath}`,
+  );
+
+  await runStep(
+    "difficulty",
+    `Calculating difficulty scores for rows from ${options.csvPath}...`,
+    () => runDifficultyPass(config, options.csvPath),
+    (rows) =>
+      `Calculated difficulty scores and sorted ${rows.length} rows in ${options.csvPath}`,
   );
 
   if (!options.skipAudio) {
-    const audioRows = await runAudioMetadataPass(options.csvPath);
-    console.log(`Added audio metadata placeholders to ${audioRows.length} rows in ${options.csvPath}`);
+    await runStep(
+      "audio",
+      `Adding audio metadata placeholders to rows from ${options.csvPath}...`,
+      () => runAudioMetadataPass(options.csvPath),
+      (rows) =>
+        `Added audio metadata placeholders to ${rows.length} rows in ${options.csvPath}`,
+    );
+  } else {
+    console.log("[audio] Skipped audio metadata pass (--skip-audio).");
   }
 
-  const buildResult = await runBuildApkgPass(config, options.csvPath);
+  await runStep(
+    "build",
+    `Building Anki package from ${options.csvPath}...`,
+    () => runBuildApkgPass(config, options.csvPath),
+    (result) =>
+      `Built ${result.cardCount} cards from ${options.csvPath} into ${options.outputPath}`,
+  );
+
   console.log(
-    `Built ${buildResult.cardCount} cards from ${options.csvPath} into ${options.outputPath}`,
+    `[pipeline] Completed deck pipeline in ${formatDuration(Date.now() - pipelineStartedAt)}`,
   );
 }

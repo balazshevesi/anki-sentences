@@ -26,11 +26,40 @@ import {
   parseNgramTranslationsJson,
   parseWordByWordJson,
 } from "../shared/cardPayload";
+import { formatDuration } from "../shared/formatDuration";
 
 type PromiseLimitFn = <T>(fn: () => Promise<T>) => Promise<T>;
 
 const DEFAULT_NGRAM_TRANSLATION_LIMIT_PER_CARD = 6;
 const DEFAULT_SENTENCE_METADATA_CONCURRENCY = 1;
+
+function computeTranslationProgressInterval(totalRows: number): number {
+  if (totalRows <= 10) {
+    return 1;
+  }
+
+  return Math.max(1, Math.ceil(totalRows / 10));
+}
+
+function logTranslationProgress(
+  completedRows: number,
+  totalRows: number,
+  startedAtMs: number,
+): void {
+  const elapsedMs = Date.now() - startedAtMs;
+  const completedRatio = completedRows / totalRows;
+  const percentage = (completedRatio * 100).toFixed(1);
+  const elapsedSeconds = elapsedMs / 1_000;
+  const rowsPerSecond = elapsedSeconds > 0 ? completedRows / elapsedSeconds : 0;
+  const remainingRows = totalRows - completedRows;
+  const etaMs = rowsPerSecond > 0 ? (remainingRows / rowsPerSecond) * 1_000 : 0;
+
+  const etaText =
+    remainingRows > 0 ? `, ETA ${formatDuration(Math.round(etaMs))}` : "";
+  console.log(
+    `[translations] Progress ${completedRows}/${totalRows} (${percentage}%) after ${formatDuration(elapsedMs)}${etaText}`,
+  );
+}
 
 function parsePositiveInteger(
   rawValue: string | undefined,
@@ -133,7 +162,18 @@ export async function runTranslationMetadataPass(
   config: DeckBuildConfig,
   csvPath: string,
 ): Promise<PipelineCsvRow[]> {
+  const passStartedAt = Date.now();
   const rows = await readPipelineCsvRows(csvPath);
+  if (rows.length === 0) {
+    console.log(`[translations] No rows found in ${csvPath}; skipping enrichment.`);
+    return rows;
+  }
+
+  console.log(`[translations] Loaded ${rows.length} rows from ${csvPath}.`);
+  console.log(
+    `[translations] Preparing translation resources (sentence concurrency: ${SENTENCE_METADATA_CONCURRENCY}).`,
+  );
+
   const frequencyLookup = await loadWordFrequencyLookup(config.argosSourceLanguage);
   if (!frequencyLookup.sourceFile) {
     console.warn(
@@ -174,23 +214,49 @@ export async function runTranslationMetadataPass(
     SENTENCE_METADATA_CONCURRENCY,
   ) as PromiseLimitFn;
 
+  const totalRows = rows.length;
+  const progressInterval = computeTranslationProgressInterval(totalRows);
+  const enrichStartedAt = Date.now();
+  let completedRows = 0;
+
+  console.log(
+    `[translations] Enriching rows with word-by-word and n-gram metadata...`,
+  );
+
   const enrichedRows = await Promise.all(
     rows.map((row) =>
-      sentenceLimit(async () => ({
-        ...row,
-        cardPayload: buildCardPayloadJson(
-          await buildWordByWord(row.Sentence, translateWord),
-          await buildNgramTranslations(
-            row.Sentence,
-            translatePhrase,
-            candidateMap,
+      sentenceLimit(async () => {
+        const enrichedRow = {
+          ...row,
+          cardPayload: buildCardPayloadJson(
+            await buildWordByWord(row.Sentence, translateWord),
+            await buildNgramTranslations(
+              row.Sentence,
+              translatePhrase,
+              candidateMap,
+            ),
           ),
-        ),
-      })),
+        };
+
+        completedRows += 1;
+        if (
+          completedRows === 1 ||
+          completedRows === totalRows ||
+          completedRows % progressInterval === 0
+        ) {
+          logTranslationProgress(completedRows, totalRows, enrichStartedAt);
+        }
+
+        return enrichedRow;
+      }),
     ),
   );
 
+  console.log(`[translations] Writing enriched rows to ${csvPath}...`);
   await writePipelineCsvRows(csvPath, enrichedRows);
+  console.log(
+    `[translations] Finished translation enrichment in ${formatDuration(Date.now() - passStartedAt)}.`,
+  );
   return enrichedRows;
 }
 
