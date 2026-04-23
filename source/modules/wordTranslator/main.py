@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import unicodedata
+from collections import OrderedDict
 from threading import Lock
 
 import argostranslate.package
@@ -14,6 +15,39 @@ app = FastAPI(title="Argos Translate API", version="0.1.0")
 _install_lock = Lock()
 _package_index_lock = Lock()
 _available_packages: list[argostranslate.package.AvailablePackage] | None = None
+
+DEFAULT_TRANSLATION_CACHE_SIZE = 5000
+
+
+def _read_translation_cache_size() -> int:
+    raw_value = os.getenv("ARGOS_TRANSLATION_CACHE_SIZE")
+    if raw_value is None:
+        return DEFAULT_TRANSLATION_CACHE_SIZE
+
+    value = raw_value.strip()
+    if not value:
+        return DEFAULT_TRANSLATION_CACHE_SIZE
+
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise RuntimeError(
+            "Invalid ARGOS_TRANSLATION_CACHE_SIZE value. Use an integer >= 0."
+        ) from exc
+
+    if parsed < 0:
+        raise RuntimeError(
+            "Invalid ARGOS_TRANSLATION_CACHE_SIZE value. Use an integer >= 0."
+        )
+
+    return parsed
+
+
+TRANSLATION_CACHE_SIZE = _read_translation_cache_size()
+_translation_cache_lock = Lock()
+_translation_cache: OrderedDict[
+    tuple[str, str, str, int], tuple[str, tuple[str, ...]]
+] = OrderedDict()
 
 
 class TranslateRequest(BaseModel):
@@ -96,6 +130,58 @@ def _refresh_installed_languages() -> None:
     argostranslate.translate.get_installed_languages.cache_clear()
 
 
+def _clear_translation_cache() -> None:
+    with _translation_cache_lock:
+        _translation_cache.clear()
+
+
+def _build_translation_cache_key(
+    source: str,
+    target: str,
+    text: str,
+    alternatives: int,
+) -> tuple[str, str, str, int]:
+    return (source, target, text, alternatives)
+
+
+def _get_cached_translation(
+    key: tuple[str, str, str, int],
+) -> TranslateResponse | None:
+    if TRANSLATION_CACHE_SIZE <= 0:
+        return None
+
+    with _translation_cache_lock:
+        cached = _translation_cache.get(key)
+        if cached is None:
+            return None
+
+        _translation_cache.move_to_end(key)
+
+    translated_text, alternatives = cached
+    return TranslateResponse(
+        translatedText=translated_text,
+        alternatives=list(alternatives),
+    )
+
+
+def _save_cached_translation(
+    key: tuple[str, str, str, int],
+    response: TranslateResponse,
+) -> None:
+    if TRANSLATION_CACHE_SIZE <= 0:
+        return
+
+    with _translation_cache_lock:
+        _translation_cache[key] = (
+            response.translatedText,
+            tuple(response.alternatives),
+        )
+        _translation_cache.move_to_end(key)
+
+        while len(_translation_cache) > TRANSLATION_CACHE_SIZE:
+            _translation_cache.popitem(last=False)
+
+
 def _is_translation_available(from_code: str, to_code: str) -> bool:
     from_lang = argostranslate.translate.get_language_from_code(from_code)
     to_lang = argostranslate.translate.get_language_from_code(to_code)
@@ -165,6 +251,7 @@ def _install_translation_package(from_code: str, to_code: str) -> None:
         download_path = package_to_install.download()
         argostranslate.package.install_from_path(download_path)
         _refresh_installed_languages()
+        _clear_translation_cache()
 
 
 def _preinstall_pairs() -> None:
@@ -185,6 +272,7 @@ def _preinstall_pairs() -> None:
 @app.on_event("startup")
 def startup() -> None:
     _refresh_installed_languages()
+    _clear_translation_cache()
     _preinstall_pairs()
 
 
@@ -203,6 +291,16 @@ def translate(request: TranslateRequest) -> TranslateResponse:
             status_code=400,
             detail="source='auto' is not supported. Use a language code like 'en'.",
         )
+
+    cache_key = _build_translation_cache_key(
+        source,
+        target,
+        request.q,
+        request.alternatives,
+    )
+    cached = _get_cached_translation(cache_key)
+    if cached is not None:
+        return cached
 
     _install_translation_package(source, target)
 
@@ -256,4 +354,9 @@ def translate(request: TranslateRequest) -> TranslateResponse:
             status_code=500, detail=f"Translation failed: {exc}"
         ) from exc
 
-    return TranslateResponse(translatedText=translated_text, alternatives=alternatives)
+    response = TranslateResponse(
+        translatedText=translated_text,
+        alternatives=alternatives,
+    )
+    _save_cached_translation(cache_key, response)
+    return response

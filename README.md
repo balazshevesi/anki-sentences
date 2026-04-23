@@ -43,7 +43,10 @@ Then adjust values as needed:
 ```dotenv
 ARGOS_HOST=127.0.0.1
 ARGOS_PORT=8000
+ARGOS_TRANSLATION_CACHE_SIZE=5000
 ```
+
+`ARGOS_TRANSLATION_CACHE_SIZE` controls the in-memory LRU cache size in the Argos API server (`0` disables caching).
 
 ## Quick start
 
