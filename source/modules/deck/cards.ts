@@ -68,6 +68,31 @@ function parseConcurrency(
   return parsedValue;
 }
 
+function escapeForRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function buildSentenceExclusionPatterns(terms: string[]): RegExp[] {
+  return terms
+    .map((term) => term.trim().toLocaleLowerCase())
+    .filter((term) => term.length > 0)
+    .map((term) =>
+      new RegExp(
+        `(^|[^\\p{L}\\p{N}])${escapeForRegex(term)}(?=$|[^\\p{L}\\p{N}])`,
+        "iu",
+      )
+    );
+}
+
+function shouldExcludeSentence(text: string, patterns: RegExp[]): boolean {
+  if (patterns.length === 0) {
+    return false;
+  }
+
+  const normalizedText = text.trim().toLocaleLowerCase();
+  return patterns.some((pattern) => pattern.test(normalizedText));
+}
+
 const WORD_RETRIEVAL_CONCURRENCY = parseConcurrency(
   Bun.env.DECK_WORD_CONCURRENCY,
   "DECK_WORD_CONCURRENCY",
@@ -151,6 +176,9 @@ export async function fetchSentenceJobsForWords(
 ): Promise<SentenceJob[]> {
   const wordLimit = promiseLimit(WORD_RETRIEVAL_CONCURRENCY) as PromiseLimitFn;
   const searchSentencesFn = options.searchSentencesFn ?? searchSentences;
+  const sentenceExclusionPatterns = buildSentenceExclusionPatterns(
+    config.sentenceExclusions,
+  );
 
   const wordResponses = await Promise.all(
     config.words.map((word) =>
@@ -174,10 +202,15 @@ export async function fetchSentenceJobsForWords(
 
   return dedupeSentenceJobs(
     wordResponses.flatMap(({ word, response }) =>
-      response.data.map((sentence) => ({
-        word,
-        sentence,
-      })),
+      response.data
+        .filter(
+          (sentence) =>
+            !shouldExcludeSentence(sentence.text, sentenceExclusionPatterns),
+        )
+        .map((sentence) => ({
+          word,
+          sentence,
+        })),
     ),
   );
 }

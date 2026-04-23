@@ -9,6 +9,7 @@ import {
   DEFAULT_DECK_NAME,
   DEFAULT_LIMIT,
   DEFAULT_OUTPUT_PATH,
+  DEFAULT_SENTENCE_EXCLUSIONS,
   DEFAULT_SENTENCE_LANGUAGE,
   DEFAULT_SENTENCE_TRANSLATION_LIMIT,
   DEFAULT_TRANSLATION_LANGUAGE,
@@ -33,6 +34,8 @@ export function addCommonOptions(command: CacCommand): void {
     .option("--argos-target <code>", "Argos target language")
     .option("--argos-alternatives <int>", "Alternative translations per token")
     .option("--argos-url <url>", "Argos endpoint URL")
+    .option("--sentence-exclusions <text,text,...>", "Exclude sentences containing terms")
+    .option("--exclude-politics", "Add default political sentence exclusions")
     .option("--skip-audio", "Skip enrich-audio during pipeline");
 }
 
@@ -124,8 +127,38 @@ function parseWordList(rawValue: unknown): string[] {
   return Array.from(new Set(words));
 }
 
+function parseSentenceExclusionTerms(rawValue: unknown): string[] {
+  const source = Array.isArray(rawValue)
+    ? rawValue.map((item) => String(item)).join(",")
+    : typeof rawValue === "string"
+      ? rawValue
+      : "";
+
+  return Array.from(
+    new Set(
+      source
+        .split(",")
+        .map((term) => term.trim().toLocaleLowerCase())
+        .filter((term) => term.length > 0),
+    ),
+  );
+}
+
 export function parseCliOptions(rawOptions: RawCliOptions): CliOptions {
   const words = parseWordList(rawOptions.word);
+  const customSentenceExclusions = parseSentenceExclusionTerms(
+    rawOptions.sentenceExclusions,
+  );
+  const sentenceExclusions = Array.from(
+    new Set(
+      rawOptions.excludePolitics === true
+        ? [
+          ...DEFAULT_SENTENCE_EXCLUSIONS,
+          ...customSentenceExclusions,
+        ]
+        : customSentenceExclusions,
+    ),
+  );
 
   const explicitCsv = getOptionalString(rawOptions.csv, "--csv");
   const explicitApkg =
@@ -175,6 +208,7 @@ export function parseCliOptions(rawOptions: RawCliOptions): CliOptions {
     argosTranslateUrl:
       getOptionalString(rawOptions.argosUrl, "--argos-url") ??
       DEFAULT_ARGOS_TRANSLATE_URL,
+    sentenceExclusions,
     skipAudio: rawOptions.skipAudio === true,
   };
 }

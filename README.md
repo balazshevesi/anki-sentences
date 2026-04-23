@@ -83,6 +83,20 @@ cd source
 bun run deck:retrieve --csv ../output/example.csv --word must,laughing
 ```
 
+To reduce political/news-like content during retrieval:
+
+```bash
+cd source
+bun run deck:retrieve --csv ../output/example.csv --word must,laughing --exclude-politics
+```
+
+You can also block custom terms:
+
+```bash
+cd source
+bun run deck:retrieve --csv ../output/example.csv --word must,laughing --sentence-exclusions president,election,chancellor
+```
+
 2) Add word-level and n-gram translation metadata to the same CSV:
 
 ```bash

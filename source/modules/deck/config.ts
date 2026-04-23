@@ -238,5 +238,6 @@ export function loadDeckBuildConfig(
       "--limit",
     ),
     argosTranslateUrl: parsed["argos-url"] ?? DEFAULT_ARGOS_TRANSLATE_URL,
+    sentenceExclusions: [],
   };
 }

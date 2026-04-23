@@ -18,7 +18,8 @@ export const DEFAULT_WORDS = [
 
 export const DEFAULT_DECK_NAME = "EN-HU sentence deck";
 export const DEFAULT_OUTPUT_PATH = "../output/example.apkg";
-export const DEFAULT_SENTENCE_LANGUAGE: DeckBuildConfig["sentenceLanguage"] = "eng";
+export const DEFAULT_SENTENCE_LANGUAGE: DeckBuildConfig["sentenceLanguage"] =
+  "eng";
 export const DEFAULT_TRANSLATION_LANGUAGE: DeckBuildConfig["translationLanguage"] =
   "hun";
 export const DEFAULT_SENTENCE_TRANSLATION_LIMIT = 3;
@@ -32,6 +33,17 @@ export const DEFAULT_ARGOS_PORT = Bun.env.ARGOS_PORT ?? "8000";
 export const DEFAULT_ARGOS_TRANSLATE_URL =
   Bun.env.ARGOS_TRANSLATE_URL ??
   `http://${DEFAULT_ARGOS_HOST}:${DEFAULT_ARGOS_PORT}/translate`;
+
+export const DEFAULT_SENTENCE_EXCLUSIONS = [
+  "democratic",
+  "republican",
+  "oligarch",
+  "Merkel",
+  "Trump",
+  "Clinton",
+  "Obama",
+  "Biden",
+] as const;
 
 export const COMMAND_DEFINITIONS: CommandDefinition[] = [
   {

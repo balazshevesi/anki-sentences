@@ -22,6 +22,7 @@ function toDeckBuildConfig(options: CliOptions): DeckBuildConfig {
     sentenceWordCount: options.sentenceWordCount,
     sentenceLimit: options.sentenceLimit,
     argosTranslateUrl: options.argosTranslateUrl,
+    sentenceExclusions: options.sentenceExclusions,
   };
 }
 

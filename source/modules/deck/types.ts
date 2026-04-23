@@ -30,6 +30,7 @@ export type DeckBuildConfig = {
   sentenceWordCount: WordCountFilter;
   sentenceLimit: number;
   argosTranslateUrl: string;
+  sentenceExclusions: string[];
 };
 
 export type TranslateWord = (word: string) => Promise<WordTranslation>;

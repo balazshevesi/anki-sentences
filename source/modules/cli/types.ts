@@ -23,6 +23,7 @@ export type CliOptions = {
   sentenceWordCount: WordCountFilter;
   sentenceLimit: number;
   argosTranslateUrl: string;
+  sentenceExclusions: string[];
   skipAudio: boolean;
 };
 
@@ -41,6 +42,8 @@ export type RawCliOptions = {
   argosTarget?: unknown;
   argosAlternatives?: unknown;
   argosUrl?: unknown;
+  sentenceExclusions?: unknown;
+  excludePolitics?: unknown;
   skipAudio?: unknown;
 };
 

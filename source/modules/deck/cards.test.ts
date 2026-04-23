@@ -26,6 +26,7 @@ function buildConfig(words: string[]): DeckBuildConfig {
     sentenceWordCount: "1-10",
     sentenceLimit: 20,
     argosTranslateUrl: "http://127.0.0.1:8000/translate",
+    sentenceExclusions: [],
   };
 }
 
@@ -106,6 +107,26 @@ describe("fetchSentenceJobsForWords", () => {
     expect(jobs).toHaveLength(1);
     expect(jobs[0]?.word).toBe("hello");
     expect(jobs[0]?.sentence.id).toBe(1);
+  });
+
+  test("excludes sentences matching configured terms", async () => {
+    const config = {
+      ...buildConfig(["president"]),
+      sentenceExclusions: ["president", "chancellor"],
+    };
+
+    const searchSentencesFn = async (): Promise<SentenceSearchResponse> => ({
+      data: [
+        buildSentence(1, "The President will address parliament today."),
+        buildSentence(2, "I walked to the station this morning."),
+      ],
+      paging: { has_next: false },
+    });
+
+    const jobs = await fetchSentenceJobsForWords(config, { searchSentencesFn });
+
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]?.sentence.id).toBe(2);
   });
 });
 
