@@ -4,7 +4,7 @@ import type {
   TranslateWord,
   WordTranslation,
 } from "./types";
-import type { WordFrequencyInfo } from "../wordFrequencies/index";
+import type { WordFrequencyInfo } from "../shared/cardPayload";
 import promiseLimit from "promise-limit";
 
 type PromiseLimitFn = <T>(fn: () => Promise<T>) => Promise<T>;

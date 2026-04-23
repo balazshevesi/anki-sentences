@@ -16,7 +16,7 @@
     "test": "bun test",
     "typecheck:cardTemplate": "bun run --cwd modules/cardTemplate typecheck",
     "typecheck:source": "bunx tsc -p tsconfig.json --noEmit",
-    "typecheck": "bun run typecheck:scripts && bun run typecheck:cardTemplate",
+    "typecheck": "bun run typecheck:source && bun run typecheck:cardTemplate",
     "lint:py": "uvx ruff check modules/wordTranslator",
     "lint": "bun run typecheck && bun run lint:py",
     "template:build": "bun run --cwd modules/cardTemplate build",

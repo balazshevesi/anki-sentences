@@ -1,5 +1,7 @@
 import type { LanguageCode, WordCountFilter } from "../sentenceRetrieval/index";
-import type { WordFrequencyInfo } from "../wordFrequencies/index";
+import type { WordTranslation } from "../shared/cardPayload";
+
+export type { WordTranslation } from "../shared/cardPayload";
 
 export type CardData = {
   sentence: string;
@@ -13,12 +15,6 @@ export type CardData = {
 export type PhraseTranslation = {
   translatedText: string;
   alternatives: string[];
-};
-
-export type WordTranslation = {
-  translatedText: string;
-  alternatives: string[];
-  frequency: WordFrequencyInfo;
 };
 
 export type DeckBuildConfig = {

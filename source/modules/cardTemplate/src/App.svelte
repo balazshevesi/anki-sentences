@@ -1,44 +1,16 @@
 <script lang="ts">
     import { Popover } from "bits-ui";
-
-    type WordTranslation = {
-        translatedText: string;
-        alternatives: string[];
-        frequency: WordFrequencyInfo;
-    };
-
-    type WordFrequencyInfo = {
-        rank: number | null;
-        occurrencePercentage: number | null;
-        rarity: string;
-        hint: string;
-    };
-
-    type NgramTranslation = {
-        phrase: string;
-        ngramLength: number;
-        translatedText: string;
-        alternatives: string[];
-        occurrenceCount: number;
-        cardCount: number;
-        cardPercentage: number;
-    };
+    import {
+        EMPTY_WORD_TRANSLATION,
+        normalizeNgramTranslation,
+        type NgramTranslation,
+        type WordTranslation,
+    } from "../../shared/cardPayload";
 
     type Props = {
         cardText: string;
         wordByWord: Record<string, WordTranslation>;
         ngramTranslations: NgramTranslation[];
-    };
-
-    const EMPTY_WORD_TRANSLATION: WordTranslation = {
-        translatedText: "",
-        alternatives: [],
-        frequency: {
-            rank: null,
-            occurrencePercentage: null,
-            rarity: "very_rare",
-            hint: "",
-        },
     };
 
     let { cardText, wordByWord, ngramTranslations }: Props = $props();
@@ -63,31 +35,6 @@
         }
 
         return wordByWord[word] ?? EMPTY_WORD_TRANSLATION;
-    }
-
-    function normalizeNgramTranslation(value: unknown): NgramTranslation {
-        if (!value || typeof value !== "object" || Array.isArray(value)) {
-            return {
-                phrase: "",
-                ngramLength: 0,
-                translatedText: "",
-                alternatives: [],
-                occurrenceCount: 0,
-                cardCount: 0,
-                cardPercentage: 0,
-            };
-        }
-
-        const raw = value as Partial<NgramTranslation>;
-        return {
-            phrase: typeof raw.phrase === "string" ? raw.phrase : "",
-            ngramLength: typeof raw.ngramLength === "number" ? raw.ngramLength : 0,
-            translatedText: typeof raw.translatedText === "string" ? raw.translatedText : "",
-            alternatives: Array.isArray(raw.alternatives) ? raw.alternatives.map((item) => String(item)) : [],
-            occurrenceCount: typeof raw.occurrenceCount === "number" ? raw.occurrenceCount : 0,
-            cardCount: typeof raw.cardCount === "number" ? raw.cardCount : 0,
-            cardPercentage: typeof raw.cardPercentage === "number" ? raw.cardPercentage : 0,
-        };
     }
 
     function tokenizeForMatch(input: string): string[] {

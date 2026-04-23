@@ -1,19 +1,12 @@
+import type {
+  WordFrequencyInfo,
+  WordRarity,
+} from "../shared/cardPayload";
+
+export type { WordFrequencyInfo, WordRarity } from "../shared/cardPayload";
+
 const DEFAULT_WORD_LIST_SIZE = "50k";
 const MODULE_DIR = new URL("./", import.meta.url);
-
-export type WordRarity =
-  | "very_common"
-  | "common"
-  | "uncommon"
-  | "rare"
-  | "very_rare";
-
-export type WordFrequencyInfo = {
-  rank: number | null;
-  occurrencePercentage: number | null;
-  rarity: WordRarity;
-  hint: string;
-};
 
 type FrequencyRow = {
   rank: number;

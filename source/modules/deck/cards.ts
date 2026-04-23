@@ -1,9 +1,9 @@
+import promiseLimit from "promise-limit";
 import {
   DEFAULT_SENTENCE_SEARCH_SORT,
   searchSentences,
   type SentenceWithTranslations,
 } from "../sentenceRetrieval/index";
-import promiseLimit from "promise-limit";
 import {
   listSentenceNgramCandidates,
   selectNgramCandidates,
@@ -24,9 +24,29 @@ const DEFAULT_NGRAM_MIN_CARD_COUNT = 2;
 const DEFAULT_NGRAM_MIN_CARD_PERCENTAGE = 3;
 const DEFAULT_NGRAM_TRANSLATION_LIMIT_PER_CARD = 6;
 
-type SentenceJob = {
+export type SentenceJob = {
   word: string;
   sentence: SentenceWithTranslations;
+};
+
+type SearchSentencesFn = (
+  params: Parameters<typeof searchSentences>[0],
+) => ReturnType<typeof searchSentences>;
+
+type NgramThresholdOptions = {
+  minCardCount: number;
+  minCardPercentage: number;
+};
+
+type CardsForWordsOptions = {
+  searchSentencesFn?: SearchSentencesFn;
+  ngramThresholds?: NgramThresholdOptions;
+};
+
+type CardBuildDependencies = {
+  translateWord: TranslateWord;
+  translatePhrase: TranslatePhrase;
+  candidateMap: ReturnType<typeof selectNgramCandidates>;
 };
 
 function parseConcurrency(
@@ -60,7 +80,7 @@ const SENTENCE_PROCESS_CONCURRENCY = parseConcurrency(
   DEFAULT_SENTENCE_PROCESS_CONCURRENCY,
 );
 
-function getSentenceTranslations(
+export function getSentenceTranslations(
   sentence: { translations?: Array<{ text: string }> },
   maxTranslations: number,
 ): string[] {
@@ -88,7 +108,7 @@ function getSentenceTranslations(
   return uniqueTranslations;
 }
 
-function formatSentenceTranslation(translations: string[]): string {
+export function formatSentenceTranslation(translations: string[]): string {
   if (translations.length === 0) {
     return "(no translation)";
   }
@@ -96,11 +116,11 @@ function formatSentenceTranslation(translations: string[]): string {
   return translations.join("<br>");
 }
 
-function normalizeSentenceTextForDedupe(text: string): string {
+export function normalizeSentenceTextForDedupe(text: string): string {
   return text.trim().replace(/\s+/g, " ").toLocaleLowerCase();
 }
 
-function dedupeSentenceJobs(sentenceJobs: SentenceJob[]): SentenceJob[] {
+export function dedupeSentenceJobs(sentenceJobs: SentenceJob[]): SentenceJob[] {
   const uniqueSentenceJobs: SentenceJob[] = [];
   const seenSentenceIds = new Set<number>();
   const seenSentenceTexts = new Set<string>();
@@ -111,8 +131,8 @@ function dedupeSentenceJobs(sentenceJobs: SentenceJob[]): SentenceJob[] {
     );
 
     if (
-      seenSentenceIds.has(sentenceJob.sentence.id) ||
-      seenSentenceTexts.has(normalizedText)
+      seenSentenceIds.has(sentenceJob.sentence.id)
+      || seenSentenceTexts.has(normalizedText)
     ) {
       continue;
     }
@@ -121,8 +141,61 @@ function dedupeSentenceJobs(sentenceJobs: SentenceJob[]): SentenceJob[] {
     seenSentenceTexts.add(normalizedText);
     uniqueSentenceJobs.push(sentenceJob);
   }
-x
+
   return uniqueSentenceJobs;
+}
+
+export async function fetchSentenceJobsForWords(
+  config: DeckBuildConfig,
+  options: Pick<CardsForWordsOptions, "searchSentencesFn"> = {},
+): Promise<SentenceJob[]> {
+  const wordLimit = promiseLimit(WORD_RETRIEVAL_CONCURRENCY) as PromiseLimitFn;
+  const searchSentencesFn = options.searchSentencesFn ?? searchSentences;
+
+  const wordResponses = await Promise.all(
+    config.words.map((word) =>
+      wordLimit(async () => {
+        const response = await searchSentencesFn({
+          lang: config.sentenceLanguage,
+          "trans:lang": config.translationLanguage,
+          sort: DEFAULT_SENTENCE_SEARCH_SORT,
+          q: word,
+          word_count: config.sentenceWordCount,
+          limit: config.sentenceLimit,
+        });
+
+        return {
+          word,
+          response,
+        };
+      }),
+    ),
+  );
+
+  return dedupeSentenceJobs(
+    wordResponses.flatMap(({ word, response }) =>
+      response.data.map((sentence) => ({
+        word,
+        sentence,
+      })),
+    ),
+  );
+}
+
+export function buildNgramCandidateMap(
+  sentenceJobs: SentenceJob[],
+  thresholds: NgramThresholdOptions = {
+    minCardCount: DEFAULT_NGRAM_MIN_CARD_COUNT,
+    minCardPercentage: DEFAULT_NGRAM_MIN_CARD_PERCENTAGE,
+  },
+): ReturnType<typeof selectNgramCandidates> {
+  return selectNgramCandidates(
+    sentenceJobs.map((job) => job.sentence.text),
+    {
+      minCardCount: thresholds.minCardCount,
+      minCardPercentage: thresholds.minCardPercentage,
+    },
+  );
 }
 
 async function buildNgramTranslations(
@@ -158,84 +231,65 @@ async function buildNgramTranslations(
   return JSON.stringify(translatedCandidates);
 }
 
+export async function buildCardFromSentenceJob(
+  sentenceJob: SentenceJob,
+  config: DeckBuildConfig,
+  dependencies: CardBuildDependencies,
+): Promise<CardData> {
+  const translation = formatSentenceTranslation(
+    getSentenceTranslations(
+      sentenceJob.sentence,
+      config.sentenceTranslationLimit,
+    ),
+  );
+  const wordByWord = await buildWordByWord(
+    sentenceJob.sentence.text,
+    dependencies.translateWord,
+  );
+  const ngramTranslations = await buildNgramTranslations(
+    sentenceJob.sentence.text,
+    dependencies.translatePhrase,
+    dependencies.candidateMap,
+  );
+
+  return {
+    sentence: sentenceJob.sentence.text,
+    translation,
+    keyword: sentenceJob.word,
+    sentenceId: String(sentenceJob.sentence.id),
+    wordByWord,
+    ngramTranslations,
+  };
+}
+
 export async function getCardsForWords(
   config: DeckBuildConfig,
   translateWord: TranslateWord,
   translatePhrase: TranslatePhrase,
+  options: CardsForWordsOptions = {},
 ): Promise<CardData[]> {
-  const wordLimit = promiseLimit(WORD_RETRIEVAL_CONCURRENCY) as PromiseLimitFn;
+  const sentenceJobs = await fetchSentenceJobsForWords(config, {
+    searchSentencesFn: options.searchSentencesFn,
+  });
 
-  const wordResponses = await Promise.all(
-    config.words.map((word) =>
-      wordLimit(async () => {
-        const response = await searchSentences({
-          lang: config.sentenceLanguage,
-          "trans:lang": config.translationLanguage,
-          sort: DEFAULT_SENTENCE_SEARCH_SORT,
-          q: word,
-          word_count: config.sentenceWordCount,
-          limit: config.sentenceLimit,
-        });
-
-        return {
-          word,
-          response,
-        };
-      }),
-    ),
-  );
-
-  const sentenceJobs = dedupeSentenceJobs(
-    wordResponses.flatMap(({ word, response }) =>
-      response.data.map((sentence) => ({
-        word,
-        sentence,
-      })),
-    ),
-  );
-
-  const candidateMap = selectNgramCandidates(
-    sentenceJobs.map((job) => job.sentence.text),
-    {
-      minCardCount: DEFAULT_NGRAM_MIN_CARD_COUNT,
-      minCardPercentage: DEFAULT_NGRAM_MIN_CARD_PERCENTAGE,
-    },
+  const candidateMap = buildNgramCandidateMap(
+    sentenceJobs,
+    options.ngramThresholds,
   );
 
   const sentenceLimit = promiseLimit(
     SENTENCE_PROCESS_CONCURRENCY,
   ) as PromiseLimitFn;
 
-  const cards = await Promise.all(
+  return await Promise.all(
     sentenceJobs.map((job) =>
-      sentenceLimit(async (): Promise<CardData> => {
-        const translation = formatSentenceTranslation(
-          getSentenceTranslations(
-            job.sentence,
-            config.sentenceTranslationLimit,
-          ),
-        );
-        const wordByWord = await buildWordByWord(
-          job.sentence.text,
+      sentenceLimit(async (): Promise<CardData> =>
+        buildCardFromSentenceJob(job, config, {
           translateWord,
-        );
-        const ngramTranslations = await buildNgramTranslations(
-          job.sentence.text,
           translatePhrase,
           candidateMap,
-        );
-
-        return {
-          sentence: job.sentence.text,
-          translation,
-          keyword: job.word,
-          sentenceId: String(job.sentence.id),
-          wordByWord,
-          ngramTranslations,
-        };
-      }),
+        }),
+      ),
     ),
   );
-
-  return cards;
 }
