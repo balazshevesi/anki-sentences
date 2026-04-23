@@ -1,6 +1,6 @@
 import { default as Anki } from "anki-apkg-export";
 import { mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import promiseLimit from "promise-limit";
 import {
   buildNgramCandidateMap,
@@ -22,16 +22,27 @@ import type { PipelineCsvRow } from "./csv";
 import { readPipelineCsvRows, writePipelineCsvRows } from "./csv";
 import { calculateSentenceDifficultyScore } from "./difficulty";
 import {
+  createGoogleTtsErrorMetadata,
+  generateGoogleTtsAudioMetadata,
+  type GoogleTtsConfig,
+} from "./audio";
+import { resolveGoogleTtsLanguageCode } from "./googleTtsLanguage";
+import {
   EMPTY_CARD_PAYLOAD_JSON,
   parseNgramTranslationsJson,
   parseWordByWordJson,
 } from "../shared/cardPayload";
+import {
+  isReadyAudioMetadata,
+  parseAudioMetadataJson,
+} from "../shared/audioMetadata";
 import { formatDuration } from "../shared/formatDuration";
 
 type PromiseLimitFn = <T>(fn: () => Promise<T>) => Promise<T>;
 
 const DEFAULT_NGRAM_TRANSLATION_LIMIT_PER_CARD = 6;
 const DEFAULT_SENTENCE_METADATA_CONCURRENCY = 1;
+const DEFAULT_AUDIO_METADATA_CONCURRENCY = 2;
 
 function computeTranslationProgressInterval(totalRows: number): number {
   if (totalRows <= 10) {
@@ -41,7 +52,8 @@ function computeTranslationProgressInterval(totalRows: number): number {
   return Math.max(1, Math.ceil(totalRows / 10));
 }
 
-function logTranslationProgress(
+function logProgress(
+  label: string,
   completedRows: number,
   totalRows: number,
   startedAtMs: number,
@@ -57,7 +69,7 @@ function logTranslationProgress(
   const etaText =
     remainingRows > 0 ? `, ETA ${formatDuration(Math.round(etaMs))}` : "";
   console.log(
-    `[translations] Progress ${completedRows}/${totalRows} (${percentage}%) after ${formatDuration(elapsedMs)}${etaText}`,
+    `[${label}] Progress ${completedRows}/${totalRows} (${percentage}%) after ${formatDuration(elapsedMs)}${etaText}`,
   );
 }
 
@@ -84,6 +96,12 @@ const SENTENCE_METADATA_CONCURRENCY = parsePositiveInteger(
   Bun.env.DECK_SENTENCE_CONCURRENCY,
   "DECK_SENTENCE_CONCURRENCY",
   DEFAULT_SENTENCE_METADATA_CONCURRENCY,
+);
+
+const AUDIO_METADATA_CONCURRENCY = parsePositiveInteger(
+  Bun.env.DECK_AUDIO_CONCURRENCY,
+  "DECK_AUDIO_CONCURRENCY",
+  DEFAULT_AUDIO_METADATA_CONCURRENCY,
 );
 
 function escapeSqliteStringLiteral(value: string): string {
@@ -244,7 +262,7 @@ export async function runTranslationMetadataPass(
           completedRows === totalRows ||
           completedRows % progressInterval === 0
         ) {
-          logTranslationProgress(completedRows, totalRows, enrichStartedAt);
+          logProgress("translations", completedRows, totalRows, enrichStartedAt);
         }
 
         return enrichedRow;
@@ -260,23 +278,132 @@ export async function runTranslationMetadataPass(
   return enrichedRows;
 }
 
+function resolveGoogleTtsConfig(config: DeckBuildConfig): GoogleTtsConfig {
+  const languageCode =
+    config.googleTtsLanguageCode ??
+    resolveGoogleTtsLanguageCode(config.sentenceLanguage);
+  if (!languageCode) {
+    throw new Error(
+      `Missing Google Text-to-Speech language code for sentence language '${config.sentenceLanguage}'. Set GOOGLE_TTS_LANGUAGE_CODE or pass --google-tts-language-code.`,
+    );
+  }
+
+  return {
+    accessToken: config.googleTtsAccessToken,
+    languageCode,
+    voiceName: config.googleTtsVoiceName,
+    speakingRate: config.googleTtsSpeakingRate,
+    pitch: config.googleTtsPitch,
+    audioOutputDir: config.audioOutputDir,
+  };
+}
+
+function canReuseReadyAudioMetadata(
+  metadata: ReturnType<typeof parseAudioMetadataJson>,
+  googleTtsConfig: GoogleTtsConfig,
+): metadata is NonNullable<ReturnType<typeof parseAudioMetadataJson>> {
+  if (!isReadyAudioMetadata(metadata)) {
+    return false;
+  }
+
+  return (
+    metadata.languageCode === googleTtsConfig.languageCode &&
+    metadata.voiceName === (googleTtsConfig.voiceName ?? null) &&
+    metadata.speakingRate === googleTtsConfig.speakingRate &&
+    metadata.pitch === googleTtsConfig.pitch
+  );
+}
+
 export async function runAudioMetadataPass(
+  config: DeckBuildConfig,
   csvPath: string,
 ): Promise<PipelineCsvRow[]> {
   const rows = await readPipelineCsvRows(csvPath);
+  if (rows.length === 0) {
+    console.log(`[audio] No rows found in ${csvPath}; skipping enrichment.`);
+    return rows;
+  }
 
-  const enrichedRows = rows.map((row) => ({
-    ...row,
-    audioMetadata:
-      row.audioMetadata.trim().length > 0
-        ? row.audioMetadata
-        : JSON.stringify({
-          status: "not_implemented",
-          sentenceId: row.SentenceId,
-        }),
-  }));
+  const googleTtsConfig = resolveGoogleTtsConfig(config);
+  await mkdir(googleTtsConfig.audioOutputDir, { recursive: true });
+
+  if (config.googleTtsApiKey?.trim()) {
+    console.warn(
+      "[audio] GOOGLE_TTS_API_KEY is deprecated for this API; OAuth2 credentials are used instead.",
+    );
+  }
+
+  console.log(
+    `[audio] Generating Google TTS audio for ${rows.length} rows (language: ${googleTtsConfig.languageCode}, concurrency: ${AUDIO_METADATA_CONCURRENCY}).`,
+  );
+
+  const sentenceLimit = promiseLimit(AUDIO_METADATA_CONCURRENCY) as PromiseLimitFn;
+  const progressInterval = computeTranslationProgressInterval(rows.length);
+  const startedAt = Date.now();
+  let completedRows = 0;
+  let reusedRows = 0;
+  let generatedRows = 0;
+  let failedRows = 0;
+
+  const enrichedRows = await Promise.all(
+    rows.map((row) =>
+      sentenceLimit(async () => {
+        const existingMetadata = parseAudioMetadataJson(row.audioMetadata);
+        const existingAudioFilePath = isReadyAudioMetadata(existingMetadata)
+          ? join(googleTtsConfig.audioOutputDir, existingMetadata.audioFileName)
+          : null;
+        const hasExistingAudioFile = existingAudioFilePath
+          ? await Bun.file(existingAudioFilePath).exists()
+          : false;
+
+        let nextAudioMetadata = row.audioMetadata;
+        const shouldRegenerate =
+          config.audioForceRegenerate ||
+          !canReuseReadyAudioMetadata(existingMetadata, googleTtsConfig) ||
+          !hasExistingAudioFile;
+
+        if (!shouldRegenerate && existingMetadata) {
+          reusedRows += 1;
+          nextAudioMetadata = JSON.stringify(existingMetadata);
+        } else {
+          try {
+            const generatedMetadata = await generateGoogleTtsAudioMetadata(
+              row,
+              googleTtsConfig,
+            );
+            generatedRows += 1;
+            nextAudioMetadata = JSON.stringify(generatedMetadata);
+          } catch (error) {
+            failedRows += 1;
+            const errorMessage =
+              error instanceof Error ? error.message : `Unknown error: ${String(error)}`;
+            nextAudioMetadata = JSON.stringify(
+              createGoogleTtsErrorMetadata(row.SentenceId, errorMessage),
+            );
+          }
+        }
+
+        completedRows += 1;
+        if (
+          completedRows === 1 ||
+          completedRows === rows.length ||
+          completedRows % progressInterval === 0
+        ) {
+          logProgress("audio", completedRows, rows.length, startedAt);
+        }
+
+        return {
+          ...row,
+          audioMetadata: nextAudioMetadata,
+        };
+      }),
+    ),
+  );
 
   await writePipelineCsvRows(csvPath, enrichedRows);
+  console.log(
+    `[audio] Generated ${generatedRows} row(s), reused ${reusedRows} row(s), failed ${failedRows} row(s).`,
+  );
   return enrichedRows;
 }
 
@@ -335,6 +462,7 @@ export async function runBuildApkgPass(
   const questionFormat = `
     <div id="front">{{Sentence}}</div>
     <div id="cardPayload" hidden>{{cardPayload}}</div>
+    <div id="audioMetadata" hidden>{{audioMetadata}}</div>
     ${questionFormatHtml}`;
   const answerFormat = "{{FrontSide}}<hr id=\"answer\">{{SentenceTranslation}}";
 
@@ -345,7 +473,26 @@ export async function runBuildApkgPass(
     css: "",
   });
 
+  const includedMediaFiles = new Set<string>();
+
   for (const row of rows) {
+    const parsedAudioMetadata = parseAudioMetadataJson(row.audioMetadata);
+    if (isReadyAudioMetadata(parsedAudioMetadata)) {
+      const mediaFileName = parsedAudioMetadata.audioFileName;
+      if (!includedMediaFiles.has(mediaFileName)) {
+        const mediaFilePath = join(config.audioOutputDir, mediaFileName);
+        const mediaFile = Bun.file(mediaFilePath);
+        if (await mediaFile.exists()) {
+          deck.addMedia(mediaFileName, await mediaFile.arrayBuffer());
+          includedMediaFiles.add(mediaFileName);
+        } else {
+          console.warn(
+            `[build] Missing generated audio file for sentence ${row.SentenceId}: ${mediaFilePath}`,
+          );
+        }
+      }
+    }
+
     deck.addCard(
       row.Sentence,
       row.SentenceTranslation,
@@ -353,6 +500,7 @@ export async function runBuildApkgPass(
       row.SentenceId,
       row.cardPayload,
       row.difficulty,
+      row.audioMetadata,
       {
         sortField: DEFAULT_DECK_SORT_FIELD,
         tags: [

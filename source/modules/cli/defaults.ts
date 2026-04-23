@@ -33,17 +33,16 @@ export const DEFAULT_ARGOS_PORT = Bun.env.ARGOS_PORT ?? "8000";
 export const DEFAULT_ARGOS_TRANSLATE_URL =
   Bun.env.ARGOS_TRANSLATE_URL ??
   `http://${DEFAULT_ARGOS_HOST}:${DEFAULT_ARGOS_PORT}/translate`;
+export const DEFAULT_GOOGLE_TTS_API_KEY = Bun.env.GOOGLE_TTS_API_KEY;
+export const DEFAULT_GOOGLE_TTS_ACCESS_TOKEN = Bun.env.GOOGLE_TTS_ACCESS_TOKEN;
+export const DEFAULT_GOOGLE_TTS_LANGUAGE_CODE =
+  Bun.env.GOOGLE_TTS_LANGUAGE_CODE;
+export const DEFAULT_GOOGLE_TTS_VOICE = Bun.env.GOOGLE_TTS_VOICE;
+export const DEFAULT_GOOGLE_TTS_SPEAKING_RATE =
+  Bun.env.GOOGLE_TTS_SPEAKING_RATE ?? "1";
+export const DEFAULT_GOOGLE_TTS_PITCH = Bun.env.GOOGLE_TTS_PITCH ?? "0";
 
-export const DEFAULT_SENTENCE_EXCLUSIONS = [
-  "democratic",
-  "republican",
-  "oligarch",
-  "Merkel",
-  "Trump",
-  "Clinton",
-  "Obama",
-  "Biden",
-] as const;
+export const DEFAULT_SENTENCE_EXCLUSIONS = [] as const;
 
 export const COMMAND_DEFINITIONS: CommandDefinition[] = [
   {
@@ -60,7 +59,7 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
   },
   {
     name: "enrich-audio",
-    description: "Add audio metadata placeholders to CSV",
+    description: "Generate Google TTS audio files and per-word timestamps",
   },
   {
     name: "build-apkg",

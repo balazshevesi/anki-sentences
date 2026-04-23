@@ -34,6 +34,9 @@ const DEFAULT_ARGOS_PORT = Bun.env.ARGOS_PORT ?? "8000";
 const DEFAULT_ARGOS_TRANSLATE_URL =
   Bun.env.ARGOS_TRANSLATE_URL ??
   `http://${DEFAULT_ARGOS_HOST}:${DEFAULT_ARGOS_PORT}/translate`;
+const DEFAULT_GOOGLE_TTS_SPEAKING_RATE = 1;
+const DEFAULT_GOOGLE_TTS_PITCH = 0;
+const DEFAULT_AUDIO_OUTPUT_DIR = "../output/example-audio";
 
 function printUsage(): void {
   const languageExamples = SUPPORTED_LANGUAGE_CODES.slice(0, 8).join(", ");
@@ -239,5 +242,13 @@ export function loadDeckBuildConfig(
     ),
     argosTranslateUrl: parsed["argos-url"] ?? DEFAULT_ARGOS_TRANSLATE_URL,
     sentenceExclusions: [],
+    googleTtsApiKey: Bun.env.GOOGLE_TTS_API_KEY,
+    googleTtsAccessToken: Bun.env.GOOGLE_TTS_ACCESS_TOKEN,
+    googleTtsLanguageCode: Bun.env.GOOGLE_TTS_LANGUAGE_CODE,
+    googleTtsVoiceName: Bun.env.GOOGLE_TTS_VOICE,
+    googleTtsSpeakingRate: DEFAULT_GOOGLE_TTS_SPEAKING_RATE,
+    googleTtsPitch: DEFAULT_GOOGLE_TTS_PITCH,
+    audioOutputDir: DEFAULT_AUDIO_OUTPUT_DIR,
+    audioForceRegenerate: false,
   };
 }

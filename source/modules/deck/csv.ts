@@ -5,10 +5,7 @@ import { EMPTY_CARD_PAYLOAD_JSON } from "../shared/cardPayload";
 
 export const AUDIO_METADATA_FIELD = "audioMetadata" as const;
 export const DIFFICULTY_FIELD = "difficulty" as const;
-export const PIPELINE_CSV_FIELDS = [
-  ...DECK_NOTE_FIELDS,
-  AUDIO_METADATA_FIELD,
-] as const;
+export const PIPELINE_CSV_FIELDS = [...DECK_NOTE_FIELDS] as const;
 
 type PipelineCsvField = (typeof PIPELINE_CSV_FIELDS)[number];
 

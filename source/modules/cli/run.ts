@@ -39,6 +39,14 @@ function toDeckBuildConfig(options: CliOptions): DeckBuildConfig {
     sentenceLimit: options.sentenceLimit,
     argosTranslateUrl: options.argosTranslateUrl,
     sentenceExclusions: options.sentenceExclusions,
+    googleTtsApiKey: options.googleTtsApiKey,
+    googleTtsAccessToken: options.googleTtsAccessToken,
+    googleTtsLanguageCode: options.googleTtsLanguageCode,
+    googleTtsVoiceName: options.googleTtsVoiceName,
+    googleTtsSpeakingRate: options.googleTtsSpeakingRate,
+    googleTtsPitch: options.googleTtsPitch,
+    audioOutputDir: options.audioOutputDir,
+    audioForceRegenerate: options.audioForceRegenerate,
   };
 }
 
@@ -69,10 +77,10 @@ export async function runCommand(command: PipelineCommand, options: CliOptions):
   if (command === "enrich-audio") {
     await runStep(
       "audio",
-      `Adding audio metadata placeholders to rows from ${options.csvPath}...`,
-      () => runAudioMetadataPass(options.csvPath),
+      `Generating Google TTS audio for rows from ${options.csvPath}...`,
+      () => runAudioMetadataPass(config, options.csvPath),
       (rows) =>
-        `Added audio metadata placeholders to ${rows.length} rows in ${options.csvPath}`,
+        `Generated audio metadata for ${rows.length} rows in ${options.csvPath}`,
     );
     return;
   }
@@ -128,10 +136,10 @@ export async function runCommand(command: PipelineCommand, options: CliOptions):
   if (!options.skipAudio) {
     await runStep(
       "audio",
-      `Adding audio metadata placeholders to rows from ${options.csvPath}...`,
-      () => runAudioMetadataPass(options.csvPath),
+      `Generating Google TTS audio for rows from ${options.csvPath}...`,
+      () => runAudioMetadataPass(config, options.csvPath),
       (rows) =>
-        `Added audio metadata placeholders to ${rows.length} rows in ${options.csvPath}`,
+        `Generated audio metadata for ${rows.length} rows in ${options.csvPath}`,
     );
   } else {
     console.log("[audio] Skipped audio metadata pass (--skip-audio).");

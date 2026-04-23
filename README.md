@@ -1,6 +1,6 @@
 # anki-language-sentence-study-decks
 
-Build Anki sentence decks from Tatoeba, with word-level translation hints from a local Argos Translate server.
+Build Anki sentence decks from Tatoeba, with word-level translation hints from a local Argos Translate server and Google Text-to-Speech audio metadata.
 
 ## Repo layout
 
@@ -47,6 +47,48 @@ ARGOS_TRANSLATION_CACHE_SIZE=5000
 ```
 
 `ARGOS_TRANSLATION_CACHE_SIZE` controls the in-memory LRU cache size in the Argos API server (`0` disables caching).
+
+## Google Text-to-Speech configuration
+
+The audio enrichment pass uses the Google Cloud Text-to-Speech REST API and stores:
+
+- a generated `.mp3` filename per sentence,
+- an Anki sound tag (`[sound:filename.mp3]`),
+- per-word start/end timestamps in milliseconds.
+
+Google Text-to-Speech requires OAuth2 credentials (API keys are not supported for this endpoint).
+
+For local development, the easiest setup is:
+
+```bash
+gcloud auth application-default login
+```
+
+Alternative: use a service account key file:
+
+```dotenv
+GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
+```
+
+Optional: provide a short-lived bearer token manually:
+
+```dotenv
+GOOGLE_TTS_ACCESS_TOKEN=ya29.your_access_token
+```
+
+Optional overrides:
+
+```dotenv
+GOOGLE_TTS_LANGUAGE_CODE=en-US
+GOOGLE_TTS_VOICE=en-US-Chirp3-HD-Achernar
+GOOGLE_TTS_SPEAKING_RATE=1
+GOOGLE_TTS_PITCH=0
+DECK_AUDIO_CONCURRENCY=2
+```
+
+You can also pass these values via CLI options (`--google-tts-*`, `--audio-dir`, `--audio-force`).
+
+`GOOGLE_TTS_API_KEY` is kept only for backward compatibility in config, but authentication uses OAuth2.
 
 ## Quick start
 
@@ -111,12 +153,14 @@ cd source
 bun run deck:enrich-difficulty --csv ../output/example.csv
 ```
 
-4) Add audio metadata placeholders to the CSV (audio generation is not implemented yet):
+4) Generate Google TTS audio + word timestamps and write metadata into the CSV:
 
 ```bash
 cd source
 bun run deck:enrich-audio --csv ../output/example.csv
 ```
+
+Audio files are written to `../output/example-audio` by default (or to `--audio-dir` when provided).
 
 5) Build the card template + convert CSV to APKG (CSV is kept):
 
@@ -124,6 +168,8 @@ bun run deck:enrich-audio --csv ../output/example.csv
 cd source
 bun run deck:build-apkg --csv ../output/example.csv --apkg ../output/example.apkg
 ```
+
+If `audioMetadata` contains ready Google TTS entries, matching `.mp3` files are automatically bundled into the APKG media collection.
 
 You can inspect all CLI options with:
 

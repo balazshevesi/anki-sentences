@@ -27,6 +27,10 @@ function buildConfig(words: string[]): DeckBuildConfig {
     sentenceLimit: 20,
     argosTranslateUrl: "http://127.0.0.1:8000/translate",
     sentenceExclusions: [],
+    googleTtsSpeakingRate: 1,
+    googleTtsPitch: 0,
+    audioOutputDir: "../output/test-audio",
+    audioForceRegenerate: false,
   };
 }
 

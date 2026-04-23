@@ -38,6 +38,7 @@
   "dependencies": {
     "anki-apkg-export": "4.0.3",
     "cac": "^6.7.14",
+    "google-auth-library": "^10.6.2",
     "promise-limit": "^2.7.0"
   }
 }

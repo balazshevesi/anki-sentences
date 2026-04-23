@@ -31,6 +31,14 @@ export type DeckBuildConfig = {
   sentenceLimit: number;
   argosTranslateUrl: string;
   sentenceExclusions: string[];
+  googleTtsApiKey?: string;
+  googleTtsAccessToken?: string;
+  googleTtsLanguageCode?: string;
+  googleTtsVoiceName?: string;
+  googleTtsSpeakingRate: number;
+  googleTtsPitch: number;
+  audioOutputDir: string;
+  audioForceRegenerate: boolean;
 };
 
 export type TranslateWord = (word: string) => Promise<WordTranslation>;

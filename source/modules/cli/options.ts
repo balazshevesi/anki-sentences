@@ -1,6 +1,8 @@
 import type { Command as CacCommand } from "cac";
+import { basename, dirname, join } from "node:path";
 import { isSupportedLanguageCode, type WordCountFilter } from "../sentenceRetrieval/index";
 import { toApkgPath, toCsvPath } from "../deck/csv";
+import { resolveGoogleTtsLanguageCode } from "../deck/googleTtsLanguage";
 import {
   DEFAULT_ARGOS_ALTERNATIVES,
   DEFAULT_ARGOS_SOURCE,
@@ -9,6 +11,12 @@ import {
   DEFAULT_DECK_NAME,
   DEFAULT_LIMIT,
   DEFAULT_OUTPUT_PATH,
+  DEFAULT_GOOGLE_TTS_API_KEY,
+  DEFAULT_GOOGLE_TTS_ACCESS_TOKEN,
+  DEFAULT_GOOGLE_TTS_LANGUAGE_CODE,
+  DEFAULT_GOOGLE_TTS_PITCH,
+  DEFAULT_GOOGLE_TTS_SPEAKING_RATE,
+  DEFAULT_GOOGLE_TTS_VOICE,
   DEFAULT_SENTENCE_EXCLUSIONS,
   DEFAULT_SENTENCE_LANGUAGE,
   DEFAULT_SENTENCE_TRANSLATION_LIMIT,
@@ -34,6 +42,14 @@ export function addCommonOptions(command: CacCommand): void {
     .option("--argos-target <code>", "Argos target language")
     .option("--argos-alternatives <int>", "Alternative translations per token")
     .option("--argos-url <url>", "Argos endpoint URL")
+    .option("--google-tts-api-key <key>", "Legacy Google Text-to-Speech API key (deprecated)")
+    .option("--google-tts-access-token <token>", "OAuth2 bearer token for Google Text-to-Speech")
+    .option("--google-tts-language-code <code>", "Google Text-to-Speech language code")
+    .option("--google-tts-voice <name>", "Google Text-to-Speech voice name")
+    .option("--google-tts-speaking-rate <float>", "Google Text-to-Speech speaking rate")
+    .option("--google-tts-pitch <float>", "Google Text-to-Speech pitch")
+    .option("--audio-dir <path>", "Directory for generated audio files")
+    .option("--audio-force", "Force regenerate audio even if metadata exists")
     .option("--sentence-exclusions <text,text,...>", "Exclude sentences containing terms")
     .option("--exclude-politics", "Add default political sentence exclusions")
     .option("--skip-audio", "Skip enrich-audio during pipeline");
@@ -89,6 +105,50 @@ function parseArgosLanguage(rawValue: unknown, optionName: string): string {
   if (!value || !/^[a-z_]{2,16}$/.test(value)) {
     throw new Error(
       `Option ${optionName} must contain only lowercase letters or underscore. Received: ${String(rawValue)}`,
+    );
+  }
+
+  return value;
+}
+
+function parseOptionalTrimmedString(
+  rawValue: unknown,
+  optionName: string,
+): string | undefined {
+  const value = getOptionalString(rawValue, optionName)?.trim();
+  if (!value || value.length === 0) {
+    return undefined;
+  }
+
+  return value;
+}
+
+function parseOptionalGoogleTtsLanguageCode(rawValue: unknown): string | undefined {
+  const value = parseOptionalTrimmedString(rawValue, "--google-tts-language-code");
+  if (!value) {
+    return undefined;
+  }
+
+  if (!/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,3}$/.test(value)) {
+    throw new Error(
+      `Option --google-tts-language-code must look like a BCP-47 tag (for example: en-US). Received: ${String(rawValue)}`,
+    );
+  }
+
+  return value;
+}
+
+function parseFloatWithinRange(
+  rawValue: unknown,
+  optionName: string,
+  min: number,
+  max: number,
+): number {
+  const raw = typeof rawValue === "number" ? `${rawValue}` : String(rawValue);
+  const value = Number.parseFloat(raw);
+  if (!Number.isFinite(value) || value < min || value > max) {
+    throw new Error(
+      `Option ${optionName} must be between ${min} and ${max}. Received: ${raw}`,
     );
   }
 
@@ -167,6 +227,8 @@ export function parseCliOptions(rawOptions: RawCliOptions): CliOptions {
 
   const outputPath = toApkgPath(explicitApkg ?? explicitCsv ?? DEFAULT_OUTPUT_PATH);
   const csvPath = toCsvPath(explicitCsv ?? explicitApkg ?? DEFAULT_OUTPUT_PATH);
+  const csvBaseName = basename(csvPath).replace(/\.csv$/i, "");
+  const defaultAudioOutputDir = join(dirname(csvPath), `${csvBaseName}-audio`);
 
   const deckName =
     (getOptionalString(rawOptions.deckName, "--deck-name") ?? DEFAULT_DECK_NAME).trim();
@@ -174,15 +236,57 @@ export function parseCliOptions(rawOptions: RawCliOptions): CliOptions {
     throw new Error("Option --deck-name cannot be empty.");
   }
 
+  const sentenceLanguage = parseLanguageCode(
+    rawOptions.sentenceLang ?? DEFAULT_SENTENCE_LANGUAGE,
+    "--sentence-lang",
+  );
+
+  const inferredGoogleTtsLanguage = resolveGoogleTtsLanguageCode(sentenceLanguage);
+  const googleTtsLanguageCode = parseOptionalGoogleTtsLanguageCode(
+    rawOptions.googleTtsLanguageCode ??
+      DEFAULT_GOOGLE_TTS_LANGUAGE_CODE ??
+      inferredGoogleTtsLanguage,
+  );
+
+  const googleTtsApiKey = parseOptionalTrimmedString(
+    rawOptions.googleTtsApiKey ?? DEFAULT_GOOGLE_TTS_API_KEY,
+    "--google-tts-api-key",
+  );
+
+  const googleTtsAccessToken = parseOptionalTrimmedString(
+    rawOptions.googleTtsAccessToken ?? DEFAULT_GOOGLE_TTS_ACCESS_TOKEN,
+    "--google-tts-access-token",
+  );
+
+  const googleTtsVoiceName = parseOptionalTrimmedString(
+    rawOptions.googleTtsVoice ?? DEFAULT_GOOGLE_TTS_VOICE,
+    "--google-tts-voice",
+  );
+
+  const googleTtsSpeakingRate = parseFloatWithinRange(
+    rawOptions.googleTtsSpeakingRate ?? DEFAULT_GOOGLE_TTS_SPEAKING_RATE,
+    "--google-tts-speaking-rate",
+    0.25,
+    2,
+  );
+
+  const googleTtsPitch = parseFloatWithinRange(
+    rawOptions.googleTtsPitch ?? DEFAULT_GOOGLE_TTS_PITCH,
+    "--google-tts-pitch",
+    -20,
+    20,
+  );
+
+  const audioOutputDir =
+    parseOptionalTrimmedString(rawOptions.audioDir, "--audio-dir") ??
+    defaultAudioOutputDir;
+
   return {
     words,
     deckName,
     csvPath,
     outputPath,
-    sentenceLanguage: parseLanguageCode(
-      rawOptions.sentenceLang ?? DEFAULT_SENTENCE_LANGUAGE,
-      "--sentence-lang",
-    ),
+    sentenceLanguage,
     translationLanguage: parseLanguageCode(
       rawOptions.translationLang ?? DEFAULT_TRANSLATION_LANGUAGE,
       "--translation-lang",
@@ -208,6 +312,14 @@ export function parseCliOptions(rawOptions: RawCliOptions): CliOptions {
     argosTranslateUrl:
       getOptionalString(rawOptions.argosUrl, "--argos-url") ??
       DEFAULT_ARGOS_TRANSLATE_URL,
+    googleTtsApiKey,
+    googleTtsAccessToken,
+    googleTtsLanguageCode,
+    googleTtsVoiceName,
+    googleTtsSpeakingRate,
+    googleTtsPitch,
+    audioOutputDir,
+    audioForceRegenerate: rawOptions.audioForce === true,
     sentenceExclusions,
     skipAudio: rawOptions.skipAudio === true,
   };

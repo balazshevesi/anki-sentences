@@ -24,6 +24,14 @@ export type CliOptions = {
   sentenceLimit: number;
   argosTranslateUrl: string;
   sentenceExclusions: string[];
+  googleTtsApiKey?: string;
+  googleTtsAccessToken?: string;
+  googleTtsLanguageCode?: string;
+  googleTtsVoiceName?: string;
+  googleTtsSpeakingRate: number;
+  googleTtsPitch: number;
+  audioOutputDir: string;
+  audioForceRegenerate: boolean;
   skipAudio: boolean;
 };
 
@@ -42,6 +50,14 @@ export type RawCliOptions = {
   argosTarget?: unknown;
   argosAlternatives?: unknown;
   argosUrl?: unknown;
+  googleTtsApiKey?: unknown;
+  googleTtsAccessToken?: unknown;
+  googleTtsLanguageCode?: unknown;
+  googleTtsVoice?: unknown;
+  googleTtsSpeakingRate?: unknown;
+  googleTtsPitch?: unknown;
+  audioDir?: unknown;
+  audioForce?: unknown;
   sentenceExclusions?: unknown;
   excludePolitics?: unknown;
   skipAudio?: unknown;
