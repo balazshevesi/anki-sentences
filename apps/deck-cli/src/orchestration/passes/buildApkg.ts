@@ -28,6 +28,7 @@ export async function runBuildApkgPass(
   const questionFormat = `
     <div id="front">{{Sentence}}</div>
     <div id="cardPayload" hidden>{{cardPayload}}</div>
+    {{audio}}
     ${questionFormatHtml}`;
   const answerFormat = "{{FrontSide}}<hr id=\"answer\">{{SentenceTranslation}}";
 
@@ -42,6 +43,11 @@ export async function runBuildApkgPass(
 
   for (const row of rows) {
     const parsedAudioMetadata = parseCardPayloadJson(row.cardPayload).audioMetadata;
+    const audioFieldValue = row.audio.trim().length > 0
+      ? row.audio
+      : isReadyAudioMetadata(parsedAudioMetadata)
+      ? parsedAudioMetadata.ankiSoundTag
+      : "";
     if (isReadyAudioMetadata(parsedAudioMetadata)) {
       const mediaFileName = parsedAudioMetadata.audioFileName;
       if (!includedMediaFiles.has(mediaFileName)) {
@@ -65,6 +71,7 @@ export async function runBuildApkgPass(
       row.SentenceId,
       row.cardPayload,
       row.difficulty,
+      audioFieldValue,
       {
         sortField: runtime.ankiSortField,
         tags: [

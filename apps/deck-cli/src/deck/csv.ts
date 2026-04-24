@@ -9,6 +9,7 @@ export const DECK_NOTE_FIELDS = [
   "SentenceId",
   "cardPayload",
   "difficulty",
+  "audio",
 ] as const;
 
 const PIPELINE_CSV_FIELDS = [...DECK_NOTE_FIELDS] as const;
@@ -31,6 +32,7 @@ const DEFAULT_PIPELINE_ROW: PipelineCsvRow = {
   SentenceId: "",
   cardPayload: EMPTY_CARD_PAYLOAD_JSON,
   difficulty: "",
+  audio: "",
 };
 
 function escapeCsvField(value: string): string {

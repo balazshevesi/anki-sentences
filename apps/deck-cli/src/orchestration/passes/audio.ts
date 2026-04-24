@@ -135,6 +135,9 @@ export async function runAudioMetadataPass(
             ...existingCardPayload,
             audioMetadata: nextAudioMetadata,
           }),
+          audio: isReadyAudioMetadata(nextAudioMetadata)
+            ? nextAudioMetadata.ankiSoundTag
+            : "",
         };
       }),
     ),

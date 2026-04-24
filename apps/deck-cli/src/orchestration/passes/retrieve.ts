@@ -26,6 +26,7 @@ export async function runSentenceRetrievalPass(
     SentenceId: String(job.sentence.id),
     cardPayload: EMPTY_CARD_PAYLOAD_JSON,
     difficulty: "",
+    audio: "",
   }));
 
   await writePipelineCsvRows(csvPath, rows);
