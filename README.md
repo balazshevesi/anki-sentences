@@ -16,7 +16,7 @@ Build Anki sentence decks from Tatoeba, with word-level translation hints from a
 
 ## Nix flake
 
-If you use Nix, you can enter a dev shell with all required tools (Bun, Python, uv, ruff, patch):
+If you use Nix, you can enter a dev shell with all required tools (Bun, Python, uv, ruff, patch, ffmpeg):
 
 ```bash
 nix develop
@@ -60,9 +60,11 @@ ARGOS_PORT=8000
 
 The audio enrichment pass uses the Google Cloud Text-to-Speech REST API and stores:
 
-- a generated `.mp3` filename per sentence,
-- an Anki sound tag (`[sound:filename.mp3]`),
+- a generated `.aac` filename per sentence,
+- an Anki sound tag (`[sound:filename.aac]`),
 - per-word start/end timestamps in milliseconds.
+
+Google TTS audio is transcoded to AAC with `ffmpeg`, so `ffmpeg` must be installed and available on `PATH` when running the audio pass.
 
 Google Text-to-Speech requires OAuth2 credentials (API keys are not supported for this endpoint).
 
@@ -149,7 +151,7 @@ Pass names:
 
 Audio files are written to `audio.outputDir` from `deck.config.jsonc`.
 
-If `cardPayload.audioMetadata` contains ready Google TTS entries, matching `.mp3` files are automatically bundled into the APKG media collection.
+If `cardPayload.audioMetadata` contains ready Google TTS entries, matching `.aac` files are automatically bundled into the APKG media collection.
 
 ## Data sources
 
@@ -164,7 +166,7 @@ If `cardPayload.audioMetadata` contains ready Google TTS entries, matching `.mp3
   - [ ] Fix the UI flickering on the card flips (html/js-loading issue)
   - [ ] Center the text and fix the styling
   - [ ] Sync spoken word(s) with displayed text (underline spoken word) + on click of a word: jump to timestamp of audio
-- [ ] Fix formatting of audio clips, AAC would be a little better (ffmpeg?)
+- [x] Encode generated audio clips as AAC
 - [ ] Add the loop for gathering the x most common words before generating
 - [ ] Implement proper adapter pattern so that services can be swapped easier
 - [ ] Add full guide in readme

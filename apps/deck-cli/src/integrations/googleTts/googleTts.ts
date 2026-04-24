@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { GoogleAuth } from "google-auth-library";
 import {
@@ -12,6 +14,9 @@ const GOOGLE_TTS_SYNTHESIZE_URL =
   "https://texttospeech.googleapis.com/v1beta1/text:synthesize";
 const GOOGLE_CLOUD_PLATFORM_SCOPE =
   "https://www.googleapis.com/auth/cloud-platform";
+const GOOGLE_TTS_API_AUDIO_ENCODING = "LINEAR16";
+const OUTPUT_AUDIO_EXTENSION = "aac";
+const FFMPEG_BINARY = "ffmpeg";
 const WORD_MARK_PREFIX = "word_";
 const googleAuth = new GoogleAuth({ scopes: [GOOGLE_CLOUD_PLATFORM_SCOPE] });
 
@@ -126,6 +131,78 @@ function toGoogleApiErrorMessage(
   return `Google Text-to-Speech API request failed with status ${statusCode}.`;
 }
 
+function toAudioTranscodeError(details: string): Error {
+  return new Error(
+    [
+      `Failed to transcode Google Text-to-Speech output to AAC: ${details}`,
+      "Install ffmpeg and ensure it is available on PATH.",
+    ].join(" "),
+  );
+}
+
+async function transcodeLinear16ToAac(linear16AudioBuffer: Buffer): Promise<Buffer> {
+  const fileStem = `tts-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const inputPath = join(tmpdir(), `${fileStem}.wav`);
+  const outputPath = join(tmpdir(), `${fileStem}.${OUTPUT_AUDIO_EXTENSION}`);
+
+  await Bun.write(inputPath, linear16AudioBuffer);
+
+  try {
+    let process: ReturnType<typeof Bun.spawn>;
+    try {
+      process = Bun.spawn(
+        [
+          FFMPEG_BINARY,
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-i",
+          inputPath,
+          "-c:a",
+          "aac",
+          "-b:a",
+          "128k",
+          "-f",
+          "adts",
+          outputPath,
+        ],
+        {
+          stdout: "ignore",
+          stderr: "pipe",
+        },
+      );
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      throw toAudioTranscodeError(reason);
+    }
+
+    const stderrOutput =
+      process.stderr && typeof process.stderr !== "number"
+        ? (await new Response(process.stderr).text()).trim()
+        : "";
+    const exitCode = await process.exited;
+    if (exitCode !== 0) {
+      throw toAudioTranscodeError(
+        stderrOutput.length > 0
+          ? stderrOutput
+          : `ffmpeg exited with code ${exitCode}.`,
+      );
+    }
+
+    const outputFile = Bun.file(outputPath);
+    if (!(await outputFile.exists())) {
+      throw toAudioTranscodeError("ffmpeg completed without producing an output file.");
+    }
+
+    return Buffer.from(await outputFile.arrayBuffer());
+  } finally {
+    await Promise.all([
+      rm(inputPath, { force: true }),
+      rm(outputPath, { force: true }),
+    ]);
+  }
+}
+
 export function tokenizeSentenceForSpeech(sentence: string): string[] {
   return sentence
     .trim()
@@ -212,7 +289,7 @@ function sanitizeSentenceId(sentenceId: string): string {
 
 function buildAudioFileName(sentenceId: string, sentence: string): string {
   const sentenceHash = createHash("sha1").update(sentence).digest("hex").slice(0, 10);
-  return `tts-${sanitizeSentenceId(sentenceId)}-${sentenceHash}.mp3`;
+  return `tts-${sanitizeSentenceId(sentenceId)}-${sentenceHash}.${OUTPUT_AUDIO_EXTENSION}`;
 }
 
 async function synthesizeWithGoogleTextToSpeech(
@@ -250,7 +327,7 @@ async function synthesizeWithGoogleTextToSpeech(
         },
         voice,
         audioConfig: {
-          audioEncoding: "MP3",
+          audioEncoding: GOOGLE_TTS_API_AUDIO_ENCODING,
           speakingRate: config.speakingRate,
           pitch: config.pitch,
         },
@@ -281,8 +358,11 @@ async function synthesizeWithGoogleTextToSpeech(
     throw new Error("Google Text-to-Speech API returned no audio content.");
   }
 
+  const linear16AudioBuffer = Buffer.from(audioContent, "base64");
+  const aacAudioBuffer = await transcodeLinear16ToAac(linear16AudioBuffer);
+
   return {
-    audioBuffer: Buffer.from(audioContent, "base64"),
+    audioBuffer: aacAudioBuffer,
     words: buildWordTimestamps(tokens, markNames, parseGoogleTimepoints(payload?.timepoints)),
   };
 }

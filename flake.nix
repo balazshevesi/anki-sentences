@@ -27,6 +27,7 @@
             python312
             ruff
             patch
+            ffmpeg
           ];
 
           shellHook = ''
