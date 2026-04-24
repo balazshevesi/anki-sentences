@@ -1,7 +1,7 @@
 import { default as Anki } from "anki-apkg-export";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { loadQuestionFormatHtml } from "../../deck/template";
+import { loadQuestionTemplateBundle } from "../../deck/template";
 import { DECK_NOTE_FIELDS, readPipelineCsvRows } from "../../deck/csv";
 import type { DeckBuildConfig, DeckRuntimeConfig } from "../../deck/types";
 import { parseCardPayloadJson } from "../../contracts/cardPayload";
@@ -21,14 +21,14 @@ export async function runBuildApkgPass(
   runtime: DeckRuntimeConfig,
 ): Promise<{ cardCount: number }> {
   const rows = await readPipelineCsvRows(csvPath);
+  const templateBundle = await loadQuestionTemplateBundle();
   const questionFormatHtml = neutralizeAnkiMustacheInBundle(
-    await loadQuestionFormatHtml(),
+    templateBundle.html,
   );
 
   const questionFormat = `
     <div id="front" class="card-template-loading">{{Sentence}}</div>
     <div id="cardPayload" hidden>{{cardPayload}}</div>
-    {{audio}}
     ${questionFormatHtml}`;
   const answerFormat = '{{FrontSide}}<hr id="answer">{{SentenceTranslation}}';
 
@@ -36,7 +36,7 @@ export async function runBuildApkgPass(
     fields: [...DECK_NOTE_FIELDS],
     questionFormat: escapeSqliteStringLiteral(questionFormat),
     answerFormat: escapeSqliteStringLiteral(answerFormat),
-    css: "",
+    css: escapeSqliteStringLiteral(templateBundle.css),
   });
 
   const includedMediaFiles = new Set<string>();

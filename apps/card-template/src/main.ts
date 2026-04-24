@@ -32,12 +32,12 @@ function readTemplatePayload(): TemplatePayload | null {
     return null;
   }
 
-  const cardText = frontElement.innerText;
+  const cardText = frontElement.textContent ?? "";
   const cardPayload: CardPayload = parseCardPayloadJson(
-    cardPayloadElement.innerText,
+    cardPayloadElement.textContent ?? "",
   );
 
-  frontElement.innerText = "";
+  frontElement.textContent = "";
 
   return {
     target: frontElement,

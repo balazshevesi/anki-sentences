@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 const OUTPUT_AUDIO_EXTENSION = "aac";
 const FFMPEG_BINARY = "ffmpeg";
+const FFMPEG_TRANSCODE_TIMEOUT_MS = 20_000;
 
 function toAudioTranscodeError(details: string): Error {
   return new Error(
@@ -52,11 +53,29 @@ export async function transcodeLinear16ToAac(
       throw toAudioTranscodeError(reason);
     }
 
-    const stderrOutput =
+    let transcodeTimedOut = false;
+    const timeoutId = setTimeout(() => {
+      transcodeTimedOut = true;
+      try {
+        process.kill();
+      } catch {}
+    }, FFMPEG_TRANSCODE_TIMEOUT_MS);
+
+    const stderrPromise =
       process.stderr && typeof process.stderr !== "number"
-        ? (await new Response(process.stderr).text()).trim()
-        : "";
+        ? new Response(process.stderr).text()
+        : Promise.resolve("");
+
     const exitCode = await process.exited;
+    clearTimeout(timeoutId);
+
+    const stderrOutput = (await stderrPromise).trim();
+    if (transcodeTimedOut) {
+      throw toAudioTranscodeError(
+        `ffmpeg timed out after ${FFMPEG_TRANSCODE_TIMEOUT_MS}ms.`,
+      );
+    }
+
     if (exitCode !== 0) {
       throw toAudioTranscodeError(
         stderrOutput.length > 0
