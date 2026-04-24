@@ -70,16 +70,17 @@ function printTopNgrams(
   }
 
   sortedEntries.slice(0, topCount).forEach(([ngram, stats], index) => {
-    const percentage = totalCardCount === 0
-      ? 0
-      : (stats.cardCount / totalCardCount) * 100;
+    const percentage =
+      totalCardCount === 0 ? 0 : (stats.cardCount / totalCardCount) * 100;
     console.log(
       `${index + 1}. ${ngram} (${stats.occurrenceCount} occurrences, ${percentage.toFixed(1)}% of cards)`,
     );
   });
 }
 
-async function runAnalyzeCsvNgrams(args = process.argv.slice(2)): Promise<void> {
+async function runAnalyzeCsvNgrams(
+  args = process.argv.slice(2),
+): Promise<void> {
   const { inputPath, topCount } = parseOptions(args);
   const rows = await readPipelineCsvRows(inputPath);
   const sentences = rows
@@ -90,8 +91,18 @@ async function runAnalyzeCsvNgrams(args = process.argv.slice(2)): Promise<void> 
   const trigrams = toSortedEntries(countNgrams(sentences, 3));
 
   console.log(`Read ${sentences.length} sentences from ${inputPath}`);
-  printTopNgrams(`Top ${topCount} word bigrams:`, bigrams, topCount, sentences.length);
-  printTopNgrams(`Top ${topCount} word trigrams:`, trigrams, topCount, sentences.length);
+  printTopNgrams(
+    `Top ${topCount} word bigrams:`,
+    bigrams,
+    topCount,
+    sentences.length,
+  );
+  printTopNgrams(
+    `Top ${topCount} word trigrams:`,
+    trigrams,
+    topCount,
+    sentences.length,
+  );
 }
 
 if (import.meta.main) {

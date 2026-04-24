@@ -7,7 +7,9 @@
     "dev": "vite dev",
     "typecheck": "tsc -b --pretty false",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "format": "prettier --write . --ignore-unknown",
+    "format:check": "prettier --check . --ignore-unknown"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",
@@ -19,6 +21,8 @@
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@types/node": "^24.12.2",
+    "prettier": "^3.6.2",
+    "prettier-plugin-svelte": "^3.4.0",
     "typescript": "~6.0.2",
     "vite": "^8.0.9"
   }

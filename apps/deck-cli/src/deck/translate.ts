@@ -36,9 +36,7 @@ type BasicTranslation = {
 
 function createBaseTranslator(options: TranslatorOptions): TranslatePhrase {
   const cache = new Map<string, Promise<PhraseTranslation>>();
-  const translateLimit = promiseLimit(
-    options.concurrency,
-  ) as PromiseLimitFn;
+  const translateLimit = promiseLimit(options.concurrency) as PromiseLimitFn;
 
   return async (text: string) => {
     const normalizedText = text.trim();
@@ -58,7 +56,10 @@ function createBaseTranslator(options: TranslatorOptions): TranslatePhrase {
     const requestPromise = translateLimit(() =>
       translateText(options, normalizedText),
     ).catch((error: unknown) => {
-      console.warn(`Falling back to original text for '${normalizedText}':`, error);
+      console.warn(
+        `Falling back to original text for '${normalizedText}':`,
+        error,
+      );
       return {
         translatedText: normalizedText,
         alternatives: [],
@@ -70,7 +71,9 @@ function createBaseTranslator(options: TranslatorOptions): TranslatePhrase {
   };
 }
 
-export function createPhraseTranslator(options: TranslatorOptions): TranslatePhrase {
+export function createPhraseTranslator(
+  options: TranslatorOptions,
+): TranslatePhrase {
   return createBaseTranslator(options);
 }
 
@@ -135,8 +138,12 @@ async function translateText(
   };
 }
 
-export async function buildWordByWord(sentence: string, translateWordFn: TranslateWord): Promise<string> {
-  const tokens = sentence.trim().length === 0 ? [] : sentence.trim().split(/\s+/);
+export async function buildWordByWord(
+  sentence: string,
+  translateWordFn: TranslateWord,
+): Promise<string> {
+  const tokens =
+    sentence.trim().length === 0 ? [] : sentence.trim().split(/\s+/);
   const translatedEntries = await Promise.all(
     tokens.map(async (token) => [token, await translateWordFn(token)] as const),
   );

@@ -61,7 +61,9 @@ function toAuthResolutionError(message: string): Error {
   );
 }
 
-function resolveQuotaProjectOverride(config: GoogleTtsConfig): string | undefined {
+function resolveQuotaProjectOverride(
+  config: GoogleTtsConfig,
+): string | undefined {
   const fromConfig = config.quotaProject?.trim();
   if (fromConfig && fromConfig.length > 0) {
     return fromConfig;
@@ -75,7 +77,9 @@ function resolveQuotaProjectOverride(config: GoogleTtsConfig): string | undefine
   return undefined;
 }
 
-async function resolveGoogleAuthHeaders(config: GoogleTtsConfig): Promise<Headers> {
+async function resolveGoogleAuthHeaders(
+  config: GoogleTtsConfig,
+): Promise<Headers> {
   const headers = new Headers();
 
   const configuredToken = config.accessToken?.trim();
@@ -84,7 +88,9 @@ async function resolveGoogleAuthHeaders(config: GoogleTtsConfig): Promise<Header
   } else {
     try {
       const client = await googleAuth.getClient();
-      const authHeaders = await client.getRequestHeaders(GOOGLE_TTS_SYNTHESIZE_URL);
+      const authHeaders = await client.getRequestHeaders(
+        GOOGLE_TTS_SYNTHESIZE_URL,
+      );
       for (const [name, value] of authHeaders.entries()) {
         headers.set(name, value);
       }
@@ -119,7 +125,10 @@ function toGoogleApiErrorMessage(
   responseBody: string,
 ): string {
   const apiErrorMessage = payload?.error?.message;
-  if (typeof apiErrorMessage === "string" && apiErrorMessage.trim().length > 0) {
+  if (
+    typeof apiErrorMessage === "string" &&
+    apiErrorMessage.trim().length > 0
+  ) {
     return `Google Text-to-Speech API request failed (${statusCode}): ${apiErrorMessage}`;
   }
 
@@ -140,7 +149,9 @@ function toAudioTranscodeError(details: string): Error {
   );
 }
 
-async function transcodeLinear16ToAac(linear16AudioBuffer: Buffer): Promise<Buffer> {
+async function transcodeLinear16ToAac(
+  linear16AudioBuffer: Buffer,
+): Promise<Buffer> {
   const fileStem = `tts-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const inputPath = join(tmpdir(), `${fileStem}.wav`);
   const outputPath = join(tmpdir(), `${fileStem}.${OUTPUT_AUDIO_EXTENSION}`);
@@ -191,7 +202,9 @@ async function transcodeLinear16ToAac(linear16AudioBuffer: Buffer): Promise<Buff
 
     const outputFile = Bun.file(outputPath);
     if (!(await outputFile.exists())) {
-      throw toAudioTranscodeError("ffmpeg completed without producing an output file.");
+      throw toAudioTranscodeError(
+        "ffmpeg completed without producing an output file.",
+      );
     }
 
     return Buffer.from(await outputFile.arrayBuffer());
@@ -261,11 +274,15 @@ export function buildWordTimestamps(
     const currentMark = markNames[index];
     const nextMark = markNames[index + 1];
 
-    const startSeconds = currentMark ? startTimeByMark.get(currentMark) : undefined;
+    const startSeconds = currentMark
+      ? startTimeByMark.get(currentMark)
+      : undefined;
     const endSeconds = nextMark ? startTimeByMark.get(nextMark) : undefined;
 
     const startMs =
-      typeof startSeconds === "number" ? Math.round(startSeconds * 1_000) : null;
+      typeof startSeconds === "number"
+        ? Math.round(startSeconds * 1_000)
+        : null;
     const endMs =
       typeof endSeconds === "number" ? Math.round(endSeconds * 1_000) : null;
 
@@ -288,7 +305,10 @@ function sanitizeSentenceId(sentenceId: string): string {
 }
 
 function buildAudioFileName(sentenceId: string, sentence: string): string {
-  const sentenceHash = createHash("sha1").update(sentence).digest("hex").slice(0, 10);
+  const sentenceHash = createHash("sha1")
+    .update(sentence)
+    .digest("hex")
+    .slice(0, 10);
   return `tts-${sanitizeSentenceId(sentenceId)}-${sentenceHash}.${OUTPUT_AUDIO_EXTENSION}`;
 }
 
@@ -316,26 +336,23 @@ async function synthesizeWithGoogleTextToSpeech(
   const authHeaders = await resolveGoogleAuthHeaders(config);
   authHeaders.set("content-type", "application/json");
 
-  const response = await fetch(
-    GOOGLE_TTS_SYNTHESIZE_URL,
-    {
-      method: "POST",
-      headers: authHeaders,
-      body: JSON.stringify({
-        input: {
-          ssml,
-        },
-        voice,
-        audioConfig: {
-          audioEncoding: GOOGLE_TTS_API_AUDIO_ENCODING,
-          speakingRate: config.speakingRate,
-          pitch: config.pitch,
-        },
-        enableTimePointing: ["SSML_MARK"],
-      }),
-      signal: AbortSignal.timeout(60_000),
-    },
-  );
+  const response = await fetch(GOOGLE_TTS_SYNTHESIZE_URL, {
+    method: "POST",
+    headers: authHeaders,
+    body: JSON.stringify({
+      input: {
+        ssml,
+      },
+      voice,
+      audioConfig: {
+        audioEncoding: GOOGLE_TTS_API_AUDIO_ENCODING,
+        speakingRate: config.speakingRate,
+        pitch: config.pitch,
+      },
+      enableTimePointing: ["SSML_MARK"],
+    }),
+    signal: AbortSignal.timeout(60_000),
+  });
 
   const responseBody = await response.text();
   let payload: GoogleTtsApiResponse | null = null;
@@ -363,7 +380,11 @@ async function synthesizeWithGoogleTextToSpeech(
 
   return {
     audioBuffer: aacAudioBuffer,
-    words: buildWordTimestamps(tokens, markNames, parseGoogleTimepoints(payload?.timepoints)),
+    words: buildWordTimestamps(
+      tokens,
+      markNames,
+      parseGoogleTimepoints(payload?.timepoints),
+    ),
   };
 }
 

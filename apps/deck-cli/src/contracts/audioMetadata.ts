@@ -57,8 +57,12 @@ function parseTimestampEntry(value: unknown): AudioWordTimestamp | null {
     return null;
   }
 
-  const parsedStart = isFiniteNumber(startMs) ? Math.max(0, Math.round(startMs)) : null;
-  const parsedEnd = isFiniteNumber(endMs) ? Math.max(0, Math.round(endMs)) : null;
+  const parsedStart = isFiniteNumber(startMs)
+    ? Math.max(0, Math.round(startMs))
+    : null;
+  const parsedEnd = isFiniteNumber(endMs)
+    ? Math.max(0, Math.round(endMs))
+    : null;
 
   return {
     index,

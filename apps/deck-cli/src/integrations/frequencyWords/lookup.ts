@@ -74,12 +74,7 @@ function parseFrequencyCsv(content: string): Map<string, FrequencyRow> {
   const countIndex = header.indexOf("count");
   const occurrenceIndex = header.indexOf("occurrence_percentage");
 
-  if (
-    rankIndex < 0
-    || wordIndex < 0
-    || countIndex < 0
-    || occurrenceIndex < 0
-  ) {
+  if (rankIndex < 0 || wordIndex < 0 || countIndex < 0 || occurrenceIndex < 0) {
     return new Map();
   }
 
@@ -93,16 +88,18 @@ function parseFrequencyCsv(content: string): Map<string, FrequencyRow> {
     const word = fields[wordIndex]?.trim().toLowerCase();
     const rank = Number.parseInt(fields[rankIndex] ?? "", 10);
     const count = Number.parseInt(fields[countIndex] ?? "", 10);
-    const occurrencePercentage = Number.parseFloat(fields[occurrenceIndex] ?? "");
+    const occurrencePercentage = Number.parseFloat(
+      fields[occurrenceIndex] ?? "",
+    );
 
     if (
-      !word
-      || !Number.isSafeInteger(rank)
-      || rank <= 0
-      || !Number.isSafeInteger(count)
-      || count <= 0
-      || !Number.isFinite(occurrencePercentage)
-      || occurrencePercentage <= 0
+      !word ||
+      !Number.isSafeInteger(rank) ||
+      rank <= 0 ||
+      !Number.isSafeInteger(count) ||
+      count <= 0 ||
+      !Number.isFinite(occurrencePercentage) ||
+      occurrencePercentage <= 0
     ) {
       continue;
     }
@@ -132,7 +129,8 @@ function parseFrequencyTxt(content: string): Map<string, FrequencyRow> {
       };
     })
     .filter(
-      (row) => row.word.length > 0 && Number.isSafeInteger(row.count) && row.count > 0,
+      (row) =>
+        row.word.length > 0 && Number.isSafeInteger(row.count) && row.count > 0,
     );
 
   const totalCount = rawRows.reduce((sum, row) => sum + row.count, 0);
@@ -172,7 +170,12 @@ function getLookupCandidates(word: string): string[] {
   const normalizedApostrophe = strippedEdges.replaceAll("’", "'");
   const noApostrophe = normalizedApostrophe.replaceAll("'", "");
 
-  const candidates = [trimmed, strippedEdges, normalizedApostrophe, noApostrophe]
+  const candidates = [
+    trimmed,
+    strippedEdges,
+    normalizedApostrophe,
+    noApostrophe,
+  ]
     .map((candidate) => candidate.trim())
     .filter((candidate) => candidate.length > 0);
 

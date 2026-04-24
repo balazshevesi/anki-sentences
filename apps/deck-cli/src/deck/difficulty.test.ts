@@ -35,7 +35,9 @@ describe("sentence difficulty scoring", () => {
       frequencyForRank(500),
     );
     const rareScore = calculateSentenceDifficultyScore(rareSentence, (word) =>
-      word.toLowerCase() === "recondite" ? frequencyForRank(45_000) : frequencyForRank(500),
+      word.toLowerCase() === "recondite"
+        ? frequencyForRank(45_000)
+        : frequencyForRank(500),
     );
 
     expect(rareScore).toBeGreaterThan(commonScore);

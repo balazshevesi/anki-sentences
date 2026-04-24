@@ -13,19 +13,26 @@ const NAMED_HTML_ENTITIES: Record<string, string> = {
 };
 
 function decodeHtmlEntities(input: string): string {
-  return input.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (fullMatch, rawEntity) => {
-    if (rawEntity.startsWith("#x") || rawEntity.startsWith("#X")) {
-      const codePoint = Number.parseInt(rawEntity.slice(2), 16);
-      return Number.isNaN(codePoint) ? fullMatch : String.fromCodePoint(codePoint);
-    }
+  return input.replace(
+    /&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g,
+    (fullMatch, rawEntity) => {
+      if (rawEntity.startsWith("#x") || rawEntity.startsWith("#X")) {
+        const codePoint = Number.parseInt(rawEntity.slice(2), 16);
+        return Number.isNaN(codePoint)
+          ? fullMatch
+          : String.fromCodePoint(codePoint);
+      }
 
-    if (rawEntity.startsWith("#")) {
-      const codePoint = Number.parseInt(rawEntity.slice(1), 10);
-      return Number.isNaN(codePoint) ? fullMatch : String.fromCodePoint(codePoint);
-    }
+      if (rawEntity.startsWith("#")) {
+        const codePoint = Number.parseInt(rawEntity.slice(1), 10);
+        return Number.isNaN(codePoint)
+          ? fullMatch
+          : String.fromCodePoint(codePoint);
+      }
 
-    return NAMED_HTML_ENTITIES[rawEntity] ?? fullMatch;
-  });
+      return NAMED_HTML_ENTITIES[rawEntity] ?? fullMatch;
+    },
+  );
 }
 
 function extractLanguagesJson(html: string): Record<string, string> {
@@ -34,7 +41,9 @@ function extractLanguagesJson(html: string): Record<string, string> {
   );
 
   if (!match) {
-    throw new Error("Could not locate languages-json payload in Tatoeba downloads page.");
+    throw new Error(
+      "Could not locate languages-json payload in Tatoeba downloads page.",
+    );
   }
 
   const encodedJson = match[1];
@@ -75,7 +84,9 @@ function renderLanguagesFile(languages: Record<string, string>): string {
 
   lines.push("} as const;");
   lines.push("");
-  lines.push("export type SupportedLanguageCode = keyof typeof SUPPORTED_LANGUAGES;");
+  lines.push(
+    "export type SupportedLanguageCode = keyof typeof SUPPORTED_LANGUAGES;",
+  );
   lines.push(
     "export type SupportedLanguageName = (typeof SUPPORTED_LANGUAGES)[SupportedLanguageCode];",
   );
@@ -84,9 +95,13 @@ function renderLanguagesFile(languages: Record<string, string>): string {
   lines.push("  SUPPORTED_LANGUAGES");
   lines.push(") as SupportedLanguageCode[];");
   lines.push("");
-  lines.push("const SUPPORTED_LANGUAGE_CODE_SET = new Set<string>(SUPPORTED_LANGUAGE_CODES);");
+  lines.push(
+    "const SUPPORTED_LANGUAGE_CODE_SET = new Set<string>(SUPPORTED_LANGUAGE_CODES);",
+  );
   lines.push("");
-  lines.push("export function isSupportedLanguageCode(code: string): code is SupportedLanguageCode {");
+  lines.push(
+    "export function isSupportedLanguageCode(code: string): code is SupportedLanguageCode {",
+  );
   lines.push("  return SUPPORTED_LANGUAGE_CODE_SET.has(code);");
   lines.push("}");
 

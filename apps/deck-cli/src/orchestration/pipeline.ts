@@ -28,7 +28,9 @@ export async function runDeckPipeline(config: {
 
     switch (pass) {
       case "retrieve": {
-        console.log(`[retrieve] Retrieving sentence rows into ${config.csvPath}...`);
+        console.log(
+          `[retrieve] Retrieving sentence rows into ${config.csvPath}...`,
+        );
         const rows = await runSentenceRetrievalPass(
           config.deck,
           config.csvPath,

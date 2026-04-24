@@ -126,7 +126,11 @@ const DeckConfigSchema = z
       sentenceLimit: config.deck.sentenceLimit,
       argosTranslateUrl: config.argos.translateUrl,
       sentenceExclusions: Array.from(
-        new Set(config.deck.sentenceExclusions.map((value) => value.toLocaleLowerCase())),
+        new Set(
+          config.deck.sentenceExclusions.map((value) =>
+            value.toLocaleLowerCase(),
+          ),
+        ),
       ),
       googleTtsAccessToken: config.audio.accessToken ?? undefined,
       googleTtsLanguageCode: config.audio.languageCode ?? undefined,

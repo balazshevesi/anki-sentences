@@ -90,7 +90,11 @@ export interface TatoebaApiErrorPayload {
 }
 
 export type QueryPrimitive = string | number | boolean;
-export type QueryValue = QueryPrimitive | readonly QueryPrimitive[] | null | undefined;
+export type QueryValue =
+  | QueryPrimitive
+  | readonly QueryPrimitive[]
+  | null
+  | undefined;
 
 export interface SentenceSearchParams {
   lang: LanguageCode | readonly LanguageCode[];

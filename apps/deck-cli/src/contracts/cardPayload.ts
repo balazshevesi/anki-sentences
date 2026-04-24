@@ -90,11 +90,11 @@ function parseWordTranslation(value: unknown): WordTranslation {
 
   const rawFrequency = wordTranslation.frequency as
     | {
-      rank?: unknown;
-      occurrencePercentage?: unknown;
-      rarity?: unknown;
-      hint?: unknown;
-    }
+        rank?: unknown;
+        occurrencePercentage?: unknown;
+        rarity?: unknown;
+        hint?: unknown;
+      }
     | undefined;
 
   const rank =
@@ -102,8 +102,8 @@ function parseWordTranslation(value: unknown): WordTranslation {
       ? rawFrequency.rank
       : null;
   const occurrencePercentage =
-    typeof rawFrequency?.occurrencePercentage === "number"
-    && Number.isFinite(rawFrequency.occurrencePercentage)
+    typeof rawFrequency?.occurrencePercentage === "number" &&
+    Number.isFinite(rawFrequency.occurrencePercentage)
       ? rawFrequency.occurrencePercentage
       : null;
 
@@ -119,8 +119,8 @@ function parseWordTranslation(value: unknown): WordTranslation {
       rank,
       occurrencePercentage,
       rarity:
-        typeof rawFrequency?.rarity === "string"
-        && isWordRarity(rawFrequency.rarity)
+        typeof rawFrequency?.rarity === "string" &&
+        isWordRarity(rawFrequency.rarity)
           ? rawFrequency.rarity
           : EMPTY_WORD_FREQUENCY.rarity,
       hint:
@@ -144,7 +144,9 @@ function parseWordByWord(value: unknown): Record<string, WordTranslation> {
   );
 }
 
-export function parseWordByWordJson(raw: string): Record<string, WordTranslation> {
+export function parseWordByWordJson(
+  raw: string,
+): Record<string, WordTranslation> {
   try {
     return parseWordByWord(JSON.parse(raw) as unknown);
   } catch {
@@ -178,7 +180,8 @@ export function normalizeNgramTranslation(value: unknown): NgramTranslation {
       ? raw.alternatives.map((item) => String(item))
       : [],
     occurrenceCount:
-      typeof raw.occurrenceCount === "number" && Number.isFinite(raw.occurrenceCount)
+      typeof raw.occurrenceCount === "number" &&
+      Number.isFinite(raw.occurrenceCount)
         ? raw.occurrenceCount
         : 0,
     cardCount:
@@ -186,7 +189,8 @@ export function normalizeNgramTranslation(value: unknown): NgramTranslation {
         ? raw.cardCount
         : 0,
     cardPercentage:
-      typeof raw.cardPercentage === "number" && Number.isFinite(raw.cardPercentage)
+      typeof raw.cardPercentage === "number" &&
+      Number.isFinite(raw.cardPercentage)
         ? raw.cardPercentage
         : 0,
   };

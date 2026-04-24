@@ -250,9 +250,7 @@
           "maximum": 9007199254740991
         }
       },
-      "required": [
-        "sortField"
-      ],
+      "required": ["sortField"],
       "additionalProperties": false
     }
   },

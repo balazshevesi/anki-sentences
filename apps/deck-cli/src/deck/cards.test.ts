@@ -91,7 +91,11 @@ describe("fetchSentenceJobsForWords", () => {
   test("uses injected search function and dedupes overlapping results", async () => {
     const config = buildConfig(["hello", "greeting"]);
 
-    const searchSentencesFn = async ({ q }: { q?: string }): Promise<SentenceSearchResponse> => {
+    const searchSentencesFn = async ({
+      q,
+    }: {
+      q?: string;
+    }): Promise<SentenceSearchResponse> => {
       if (q === "hello") {
         return {
           data: [buildSentence(1, "Hello there")],

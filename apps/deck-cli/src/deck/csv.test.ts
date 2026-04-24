@@ -32,7 +32,8 @@ describe("pipeline CSV", () => {
         SentenceTranslation: "Egy mondat",
         Keyword: "one",
         SentenceId: "42",
-        cardPayload: '{"wordByWord":{"one":{"translatedText":"egy","alternatives":[],"frequency":{"rank":10,"occurrencePercentage":0.1,"rarity":"very_common","hint":"Very common"}}},"ngramTranslations":[],"audioMetadata":{"status":"error","provider":"google_text_to_speech","sentenceId":"42","generatedAt":"2026-01-01T00:00:00.000Z","message":"not_implemented"}}',
+        cardPayload:
+          '{"wordByWord":{"one":{"translatedText":"egy","alternatives":[],"frequency":{"rank":10,"occurrencePercentage":0.1,"rarity":"very_common","hint":"Very common"}}},"ngramTranslations":[],"audioMetadata":{"status":"error","provider":"google_text_to_speech","sentenceId":"42","generatedAt":"2026-01-01T00:00:00.000Z","message":"not_implemented"}}',
         difficulty: "12.34",
         audio: "[sound:42_one_sentence.aac]",
       },
@@ -43,7 +44,6 @@ describe("pipeline CSV", () => {
 
     expect(parsed).toEqual(inputRows);
   });
-
 });
 
 describe("path helpers", () => {

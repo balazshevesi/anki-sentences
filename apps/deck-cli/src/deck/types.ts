@@ -1,4 +1,7 @@
-import type { LanguageCode, WordCountFilter } from "../integrations/tatoeba/index";
+import type {
+  LanguageCode,
+  WordCountFilter,
+} from "../integrations/tatoeba/index";
 import type { WordTranslation } from "../contracts/cardPayload";
 
 export type { WordTranslation } from "../contracts/cardPayload";

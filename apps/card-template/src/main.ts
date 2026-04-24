@@ -27,7 +27,9 @@ function readTemplatePayload(): TemplatePayload | null {
   }
 
   const cardText = frontElement.innerText;
-  const cardPayload: CardPayload = parseCardPayloadJson(cardPayloadElement.innerText);
+  const cardPayload: CardPayload = parseCardPayloadJson(
+    cardPayloadElement.innerText,
+  );
 
   frontElement.innerText = "";
 

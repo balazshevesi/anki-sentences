@@ -9,7 +9,9 @@ export async function runDifficultyPass(
   csvPath: string,
 ): Promise<PipelineCsvRow[]> {
   const rows = await readPipelineCsvRows(csvPath);
-  const frequencyLookup = await loadWordFrequencyLookup(config.argosSourceLanguage);
+  const frequencyLookup = await loadWordFrequencyLookup(
+    config.argosSourceLanguage,
+  );
   if (!frequencyLookup.sourceFile) {
     console.warn(
       `No frequency list found for '${config.argosSourceLanguage}'. Falling back to default rarity hints.`,
@@ -28,8 +30,12 @@ export async function runDifficultyPass(
     const leftDifficulty = Number.parseFloat(left.difficulty);
     const rightDifficulty = Number.parseFloat(right.difficulty);
     const difficultyDelta =
-      (Number.isFinite(leftDifficulty) ? leftDifficulty : Number.POSITIVE_INFINITY) -
-      (Number.isFinite(rightDifficulty) ? rightDifficulty : Number.POSITIVE_INFINITY);
+      (Number.isFinite(leftDifficulty)
+        ? leftDifficulty
+        : Number.POSITIVE_INFINITY) -
+      (Number.isFinite(rightDifficulty)
+        ? rightDifficulty
+        : Number.POSITIVE_INFINITY);
 
     if (difficultyDelta !== 0) {
       return difficultyDelta;

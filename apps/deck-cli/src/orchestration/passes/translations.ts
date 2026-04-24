@@ -1,5 +1,8 @@
 import promiseLimit from "promise-limit";
-import { listSentenceNgramCandidates, selectNgramCandidates } from "../../deck/ngrams";
+import {
+  listSentenceNgramCandidates,
+  selectNgramCandidates,
+} from "../../deck/ngrams";
 import {
   buildWordByWord,
   createPhraseTranslator,
@@ -50,7 +53,9 @@ export async function runTranslationMetadataPass(
   const passStartedAt = Date.now();
   const rows = await readPipelineCsvRows(csvPath);
   if (rows.length === 0) {
-    console.log(`[translations] No rows found in ${csvPath}; skipping enrichment.`);
+    console.log(
+      `[translations] No rows found in ${csvPath}; skipping enrichment.`,
+    );
     return rows;
   }
 
@@ -59,7 +64,9 @@ export async function runTranslationMetadataPass(
     `[translations] Preparing translation resources (sentence concurrency: ${runtime.sentenceMetadataConcurrency}).`,
   );
 
-  const frequencyLookup = await loadWordFrequencyLookup(config.argosSourceLanguage);
+  const frequencyLookup = await loadWordFrequencyLookup(
+    config.argosSourceLanguage,
+  );
   if (!frequencyLookup.sourceFile) {
     console.warn(
       `No frequency list found for '${config.argosSourceLanguage}'. Falling back to default rarity hints.`,
@@ -97,7 +104,9 @@ export async function runTranslationMetadataPass(
   const startedAt = Date.now();
   let completed = 0;
 
-  console.log("[translations] Enriching rows with word-by-word and n-gram metadata...");
+  console.log(
+    "[translations] Enriching rows with word-by-word and n-gram metadata...",
+  );
 
   const enrichedRows = await Promise.all(
     rows.map((row) =>
@@ -109,27 +118,32 @@ export async function runTranslationMetadataPass(
           candidateMap,
           runtime.ngramTranslationLimitPerCard,
         );
-        const ngramTranslations = candidates.length === 0
-          ? "[]"
-          : JSON.stringify(
-            await Promise.all(
-              candidates.map(async (candidate) => {
-                const translation = await translatePhrase(candidate.text);
-                return {
-                  phrase: candidate.text,
-                  ngramLength: candidate.ngramLength,
-                  translatedText: translation.translatedText,
-                  alternatives: translation.alternatives,
-                  occurrenceCount: candidate.occurrenceCount,
-                  cardCount: candidate.cardCount,
-                  cardPercentage: candidate.cardPercentage,
-                };
-              }),
-            ),
-          );
+        const ngramTranslations =
+          candidates.length === 0
+            ? "[]"
+            : JSON.stringify(
+                await Promise.all(
+                  candidates.map(async (candidate) => {
+                    const translation = await translatePhrase(candidate.text);
+                    return {
+                      phrase: candidate.text,
+                      ngramLength: candidate.ngramLength,
+                      translatedText: translation.translatedText,
+                      alternatives: translation.alternatives,
+                      occurrenceCount: candidate.occurrenceCount,
+                      cardCount: candidate.cardCount,
+                      cardPercentage: candidate.cardPercentage,
+                    };
+                  }),
+                ),
+              );
 
         completed += 1;
-        if (completed === 1 || completed === rows.length || completed % updateEvery === 0) {
+        if (
+          completed === 1 ||
+          completed === rows.length ||
+          completed % updateEvery === 0
+        ) {
           logProgress("translations", completed, rows.length, startedAt);
         }
 

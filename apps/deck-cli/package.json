@@ -5,7 +5,8 @@
   "private": true,
   "devDependencies": {
     "@types/bun": "latest",
-    "patch-package": "^8.0.1"
+    "patch-package": "^8.0.1",
+    "prettier": "^3.6.2"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -29,7 +30,9 @@
     "deck:build": "bun run deck:pipeline",
     "deck:analyze-ngrams": "bun run src/orchestration/analyzeCsvNgrams.ts",
     "sentenceRetrieval:update": "bun run src/integrations/tatoeba/updateTatoebaLanguages.ts",
-    "wordFrequencies:words": "bun run src/integrations/frequencyWords/updateFrequencyWords.ts"
+    "wordFrequencies:words": "bun run src/integrations/frequencyWords/updateFrequencyWords.ts",
+    "format": "prettier --write . --ignore-unknown",
+    "format:check": "prettier --check . --ignore-unknown"
   },
   "dependencies": {
     "anki-apkg-export": "4.0.3",

@@ -44,11 +44,15 @@ function parseSpec(rawSpec: string): FrequencySpec {
   const [language, size] = rawSpec.split(":");
 
   if (!language || !size) {
-    throw new Error(`Invalid spec \"${rawSpec}\". Expected format <language>:<size>.`);
+    throw new Error(
+      `Invalid spec \"${rawSpec}\". Expected format <language>:<size>.`,
+    );
   }
 
   if (!isValidToken(language)) {
-    throw new Error(`Invalid language token \"${language}\" in spec \"${rawSpec}\".`);
+    throw new Error(
+      `Invalid language token \"${language}\" in spec \"${rawSpec}\".`,
+    );
   }
 
   if (!isValidToken(size)) {
@@ -61,9 +65,10 @@ function parseSpec(rawSpec: string): FrequencySpec {
   };
 }
 
-function parseCliArgs(
-  args: string[],
-): { year: string; specs: FrequencySpec[] } {
+function parseCliArgs(args: string[]): {
+  year: string;
+  specs: FrequencySpec[];
+} {
   let year = DEFAULT_FREQUENCY_YEAR;
   const rawSpecs: string[] = [];
 
@@ -134,7 +139,9 @@ function parseSourceRows(body: string): Array<{ word: string; count: number }> {
   return parsedRows;
 }
 
-function toFrequencyRows(sourceRows: Array<{ word: string; count: number }>): FrequencyRow[] {
+function toFrequencyRows(
+  sourceRows: Array<{ word: string; count: number }>,
+): FrequencyRow[] {
   const totalCount = sourceRows.reduce((total, row) => total + row.count, 0);
   if (totalCount <= 0) {
     throw new Error("Downloaded frequency file does not contain valid rows.");
@@ -159,8 +166,7 @@ function escapeCsvCell(value: string): string {
 }
 
 function renderCsv(rows: FrequencyRow[]): string {
-  const header =
-    "rank,word,count,occurrence_percentage,cumulative_percentage";
+  const header = "rank,word,count,occurrence_percentage,cumulative_percentage";
   const body = rows.map((row) =>
     [
       row.rank,
@@ -183,7 +189,9 @@ async function downloadAndWriteWordList(
 
   const response = await fetch(sourceUrl);
   if (!response.ok) {
-    throw new Error(`Failed to download ${sourceUrl} (HTTP ${response.status}).`);
+    throw new Error(
+      `Failed to download ${sourceUrl} (HTTP ${response.status}).`,
+    );
   }
 
   const body = await response.text();
@@ -199,7 +207,9 @@ async function downloadAndWriteWordList(
   console.log(`Saved ${spec.language}:${spec.size} -> ${outputPath.pathname}`);
 }
 
-async function runUpdateFrequencyWords(args = process.argv.slice(2)): Promise<void> {
+async function runUpdateFrequencyWords(
+  args = process.argv.slice(2),
+): Promise<void> {
   const { year, specs } = parseCliArgs(args);
 
   for (const spec of specs) {

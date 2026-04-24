@@ -25,11 +25,12 @@ function buildSentenceExclusionPatterns(terms: string[]): RegExp[] {
   return terms
     .map((term) => term.trim().toLocaleLowerCase())
     .filter((term) => term.length > 0)
-    .map((term) =>
-      new RegExp(
-        `(^|[^\\p{L}\\p{N}])${escapeForRegex(term)}(?=$|[^\\p{L}\\p{N}])`,
-        "iu",
-      )
+    .map(
+      (term) =>
+        new RegExp(
+          `(^|[^\\p{L}\\p{N}])${escapeForRegex(term)}(?=$|[^\\p{L}\\p{N}])`,
+          "iu",
+        ),
     );
 }
 
@@ -88,7 +89,9 @@ export function dedupeSentenceJobs(sentenceJobs: SentenceJob[]): SentenceJob[] {
   const seenSentenceTexts = new Set<string>();
 
   for (const sentenceJob of sentenceJobs) {
-    const normalizedText = normalizeSentenceTextForDedupe(sentenceJob.sentence.text);
+    const normalizedText = normalizeSentenceTextForDedupe(
+      sentenceJob.sentence.text,
+    );
 
     if (
       seenSentenceIds.has(sentenceJob.sentence.id) ||
@@ -113,7 +116,10 @@ export async function fetchSentenceJobsForWords(
   },
 ): Promise<SentenceJob[]> {
   const wordRetrievalConcurrency = options.wordRetrievalConcurrency;
-  if (!Number.isSafeInteger(wordRetrievalConcurrency) || wordRetrievalConcurrency <= 0) {
+  if (
+    !Number.isSafeInteger(wordRetrievalConcurrency) ||
+    wordRetrievalConcurrency <= 0
+  ) {
     throw new Error(
       `wordRetrievalConcurrency must be a positive integer. Received: ${wordRetrievalConcurrency}`,
     );

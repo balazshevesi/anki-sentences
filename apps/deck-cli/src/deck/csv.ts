@@ -143,13 +143,17 @@ export function parsePipelineCsvRows(content: string): PipelineCsvRow[] {
 export function renderPipelineCsv(rows: PipelineCsvRow[]): string {
   const header = PIPELINE_CSV_FIELDS.join(",");
   const body = rows.map((row) =>
-    PIPELINE_CSV_FIELDS.map((field) => escapeCsvField(row[field] ?? "")).join(","),
+    PIPELINE_CSV_FIELDS.map((field) => escapeCsvField(row[field] ?? "")).join(
+      ",",
+    ),
   );
 
   return [header, ...body].join("\n");
 }
 
-export async function readPipelineCsvRows(csvPath: string): Promise<PipelineCsvRow[]> {
+export async function readPipelineCsvRows(
+  csvPath: string,
+): Promise<PipelineCsvRow[]> {
   const file = Bun.file(csvPath);
   if (!(await file.exists())) {
     throw new Error(`CSV file does not exist: ${csvPath}`);

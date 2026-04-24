@@ -30,7 +30,7 @@ export async function runBuildApkgPass(
     <div id="cardPayload" hidden>{{cardPayload}}</div>
     {{audio}}
     ${questionFormatHtml}`;
-  const answerFormat = "{{FrontSide}}<hr id=\"answer\">{{SentenceTranslation}}";
+  const answerFormat = '{{FrontSide}}<hr id="answer">{{SentenceTranslation}}';
 
   const deck = new Anki(config.deckName, {
     fields: [...DECK_NOTE_FIELDS],
@@ -42,12 +42,15 @@ export async function runBuildApkgPass(
   const includedMediaFiles = new Set<string>();
 
   for (const row of rows) {
-    const parsedAudioMetadata = parseCardPayloadJson(row.cardPayload).audioMetadata;
-    const audioFieldValue = row.audio.trim().length > 0
-      ? row.audio
-      : isReadyAudioMetadata(parsedAudioMetadata)
-      ? parsedAudioMetadata.ankiSoundTag
-      : "";
+    const parsedAudioMetadata = parseCardPayloadJson(
+      row.cardPayload,
+    ).audioMetadata;
+    const audioFieldValue =
+      row.audio.trim().length > 0
+        ? row.audio
+        : isReadyAudioMetadata(parsedAudioMetadata)
+          ? parsedAudioMetadata.ankiSoundTag
+          : "";
     if (isReadyAudioMetadata(parsedAudioMetadata)) {
       const mediaFileName = parsedAudioMetadata.audioFileName;
       if (!includedMediaFiles.has(mediaFileName)) {

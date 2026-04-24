@@ -171,6 +171,6 @@ If `cardPayload.audioMetadata` contains ready Google TTS entries, matching `.aac
 - [ ] Implement proper adapter pattern so that services can be swapped easier
 - [ ] Add full guide in readme
 - [ ] Add more details (license, inspiration, etc) and stuff in the readme 
-- [ ] Add proper code formatting
+- [x] Add proper code formatting
 - [ ] Tweak word frequency categorization to be more accurate
 - [ ] Double check that all the scripts make sense

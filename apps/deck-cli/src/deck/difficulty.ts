@@ -74,7 +74,9 @@ export function calculateSentenceDifficultyScore(
   maxRank = DEFAULT_MAX_FREQUENCY_RANK,
 ): number {
   const tokens = tokenizeSentenceForDifficulty(sentence);
-  const lengthScore = sigmoid((tokens.length - LENGTH_MIDPOINT_WORDS) / LENGTH_STEEPNESS);
+  const lengthScore = sigmoid(
+    (tokens.length - LENGTH_MIDPOINT_WORDS) / LENGTH_STEEPNESS,
+  );
 
   const rarityScores = tokens.map((token) => {
     const frequency = getWordFrequencyInfo(token);
@@ -84,12 +86,14 @@ export function calculateSentenceDifficultyScore(
   const rarityMean =
     rarityScores.length === 0
       ? 0
-      : rarityScores.reduce((sum, score) => sum + score, 0) / rarityScores.length;
+      : rarityScores.reduce((sum, score) => sum + score, 0) /
+        rarityScores.length;
   const rarityP80 = percentile(rarityScores, 0.8);
-  const rarityScore = (RARITY_MEAN_WEIGHT * rarityMean) + (RARITY_P80_WEIGHT * rarityP80);
+  const rarityScore =
+    RARITY_MEAN_WEIGHT * rarityMean + RARITY_P80_WEIGHT * rarityP80;
 
   const weightedScore =
-    (LENGTH_WEIGHT * lengthScore) + (RARITY_WEIGHT * rarityScore);
+    LENGTH_WEIGHT * lengthScore + RARITY_WEIGHT * rarityScore;
 
   return Number((weightedScore * 100).toFixed(2));
 }

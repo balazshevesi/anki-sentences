@@ -75,7 +75,9 @@ export async function runAudioMetadataPass(
     `[audio] Generating Google TTS audio for ${rows.length} rows (language: ${googleTtsConfig.languageCode}, concurrency: ${runtime.audioMetadataConcurrency}).`,
   );
 
-  const sentenceLimit = promiseLimit(runtime.audioMetadataConcurrency) as PromiseLimitFn;
+  const sentenceLimit = promiseLimit(
+    runtime.audioMetadataConcurrency,
+  ) as PromiseLimitFn;
   const updateEvery = progressInterval(rows.length);
   const startedAt = Date.now();
   let completed = 0;
@@ -119,13 +121,19 @@ export async function runAudioMetadataPass(
             failedRows += 1;
             nextAudioMetadata = createGoogleTtsErrorMetadata(
               row.SentenceId,
-              error instanceof Error ? error.message : `Unknown error: ${String(error)}`,
+              error instanceof Error
+                ? error.message
+                : `Unknown error: ${String(error)}`,
             );
           }
         }
 
         completed += 1;
-        if (completed === 1 || completed === rows.length || completed % updateEvery === 0) {
+        if (
+          completed === 1 ||
+          completed === rows.length ||
+          completed % updateEvery === 0
+        ) {
           logProgress("audio", completed, rows.length, startedAt);
         }
 
