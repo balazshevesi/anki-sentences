@@ -4,12 +4,8 @@ import promiseLimit from "promise-limit";
 import type { PipelineCsvRow } from "../../deck/csv";
 import { readPipelineCsvRows, writePipelineCsvRows } from "../../deck/csv";
 import type { DeckBuildConfig, DeckRuntimeConfig } from "../../deck/types";
-import {
-  createGoogleTtsErrorMetadata,
-  generateGoogleTtsAudioMetadata,
-  type GoogleTtsConfig,
-} from "../../integrations/googleTts/googleTts";
-import { resolveGoogleTtsLanguageCode } from "../../integrations/googleTts/googleTtsLanguage";
+import type { IntegrationContext } from "../../integrations/createIntegrationContext";
+import type { SpeechSynthesisConfig } from "../../integrations/ports/index";
 import { parseCardPayloadJson } from "../../contracts/cardPayload";
 import { isReadyAudioMetadata } from "../../contracts/audioMetadata";
 import { formatDuration } from "../../contracts/formatDuration";
@@ -44,6 +40,7 @@ export async function runAudioMetadataPass(
   config: DeckBuildConfig,
   csvPath: string,
   runtime: DeckRuntimeConfig,
+  integrations: IntegrationContext,
 ): Promise<PipelineCsvRow[]> {
   const rows = await readPipelineCsvRows(csvPath);
   if (rows.length === 0) {
@@ -53,14 +50,14 @@ export async function runAudioMetadataPass(
 
   const languageCode =
     config.googleTtsLanguageCode ??
-    resolveGoogleTtsLanguageCode(config.sentenceLanguage);
+    integrations.speech.resolveLanguageCode(config.sentenceLanguage);
   if (!languageCode) {
     throw new Error(
       `Missing Google Text-to-Speech language code for sentence language '${config.sentenceLanguage}'. Set audio.languageCode in deck.config.jsonc or GOOGLE_TTS_LANGUAGE_CODE.`,
     );
   }
 
-  const googleTtsConfig: GoogleTtsConfig = {
+  const googleTtsConfig: SpeechSynthesisConfig = {
     accessToken: config.googleTtsAccessToken,
     languageCode,
     voiceName: config.googleTtsVoiceName,
@@ -112,14 +109,17 @@ export async function runAudioMetadataPass(
           nextAudioMetadata = existingMetadata;
         } else {
           try {
-            nextAudioMetadata = await generateGoogleTtsAudioMetadata(
-              row,
+            nextAudioMetadata = await integrations.speech.synthesize(
+              {
+                sentenceId: row.SentenceId,
+                sentence: row.Sentence,
+              },
               googleTtsConfig,
             );
             generatedRows += 1;
           } catch (error) {
             failedRows += 1;
-            nextAudioMetadata = createGoogleTtsErrorMetadata(
+            nextAudioMetadata = integrations.speech.createErrorMetadata(
               row.SentenceId,
               error instanceof Error
                 ? error.message

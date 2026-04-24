@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
 import type {
-  SentenceSearchResponse,
-  SentenceWithTranslations,
-} from "../integrations/tatoeba/index";
+  SentenceSearchInput,
+  SentenceSearchResult,
+} from "../integrations/ports/index";
 import type { DeckBuildConfig } from "./types";
 import {
   dedupeSentenceJobs,
@@ -37,25 +37,11 @@ function buildSentence(
   id: number,
   text: string,
   translations: string[] = [],
-): SentenceWithTranslations {
+): SentenceSearchResult {
   return {
-    id,
+    id: String(id),
     text,
-    lang: "eng",
-    script: null,
-    license: "CC BY 2.0 FR",
-    owner: null,
-    is_unapproved: false,
-    translations: translations.map((translationText, index) => ({
-      id: id * 100 + index + 1,
-      text: translationText,
-      lang: "hun",
-      script: null,
-      license: "CC BY 2.0 FR",
-      owner: null,
-      is_unapproved: false,
-      is_direct: true,
-    })),
+    translations,
   };
 }
 
@@ -91,32 +77,24 @@ describe("fetchSentenceJobsForWords", () => {
   test("uses injected search function and dedupes overlapping results", async () => {
     const config = buildConfig(["hello", "greeting"]);
 
-    const searchSentencesFn = async ({
-      q,
-    }: {
-      q?: string;
-    }): Promise<SentenceSearchResponse> => {
-      if (q === "hello") {
-        return {
-          data: [buildSentence(1, "Hello there")],
-          paging: { has_next: false },
-        };
-      }
+    const sentenceSource = {
+      async searchByKeyword({ keyword }: SentenceSearchInput) {
+        if (keyword === "hello") {
+          return [buildSentence(1, "Hello there")];
+        }
 
-      return {
-        data: [buildSentence(2, " hello   there ")],
-        paging: { has_next: false },
-      };
+        return [buildSentence(2, " hello   there ")];
+      },
     };
 
     const jobs = await fetchSentenceJobsForWords(config, {
-      searchSentencesFn,
+      sentenceSource,
       wordRetrievalConcurrency: 1,
     });
 
     expect(jobs).toHaveLength(1);
     expect(jobs[0]?.word).toBe("hello");
-    expect(jobs[0]?.sentence.id).toBe(1);
+    expect(jobs[0]?.sentence.id).toBe("1");
   });
 
   test("excludes sentences matching configured terms", async () => {
@@ -125,20 +103,21 @@ describe("fetchSentenceJobsForWords", () => {
       sentenceExclusions: ["president", "chancellor"],
     };
 
-    const searchSentencesFn = async (): Promise<SentenceSearchResponse> => ({
-      data: [
-        buildSentence(1, "The President will address parliament today."),
-        buildSentence(2, "I walked to the station this morning."),
-      ],
-      paging: { has_next: false },
-    });
+    const sentenceSource = {
+      async searchByKeyword(_input: SentenceSearchInput) {
+        return [
+          buildSentence(1, "The President will address parliament today."),
+          buildSentence(2, "I walked to the station this morning."),
+        ];
+      },
+    };
 
     const jobs = await fetchSentenceJobsForWords(config, {
-      searchSentencesFn,
+      sentenceSource,
       wordRetrievalConcurrency: 1,
     });
 
     expect(jobs).toHaveLength(1);
-    expect(jobs[0]?.sentence.id).toBe(2);
+    expect(jobs[0]?.sentence.id).toBe("2");
   });
 });

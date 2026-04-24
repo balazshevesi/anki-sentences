@@ -168,7 +168,7 @@ If `cardPayload.audioMetadata` contains ready Google TTS entries, matching `.aac
   - [ ] Sync spoken word(s) with displayed text (underline spoken word) + on click of a word: jump to timestamp of audio
 - [x] Encode generated audio clips as AAC
 - [ ] Add the loop for gathering the x most common words before generating
-- [ ] Implement proper adapter pattern so that services can be swapped easier
+- [x] Implement proper adapter pattern so that services can be swapped easier
 - [ ] Add full guide in readme
 - [ ] Add more details (license, inspiration, etc) and stuff in the readme 
 - [x] Add proper code formatting

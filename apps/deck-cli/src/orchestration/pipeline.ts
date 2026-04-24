@@ -1,4 +1,5 @@
 import { formatDuration } from "../contracts/formatDuration";
+import { createIntegrationContext } from "../integrations/createIntegrationContext";
 import {
   runAudioMetadataPass,
   runBuildApkgPass,
@@ -19,6 +20,7 @@ export async function runDeckPipeline(config: {
   passes: PipelinePass[];
 }): Promise<void> {
   const startedAt = Date.now();
+  const integrations = createIntegrationContext();
   console.log(
     `[pipeline] Starting deck pipeline (${config.csvPath} -> ${config.deck.outputPath})`,
   );
@@ -35,6 +37,7 @@ export async function runDeckPipeline(config: {
           config.deck,
           config.csvPath,
           config.runtime,
+          integrations,
         );
         console.log(
           `[retrieve] Retrieved ${rows.length} sentence rows into ${config.csvPath} (${formatDuration(Date.now() - passStartedAt)})`,
@@ -50,6 +53,7 @@ export async function runDeckPipeline(config: {
           config.deck,
           config.csvPath,
           config.runtime,
+          integrations,
         );
         console.log(
           `[translations] Added word and n-gram translation metadata to ${rows.length} rows in ${config.csvPath} (${formatDuration(Date.now() - passStartedAt)})`,
@@ -61,7 +65,11 @@ export async function runDeckPipeline(config: {
         console.log(
           `[difficulty] Calculating difficulty scores for rows from ${config.csvPath}...`,
         );
-        const rows = await runDifficultyPass(config.deck, config.csvPath);
+        const rows = await runDifficultyPass(
+          config.deck,
+          config.csvPath,
+          integrations,
+        );
         console.log(
           `[difficulty] Calculated difficulty scores and sorted ${rows.length} rows in ${config.csvPath} (${formatDuration(Date.now() - passStartedAt)})`,
         );
@@ -76,6 +84,7 @@ export async function runDeckPipeline(config: {
           config.deck,
           config.csvPath,
           config.runtime,
+          integrations,
         );
         console.log(
           `[audio] Generated audio metadata for ${rows.length} rows in ${config.csvPath} (${formatDuration(Date.now() - passStartedAt)})`,

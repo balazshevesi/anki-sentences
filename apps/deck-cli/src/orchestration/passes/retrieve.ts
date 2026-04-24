@@ -1,6 +1,7 @@
 import type { PipelineCsvRow } from "../../deck/csv";
 import { writePipelineCsvRows } from "../../deck/csv";
 import type { DeckBuildConfig, DeckRuntimeConfig } from "../../deck/types";
+import type { IntegrationContext } from "../../integrations/createIntegrationContext";
 import {
   fetchSentenceJobsForWords,
   formatSentenceTranslation,
@@ -12,8 +13,10 @@ export async function runSentenceRetrievalPass(
   config: DeckBuildConfig,
   csvPath: string,
   runtime: DeckRuntimeConfig,
+  integrations: IntegrationContext,
 ): Promise<PipelineCsvRow[]> {
   const sentenceJobs = await fetchSentenceJobsForWords(config, {
+    sentenceSource: integrations.sentenceSource,
     wordRetrievalConcurrency: runtime.wordRetrievalConcurrency,
   });
 
@@ -23,7 +26,7 @@ export async function runSentenceRetrievalPass(
       getSentenceTranslations(job.sentence, config.sentenceTranslationLimit),
     ),
     Keyword: job.word,
-    SentenceId: String(job.sentence.id),
+    SentenceId: job.sentence.id,
     cardPayload: EMPTY_CARD_PAYLOAD_JSON,
     difficulty: "",
     audio: "",

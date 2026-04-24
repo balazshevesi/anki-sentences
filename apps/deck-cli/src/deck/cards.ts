@@ -1,21 +1,16 @@
 import promiseLimit from "promise-limit";
-import {
-  DEFAULT_SENTENCE_SEARCH_SORT,
-  searchSentences,
-  type SentenceWithTranslations,
-} from "../integrations/tatoeba/index";
 import type { DeckBuildConfig } from "./types";
+import type {
+  SentenceSearchResult,
+  SentenceSourcePort,
+} from "../integrations/ports/index";
 
 type PromiseLimitFn = <T>(fn: () => Promise<T>) => Promise<T>;
 
 export type SentenceJob = {
   word: string;
-  sentence: SentenceWithTranslations;
+  sentence: SentenceSearchResult;
 };
-
-type SearchSentencesFn = (
-  params: Parameters<typeof searchSentences>[0],
-) => ReturnType<typeof searchSentences>;
 
 function escapeForRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -44,14 +39,14 @@ function shouldExcludeSentence(text: string, patterns: RegExp[]): boolean {
 }
 
 export function getSentenceTranslations(
-  sentence: { translations?: Array<{ text: string }> },
+  sentence: { translations?: string[] },
   maxTranslations: number,
 ): string[] {
   const uniqueTranslations: string[] = [];
   const seenTranslations = new Set<string>();
 
   for (const translation of sentence.translations ?? []) {
-    const normalizedText = translation.text.trim();
+    const normalizedText = translation.trim();
     if (normalizedText.length === 0) {
       continue;
     }
@@ -85,7 +80,7 @@ function normalizeSentenceTextForDedupe(text: string): string {
 
 export function dedupeSentenceJobs(sentenceJobs: SentenceJob[]): SentenceJob[] {
   const uniqueSentenceJobs: SentenceJob[] = [];
-  const seenSentenceIds = new Set<number>();
+  const seenSentenceIds = new Set<string>();
   const seenSentenceTexts = new Set<string>();
 
   for (const sentenceJob of sentenceJobs) {
@@ -111,7 +106,7 @@ export function dedupeSentenceJobs(sentenceJobs: SentenceJob[]): SentenceJob[] {
 export async function fetchSentenceJobsForWords(
   config: DeckBuildConfig,
   options: {
-    searchSentencesFn?: SearchSentencesFn;
+    sentenceSource: SentenceSourcePort;
     wordRetrievalConcurrency: number;
   },
 ): Promise<SentenceJob[]> {
@@ -125,7 +120,7 @@ export async function fetchSentenceJobsForWords(
     );
   }
   const wordLimit = promiseLimit(wordRetrievalConcurrency) as PromiseLimitFn;
-  const searchSentencesFn = options.searchSentencesFn ?? searchSentences;
+  const sentenceSource = options.sentenceSource;
   const sentenceExclusionPatterns = buildSentenceExclusionPatterns(
     config.sentenceExclusions,
   );
@@ -134,12 +129,11 @@ export async function fetchSentenceJobsForWords(
     config.words.map((word) =>
       wordLimit(async () => ({
         word,
-        response: await searchSentencesFn({
-          lang: config.sentenceLanguage,
-          "trans:lang": config.translationLanguage,
-          sort: DEFAULT_SENTENCE_SEARCH_SORT,
-          q: word,
-          word_count: config.sentenceWordCount,
+        response: await sentenceSource.searchByKeyword({
+          sourceLanguage: config.sentenceLanguage,
+          translationLanguage: config.translationLanguage,
+          keyword: word,
+          wordCount: config.sentenceWordCount,
           limit: config.sentenceLimit,
         }),
       })),
@@ -148,7 +142,7 @@ export async function fetchSentenceJobsForWords(
 
   return dedupeSentenceJobs(
     wordResponses.flatMap(({ word, response }) =>
-      response.data
+      response
         .filter(
           (sentence) =>
             !shouldExcludeSentence(sentence.text, sentenceExclusionPatterns),

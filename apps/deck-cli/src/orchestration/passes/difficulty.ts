@@ -2,14 +2,15 @@ import type { PipelineCsvRow } from "../../deck/csv";
 import { readPipelineCsvRows, writePipelineCsvRows } from "../../deck/csv";
 import { calculateSentenceDifficultyScore } from "../../deck/difficulty";
 import type { DeckBuildConfig } from "../../deck/types";
-import { loadWordFrequencyLookup } from "../../integrations/frequencyWords/lookup";
+import type { IntegrationContext } from "../../integrations/createIntegrationContext";
 
 export async function runDifficultyPass(
   config: DeckBuildConfig,
   csvPath: string,
+  integrations: IntegrationContext,
 ): Promise<PipelineCsvRow[]> {
   const rows = await readPipelineCsvRows(csvPath);
-  const frequencyLookup = await loadWordFrequencyLookup(
+  const frequencyLookup = await integrations.wordFrequency.getLookup(
     config.argosSourceLanguage,
   );
   if (!frequencyLookup.sourceFile) {

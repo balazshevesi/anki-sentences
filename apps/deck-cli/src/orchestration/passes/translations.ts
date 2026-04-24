@@ -3,15 +3,11 @@ import {
   listSentenceNgramCandidates,
   selectNgramCandidates,
 } from "../../deck/ngrams";
-import {
-  buildWordByWord,
-  createPhraseTranslator,
-  createWordTranslator,
-} from "../../deck/translate";
 import type { PipelineCsvRow } from "../../deck/csv";
 import { readPipelineCsvRows, writePipelineCsvRows } from "../../deck/csv";
 import type { DeckBuildConfig, DeckRuntimeConfig } from "../../deck/types";
-import { loadWordFrequencyLookup } from "../../integrations/frequencyWords/lookup";
+import type { IntegrationContext } from "../../integrations/createIntegrationContext";
+import { buildWordByWord } from "../../integrations/ports/index";
 import {
   parseCardPayloadJson,
   parseNgramTranslationsJson,
@@ -49,6 +45,7 @@ export async function runTranslationMetadataPass(
   config: DeckBuildConfig,
   csvPath: string,
   runtime: DeckRuntimeConfig,
+  integrations: IntegrationContext,
 ): Promise<PipelineCsvRow[]> {
   const passStartedAt = Date.now();
   const rows = await readPipelineCsvRows(csvPath);
@@ -64,7 +61,7 @@ export async function runTranslationMetadataPass(
     `[translations] Preparing translation resources (sentence concurrency: ${runtime.sentenceMetadataConcurrency}).`,
   );
 
-  const frequencyLookup = await loadWordFrequencyLookup(
+  const frequencyLookup = await integrations.wordFrequency.getLookup(
     config.argosSourceLanguage,
   );
   if (!frequencyLookup.sourceFile) {
@@ -73,7 +70,7 @@ export async function runTranslationMetadataPass(
     );
   }
 
-  const translateWord = createWordTranslator({
+  const translateWord = integrations.translation.createWordTranslator({
     endpoint: config.argosTranslateUrl,
     sourceLanguage: config.argosSourceLanguage,
     targetLanguage: config.argosTargetLanguage,
@@ -81,7 +78,7 @@ export async function runTranslationMetadataPass(
     concurrency: runtime.translationConcurrency,
     getWordFrequencyInfo: frequencyLookup.getWordFrequency,
   });
-  const translatePhrase = createPhraseTranslator({
+  const translatePhrase = integrations.translation.createPhraseTranslator({
     endpoint: config.argosTranslateUrl,
     sourceLanguage: config.argosSourceLanguage,
     targetLanguage: config.argosTargetLanguage,
