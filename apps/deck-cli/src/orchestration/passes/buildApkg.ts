@@ -26,7 +26,7 @@ export async function runBuildApkgPass(
   );
 
   const questionFormat = `
-    <div id="front">{{Sentence}}</div>
+    <div id="front" class="card-template-loading">{{Sentence}}</div>
     <div id="cardPayload" hidden>{{cardPayload}}</div>
     {{audio}}
     ${questionFormatHtml}`;

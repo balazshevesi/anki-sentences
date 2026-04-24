@@ -165,7 +165,7 @@ If `cardPayload.audioMetadata` contains ready Google TTS entries, matching `.aac
 - [ ] Make the card templates display things properly
   - [ ] Fix the UI flickering on the card flips (html/js-loading issue)
   - [ ] Center the text and fix the styling
-  - [ ] Sync spoken word(s) with displayed text (underline spoken word) + on click of a word: jump to timestamp of audio
+  - [ ] Sync spoken word(s) with displayed text (underline spoken word) + on click of a word: jump to timestamp of audio (duolingo style)
 - [x] Encode generated audio clips as AAC
 - [ ] Add the loop for gathering the x most common words before generating
 - [x] Implement proper adapter pattern so that services can be swapped easier
