@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import { Popover } from "bits-ui";
   import {
     EMPTY_WORD_TRANSLATION,
     normalizeNgramTranslation,
@@ -32,10 +31,20 @@
 
   let tokens: string[] = $derived(tokenizeSentence(cardText));
 
+  function createTokenMatchPattern(): RegExp {
+    const fallbackPattern = /[A-Za-z0-9]+(?:['’\-][A-Za-z0-9]+)*/g;
+
+    try {
+      return new RegExp("[\\p{L}\\p{N}]+(?:['’\\-][\\p{L}\\p{N}]+)*", "gu");
+    } catch {
+      return fallbackPattern;
+    }
+  }
+
+  const tokenMatchPattern = createTokenMatchPattern();
+
   function tokenizeForMatch(input: string): string[] {
-    return (
-      input.toLowerCase().match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu) ?? []
-    );
+    return input.toLowerCase().match(tokenMatchPattern) ?? [];
   }
 
   function normalizeTokenForMatch(input: string): string {
@@ -102,10 +111,16 @@
   let readyAudioMetadata = $derived(
     isReadyAudioMetadata(audioMetadata) ? audioMetadata : null,
   );
+  let openWordIndex = $state<number | null>(null);
   let audioElement = $state<HTMLAudioElement | null>(null);
   let activeAudioWordIndex = $state<number | null>(null);
   let playbackClipEndMs = $state<number | null>(null);
   let playbackFrameId = $state<number | null>(null);
+
+  function onWordClick(index: number): void {
+    jumpToWord(index);
+    openWordIndex = openWordIndex === index ? null : index;
+  }
 
   function getWordByIndex(index: number): AudioWordTimestamp | null {
     if (!readyAudioMetadata) {
@@ -288,74 +303,73 @@
 </script>
 
 <main class="card">
-  <div class="sentence" role="group" aria-label="Sentence words">
-    {#each tokens as word, index (`${word}-${index}`)}
-      {@const translation = getTranslation(word)}
+    <div class="sentence" role="group" aria-label="Sentence words">
+      {#each tokens as word, index (`${word}-${index}`)}
+        {@const translation = getTranslation(word)}
       {@const translatedWord = translation.translatedText}
       {@const alternatives = translation.alternatives}
       {@const frequency = translation.frequency}
       {@const phraseTranslations = getNgramTranslationsForWord(word)}
-      <Popover.Root>
-        <Popover.Trigger
-          class={`word ${activeAudioWordIndex === index ? "word-active" : ""}`}
-          type="button"
-          onclick={() => jumpToWord(index)}
-        >
-          {word}
-        </Popover.Trigger>
-        <Popover.Portal>
-          <Popover.Content class="popover-content" sideOffset={8}>
-            {#if translatedWord}
-              <div class="translation-main">{translatedWord}</div>
-              {#if alternatives.length > 0}
-                <div class="translation-alt">
-                  <!-- {alternatives.join(" | ")} -->
-                  {#each alternatives as alternative}
-                    {alternative}
-                    <br />
-                  {/each}
-                </div>
-              {/if}
-              {#if frequency.hint}
-                <div class="translation-frequency">
-                  {frequency.hint}
-                  {#if frequency.occurrencePercentage !== null}
-                    ({frequency.occurrencePercentage.toFixed(4)}%)
-                  {/if}
-                </div>
-              {/if}
-              {#if phraseTranslations.length > 0}
-                <div class="phrase-section">
-                  <div class="phrase-title">Common phrases with this word</div>
-                  {#each phraseTranslations as rawItem, phraseIndex (`phrase-${phraseIndex}`)}
-                    {@const item = normalizeNgramTranslation(rawItem)}
-                    <div class="phrase-entry">
-                      <div class="phrase-source">{item.phrase}</div>
-                      <div class="phrase-translation">
-                        {item.translatedText}
-                      </div>
-                      {#if item.alternatives.length > 0}
-                        <div class="phrase-alt">
-                          {item.alternatives.join(" | ")}
+        <span class="word-wrapper">
+          <button
+            class={`word ${activeAudioWordIndex === index ? "word-active" : ""}`}
+            type="button"
+            onclick={() => onWordClick(index)}
+          >
+            {word}
+          </button>
+          {#if openWordIndex === index}
+            <div class="popover-content">
+              {#if translatedWord}
+                <div class="translation-main">{translatedWord}</div>
+                {#if alternatives.length > 0}
+                  <div class="translation-alt">
+                    {#each alternatives as alternative}
+                      {alternative}
+                      <br />
+                    {/each}
+                  </div>
+                {/if}
+                {#if frequency.hint}
+                  <div class="translation-frequency">
+                    {frequency.hint}
+                    {#if frequency.occurrencePercentage !== null}
+                      ({frequency.occurrencePercentage.toFixed(4)}%)
+                    {/if}
+                  </div>
+                {/if}
+                {#if phraseTranslations.length > 0}
+                  <div class="phrase-section">
+                    <div class="phrase-title">Common phrases with this word</div>
+                    {#each phraseTranslations as rawItem, phraseIndex (`phrase-${phraseIndex}`)}
+                      {@const item = normalizeNgramTranslation(rawItem)}
+                      <div class="phrase-entry">
+                        <div class="phrase-source">{item.phrase}</div>
+                        <div class="phrase-translation">
+                          {item.translatedText}
                         </div>
-                      {/if}
-                      <div class="phrase-meta">
-                        {item.ngramLength}-gram, {item.cardPercentage.toFixed(
-                          1,
-                        )}% of cards
+                        {#if item.alternatives.length > 0}
+                          <div class="phrase-alt">
+                            {item.alternatives.join(" | ")}
+                          </div>
+                        {/if}
+                        <div class="phrase-meta">
+                          {item.ngramLength}-gram, {item.cardPercentage.toFixed(
+                            1,
+                          )}% of cards
+                        </div>
                       </div>
-                    </div>
-                  {/each}
-                </div>
+                    {/each}
+                  </div>
+                {/if}
+              {:else}
+                <div class="translation-empty">(no translation)</div>
               {/if}
-            {:else}
-              <div class="translation-empty">(no translation)</div>
-            {/if}
-          </Popover.Content>
-        </Popover.Portal>
-      </Popover.Root>
-    {/each}
-  </div>
+            </div>
+          {/if}
+        </span>
+      {/each}
+    </div>
 
   {#if readyAudioMetadata}
     <div class="audio-row">
@@ -392,7 +406,13 @@
     line-height: 1.7;
   }
 
-  :global(.word) {
+  .word-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: baseline;
+  }
+
+  .word {
     border: 0;
     background: transparent;
     color: inherit;
@@ -403,23 +423,29 @@
     text-align: inherit;
   }
 
-  :global(.word:hover) {
+  .word:hover {
     background: #f8f9fa;
   }
 
-  :global(.word:focus-visible) {
+  .word:focus-visible {
     outline: 1px solid #36c;
     outline-offset: 1px;
   }
 
-  :global(.word-active) {
+  .word-active {
     color: #36c;
     text-decoration: underline;
     text-underline-offset: 0.16em;
   }
 
-  :global(.popover-content) {
+  .popover-content {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 0.35rem);
+    transform: translateX(-50%);
+    z-index: 10;
     max-width: 22rem;
+    min-width: 11rem;
     border: 1px solid #a2a9b1;
     background: #fff;
     color: #202122;

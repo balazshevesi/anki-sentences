@@ -24,6 +24,41 @@ type TemplatePayload = AppCardPayload & {
   target: HTMLElement;
 };
 
+function hasMeaningfulCardPayload(payload: CardPayload): boolean {
+  return (
+    Object.keys(payload.wordByWord).length > 0 ||
+    payload.ngramTranslations.length > 0 ||
+    payload.audioMetadata !== null
+  );
+}
+
+function decodeHtmlEntities(value: string): string {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = value;
+  return textarea.value;
+}
+
+function parseTemplateCardPayload(rawPayload: string): CardPayload {
+  const parsedPayload = parseCardPayloadJson(rawPayload);
+  if (
+    hasMeaningfulCardPayload(parsedPayload) ||
+    rawPayload.trim().length === 0 ||
+    !rawPayload.includes("&")
+  ) {
+    return parsedPayload;
+  }
+
+  const decodedPayload = decodeHtmlEntities(rawPayload);
+  if (decodedPayload === rawPayload) {
+    return parsedPayload;
+  }
+
+  const decodedParsedPayload = parseCardPayloadJson(decodedPayload);
+  return hasMeaningfulCardPayload(decodedParsedPayload)
+    ? decodedParsedPayload
+    : parsedPayload;
+}
+
 function readTemplatePayload(): TemplatePayload | null {
   const frontElement = document.getElementById("front");
   const cardPayloadElement = document.getElementById("cardPayload");
@@ -33,7 +68,7 @@ function readTemplatePayload(): TemplatePayload | null {
   }
 
   const cardText = frontElement.textContent ?? "";
-  const cardPayload: CardPayload = parseCardPayloadJson(
+  const cardPayload: CardPayload = parseTemplateCardPayload(
     cardPayloadElement.textContent ?? "",
   );
 

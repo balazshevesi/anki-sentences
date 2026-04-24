@@ -3,10 +3,10 @@
 
   // Ordered pass list. Remove entries to skip a pass.
   "passes": [
-    "retrieve",
-    "enrich-translations",
-    "enrich-difficulty",
-    "enrich-audio",
+    // "retrieve",
+    // "enrich-translations",
+    // "enrich-difficulty",
+    // "enrich-audio",
     "build-apkg",
   ],
 
