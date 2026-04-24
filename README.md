@@ -158,16 +158,17 @@ If `cardPayload.audioMetadata` contains ready Google TTS entries, matching `.mp3
 - Frequency lists: `https://github.com/hermitdave/FrequencyWords`
 - Argos Translate: `https://github.com/argosopentech/argos-translate`
 
-## TODO (the project is currently like 90% complete)
+## TODO (the project is currently like 90% complete, maybe like 5h left of work)
 
 - [ ] Make the card templates display things properly
   - [ ] Fix the UI flickering on the card flips (html/js-loading issue)
   - [ ] Center the text and fix the styling
   - [ ] Sync spoken word(s) with displayed text (underline spoken word) + on click of a word: jump to timestamp of audio
 - [ ] Fix formatting of audio clips, AAC would be a little better (ffmpeg?)
-- [ ] Add the loop for gathering x the most common words before generating
+- [ ] Add the loop for gathering the x most common words before generating
 - [ ] Implement proper adapter pattern so that services can be swapped easier
 - [ ] Add full guide in readme
 - [ ] Add more details (license, inspiration, etc) and stuff in the readme 
 - [ ] Add proper code formatting
 - [ ] Tweak word frequency categorization to be more accurate
+- [ ] Double check that all the scripts make sense
