@@ -10,6 +10,7 @@ import type {
 } from "../deck/types";
 import { PIPELINE_PASS_NAMES } from "../deck/types";
 import {
+  type LanguageCode,
   isSupportedLanguageCode,
   type WordCountFilter,
 } from "../sentenceRetrieval/index";
@@ -22,55 +23,73 @@ export const DEFAULT_DECK_CONFIG_SCHEMA_PATH = fileURLToPath(
   new URL("../../deck.config.schema.json", import.meta.url),
 );
 
-const NON_EMPTY_STRING = z.string().trim().min(1);
-const ARGOS_LANGUAGE = z.string().trim().regex(/^[a-z_]{2,16}$/);
-const WORD_COUNT_FILTER_PATTERN = /^!?(?:\d+|\d+-\d+|\d+-|-\d+)(?:,(?:\d+|\d+-\d+|\d+-|-\d+)){0,3}$/;
-
 const DeckConfigSchema = z
   .object({
     passes: z.array(z.enum(PIPELINE_PASS_NAMES)).min(1),
-    csvPath: NON_EMPTY_STRING,
+    csvPath: z.string().trim().min(1),
     deck: z
       .object({
-        name: NON_EMPTY_STRING,
-        outputPath: NON_EMPTY_STRING,
-        words: z.array(NON_EMPTY_STRING).min(1),
-        sentenceLanguage: NON_EMPTY_STRING.refine(isSupportedLanguageCode, {
-          message: "deck.sentenceLanguage must be a supported Tatoeba language code.",
-        }),
-        translationLanguage: NON_EMPTY_STRING.refine(isSupportedLanguageCode, {
-          message:
-            "deck.translationLanguage must be a supported Tatoeba language code.",
-        }),
+        name: z.string().trim().min(1),
+        outputPath: z.string().trim().min(1),
+        words: z.array(z.string().trim().min(1)).min(1),
+        sentenceLanguage: z
+          .string()
+          .trim()
+          .min(1)
+          .refine(isSupportedLanguageCode, {
+            message: "must be a supported Tatoeba language code.",
+          }),
+        translationLanguage: z
+          .string()
+          .trim()
+          .min(1)
+          .refine(isSupportedLanguageCode, {
+            message: "must be a supported Tatoeba language code.",
+          }),
         sentenceTranslationLimit: z.number().int().positive(),
-        sentenceWordCount: NON_EMPTY_STRING.regex(WORD_COUNT_FILTER_PATTERN),
+        sentenceWordCount: z
+          .string()
+          .trim()
+          .min(1)
+          .regex(
+            /^!?(?:\d+|\d+-\d+|\d+-|-\d+)(?:,(?:\d+|\d+-\d+|\d+-|-\d+)){0,3}$/,
+          ),
         sentenceLimit: z.number().int().positive(),
-        sentenceExclusions: z.array(NON_EMPTY_STRING),
+        sentenceExclusions: z.array(z.string().trim().min(1)),
       })
       .strict(),
     argos: z
       .object({
-        sourceLanguage: ARGOS_LANGUAGE,
-        targetLanguage: ARGOS_LANGUAGE,
+        sourceLanguage: z
+          .string()
+          .trim()
+          .regex(/^[a-z_]{2,16}$/),
+        targetLanguage: z
+          .string()
+          .trim()
+          .regex(/^[a-z_]{2,16}$/),
         alternatives: z.number().int().nonnegative(),
-        translateUrl: NON_EMPTY_STRING.url(),
+        translateUrl: z.string().trim().min(1).url(),
       })
       .strict(),
     audio: z
       .object({
-        outputDir: NON_EMPTY_STRING,
+        outputDir: z.string().trim().min(1),
         forceRegenerate: z.boolean(),
-        accessToken: NON_EMPTY_STRING.nullable().optional(),
-        apiKey: NON_EMPTY_STRING.nullable().optional(),
-        languageCode: NON_EMPTY_STRING
+        accessToken: z.string().trim().min(1).nullable().optional(),
+        apiKey: z.string().trim().min(1).nullable().optional(),
+        languageCode: z
+          .string()
+          .trim()
+          .min(1)
           .regex(/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,3}$/)
           .nullable()
           .optional(),
-        voiceName: NON_EMPTY_STRING.nullable().optional(),
+        voiceName: z.string().trim().min(1).nullable().optional(),
         speakingRate: z.number().min(0.25).max(2),
         pitch: z.number().min(-20).max(20),
         concurrency: z.number().int().positive(),
-        quotaProject: NON_EMPTY_STRING.nullable().optional(),
+        quotaProject: z.string().trim().min(1).nullable().optional(),
       })
       .strict(),
     runtime: z
@@ -89,9 +108,47 @@ const DeckConfigSchema = z
       })
       .strict(),
   })
-  .strict();
-
-type DeckConfigInput = z.infer<typeof DeckConfigSchema>;
+  .strict()
+  .transform((config) => ({
+    passes: config.passes,
+    csvPath: toCsvPath(config.csvPath),
+    deck: {
+      words: Array.from(new Set(config.deck.words)),
+      deckName: config.deck.name,
+      outputPath: toApkgPath(config.deck.outputPath),
+      sentenceLanguage: config.deck.sentenceLanguage as LanguageCode,
+      translationLanguage: config.deck.translationLanguage as LanguageCode,
+      sentenceTranslationLimit: config.deck.sentenceTranslationLimit,
+      argosSourceLanguage: config.argos.sourceLanguage,
+      argosTargetLanguage: config.argos.targetLanguage,
+      argosAlternatives: config.argos.alternatives,
+      sentenceWordCount: config.deck.sentenceWordCount as WordCountFilter,
+      sentenceLimit: config.deck.sentenceLimit,
+      argosTranslateUrl: config.argos.translateUrl,
+      sentenceExclusions: Array.from(
+        new Set(config.deck.sentenceExclusions.map((value) => value.toLocaleLowerCase())),
+      ),
+      googleTtsApiKey: config.audio.apiKey ?? undefined,
+      googleTtsAccessToken: config.audio.accessToken ?? undefined,
+      googleTtsLanguageCode: config.audio.languageCode ?? undefined,
+      googleTtsVoiceName: config.audio.voiceName ?? undefined,
+      googleTtsSpeakingRate: config.audio.speakingRate,
+      googleTtsPitch: config.audio.pitch,
+      audioOutputDir: config.audio.outputDir,
+      audioForceRegenerate: config.audio.forceRegenerate,
+      googleCloudQuotaProject: config.audio.quotaProject ?? undefined,
+    } as DeckBuildConfig,
+    runtime: {
+      wordRetrievalConcurrency: config.runtime.wordRetrievalConcurrency,
+      sentenceMetadataConcurrency: config.runtime.sentenceMetadataConcurrency,
+      audioMetadataConcurrency: config.audio.concurrency,
+      translationConcurrency: config.runtime.translationConcurrency,
+      ngramTranslationLimitPerCard: config.runtime.ngramTranslationLimitPerCard,
+      ngramMinCardCount: config.runtime.ngramMinCardCount,
+      ngramMinCardPercentage: config.runtime.ngramMinCardPercentage,
+      ankiSortField: config.anki.sortField,
+    } as DeckRuntimeConfig,
+  }));
 
 export type LoadedDeckConfig = {
   configPath: string;
@@ -100,92 +157,6 @@ export type LoadedDeckConfig = {
   deck: DeckBuildConfig;
   runtime: DeckRuntimeConfig;
 };
-
-function parseJsonc(content: string, filePath: string): unknown {
-  const errors: ParseError[] = [];
-  const parsed = parse(content, errors, {
-    allowTrailingComma: true,
-    disallowComments: false,
-  });
-
-  if (errors.length > 0) {
-    throw new Error(
-      `Invalid JSONC in ${filePath}: ${errors
-        .map((error) => printParseErrorCode(error.error))
-        .join(", ")}`,
-    );
-  }
-
-  return parsed;
-}
-
-function resolveConfigPath(configDir: string, value: string): string {
-  const trimmed = value.trim();
-  return isAbsolute(trimmed) ? trimmed : resolve(configDir, trimmed);
-}
-
-function toUniqueValues(values: string[], lowercase = false): string[] {
-  return Array.from(
-    new Set(
-      values
-        .map((value) =>
-          lowercase ? value.trim().toLocaleLowerCase() : value.trim(),
-        )
-        .filter((value) => value.length > 0),
-    ),
-  );
-}
-
-function mapLoadedConfig(
-  input: DeckConfigInput,
-  configPath: string,
-): LoadedDeckConfig {
-  const configDir = dirname(configPath);
-  const csvPath = resolveConfigPath(configDir, toCsvPath(input.csvPath));
-
-  return {
-    configPath,
-    passes: input.passes,
-    csvPath,
-    deck: {
-      words: toUniqueValues(input.deck.words),
-      deckName: input.deck.name,
-      outputPath: resolveConfigPath(configDir, toApkgPath(input.deck.outputPath)),
-      sentenceLanguage: input.deck.sentenceLanguage as DeckBuildConfig["sentenceLanguage"],
-      translationLanguage:
-        input.deck.translationLanguage as DeckBuildConfig["translationLanguage"],
-      sentenceTranslationLimit: input.deck.sentenceTranslationLimit,
-      argosSourceLanguage: input.argos.sourceLanguage,
-      argosTargetLanguage: input.argos.targetLanguage,
-      argosAlternatives: input.argos.alternatives,
-      sentenceWordCount: input.deck.sentenceWordCount as WordCountFilter,
-      sentenceLimit: input.deck.sentenceLimit,
-      argosTranslateUrl: Bun.env.ARGOS_TRANSLATE_URL?.trim() || input.argos.translateUrl,
-      sentenceExclusions: toUniqueValues(input.deck.sentenceExclusions, true),
-      googleTtsApiKey: input.audio.apiKey ?? Bun.env.GOOGLE_TTS_API_KEY,
-      googleTtsAccessToken:
-        input.audio.accessToken ?? Bun.env.GOOGLE_TTS_ACCESS_TOKEN,
-      googleTtsLanguageCode: input.audio.languageCode ?? Bun.env.GOOGLE_TTS_LANGUAGE_CODE,
-      googleTtsVoiceName: input.audio.voiceName ?? Bun.env.GOOGLE_TTS_VOICE,
-      googleTtsSpeakingRate: input.audio.speakingRate,
-      googleTtsPitch: input.audio.pitch,
-      audioOutputDir: resolveConfigPath(configDir, input.audio.outputDir),
-      audioForceRegenerate: input.audio.forceRegenerate,
-      googleCloudQuotaProject:
-        input.audio.quotaProject ?? Bun.env.GOOGLE_CLOUD_QUOTA_PROJECT,
-    },
-    runtime: {
-      wordRetrievalConcurrency: input.runtime.wordRetrievalConcurrency,
-      sentenceMetadataConcurrency: input.runtime.sentenceMetadataConcurrency,
-      audioMetadataConcurrency: input.audio.concurrency,
-      translationConcurrency: input.runtime.translationConcurrency,
-      ngramTranslationLimitPerCard: input.runtime.ngramTranslationLimitPerCard,
-      ngramMinCardCount: input.runtime.ngramMinCardCount,
-      ngramMinCardPercentage: input.runtime.ngramMinCardPercentage,
-      ankiSortField: input.anki.sortField,
-    },
-  };
-}
 
 export async function loadDeckConfig(
   configPath = Bun.env.DECK_CONFIG_PATH?.trim() || DEFAULT_DECK_CONFIG_PATH,
@@ -198,14 +169,51 @@ export async function loadDeckConfig(
   }
 
   const rawContent = await configFile.text();
-  const rawConfig = parseJsonc(rawContent, configPath);
-  const parsedConfig = DeckConfigSchema.parse(rawConfig);
+  const parseErrors: ParseError[] = [];
+  const rawConfig = parse(rawContent, parseErrors, {
+    allowTrailingComma: true,
+    disallowComments: false,
+  });
+  if (parseErrors.length > 0) {
+    throw new Error(
+      `Invalid JSONC in ${configPath}: ${parseErrors
+        .map((error) => printParseErrorCode(error.error))
+        .join(", ")}`,
+    );
+  }
+  const config = DeckConfigSchema.parse(rawConfig);
+  const configDir = dirname(configPath);
+  const resolvePath = (value: string): string =>
+    isAbsolute(value) ? value : resolve(configDir, value);
 
-  return mapLoadedConfig(parsedConfig, configPath);
+  const deck: DeckBuildConfig = {
+    ...config.deck,
+    outputPath: resolvePath(config.deck.outputPath),
+    argosTranslateUrl:
+      Bun.env.ARGOS_TRANSLATE_URL?.trim() || config.deck.argosTranslateUrl,
+    googleTtsApiKey: config.deck.googleTtsApiKey ?? Bun.env.GOOGLE_TTS_API_KEY,
+    googleTtsAccessToken:
+      config.deck.googleTtsAccessToken ?? Bun.env.GOOGLE_TTS_ACCESS_TOKEN,
+    googleTtsLanguageCode:
+      config.deck.googleTtsLanguageCode ?? Bun.env.GOOGLE_TTS_LANGUAGE_CODE,
+    googleTtsVoiceName:
+      config.deck.googleTtsVoiceName ?? Bun.env.GOOGLE_TTS_VOICE,
+    audioOutputDir: resolvePath(config.deck.audioOutputDir),
+    googleCloudQuotaProject:
+      config.deck.googleCloudQuotaProject ?? Bun.env.GOOGLE_CLOUD_QUOTA_PROJECT,
+  };
+
+  return {
+    configPath,
+    passes: config.passes,
+    csvPath: resolvePath(config.csvPath),
+    deck,
+    runtime: config.runtime,
+  };
 }
 
 export function buildDeckConfigJsonSchema(): Record<string, unknown> {
-  const jsonSchema = z.toJSONSchema(DeckConfigSchema);
+  const jsonSchema = z.toJSONSchema(DeckConfigSchema, { io: "input" });
   return {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     title: "DeckConfig",

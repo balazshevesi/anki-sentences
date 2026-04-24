@@ -4,7 +4,6 @@ import {
   searchSentences,
   type SentenceWithTranslations,
 } from "../sentenceRetrieval/index";
-import { selectNgramCandidates } from "./ngrams";
 import type { DeckBuildConfig } from "./types";
 
 type PromiseLimitFn = <T>(fn: () => Promise<T>) => Promise<T>;
@@ -17,24 +16,6 @@ export type SentenceJob = {
 type SearchSentencesFn = (
   params: Parameters<typeof searchSentences>[0],
 ) => ReturnType<typeof searchSentences>;
-
-type NgramThresholdOptions = {
-  minCardCount: number;
-  minCardPercentage: number;
-};
-
-function parsePositiveInteger(
-  rawValue: number,
-  optionName: string,
-): number {
-  if (!Number.isSafeInteger(rawValue) || rawValue <= 0) {
-    throw new Error(
-      `${optionName} must be a positive integer. Received: ${rawValue}`,
-    );
-  }
-
-  return rawValue;
-}
 
 function escapeForRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -131,10 +112,12 @@ export async function fetchSentenceJobsForWords(
     wordRetrievalConcurrency: number;
   },
 ): Promise<SentenceJob[]> {
-  const wordRetrievalConcurrency = parsePositiveInteger(
-    options.wordRetrievalConcurrency,
-    "wordRetrievalConcurrency",
-  );
+  const wordRetrievalConcurrency = options.wordRetrievalConcurrency;
+  if (!Number.isSafeInteger(wordRetrievalConcurrency) || wordRetrievalConcurrency <= 0) {
+    throw new Error(
+      `wordRetrievalConcurrency must be a positive integer. Received: ${wordRetrievalConcurrency}`,
+    );
+  }
   const wordLimit = promiseLimit(wordRetrievalConcurrency) as PromiseLimitFn;
   const searchSentencesFn = options.searchSentencesFn ?? searchSentences;
   const sentenceExclusionPatterns = buildSentenceExclusionPatterns(
@@ -166,18 +149,5 @@ export async function fetchSentenceJobsForWords(
         )
         .map((sentence) => ({ word, sentence })),
     ),
-  );
-}
-
-export function buildNgramCandidateMap(
-  sentenceJobs: SentenceJob[],
-  thresholds: NgramThresholdOptions,
-): ReturnType<typeof selectNgramCandidates> {
-  return selectNgramCandidates(
-    sentenceJobs.map((job) => job.sentence.text),
-    {
-      minCardCount: thresholds.minCardCount,
-      minCardPercentage: thresholds.minCardPercentage,
-    },
   );
 }

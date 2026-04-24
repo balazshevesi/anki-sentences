@@ -1,8 +1,8 @@
+import { readPipelineCsvRows } from "./csv";
 import { countNgrams, toSortedEntries, type NgramStats } from "./ngrams";
 
 const DEFAULT_INPUT_PATH = "../output/example.csv";
 const DEFAULT_TOP_COUNT = 25;
-const SENTENCE_FIELD_NAME = "Sentence";
 
 type CliOptions = {
   inputPath: string;
@@ -25,143 +25,36 @@ function printUsage(): void {
   );
 }
 
-function parsePositiveInteger(rawValue: string, optionName: string): number {
-  const value = Number.parseInt(rawValue, 10);
-  if (!Number.isSafeInteger(value) || value <= 0) {
-    throw new Error(
-      `${optionName} must be a positive integer. Received: ${rawValue}`,
-    );
-  }
+function parseOptions(args: string[]): CliOptions {
+  const options: CliOptions = {
+    inputPath: DEFAULT_INPUT_PATH,
+    topCount: DEFAULT_TOP_COUNT,
+  };
 
-  return value;
-}
-
-function parseCliOptions(args: string[]): CliOptions {
-  let inputPath = DEFAULT_INPUT_PATH;
-  let topCount = DEFAULT_TOP_COUNT;
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    if (!arg) {
-      continue;
-    }
-
-    if (arg === "--help" || arg === "-h") {
+  for (const arg of args) {
+    if (arg === "-h" || arg === "--help") {
       printUsage();
       process.exit(0);
     }
 
-    if (!arg.startsWith("--")) {
-      throw new Error(`Unexpected positional argument: ${arg}`);
+    if (arg.startsWith("--input=")) {
+      options.inputPath = arg.slice("--input=".length);
+      continue;
     }
 
-    const [rawKey, inlineValue] = arg.slice(2).split("=", 2);
-    if (!rawKey) {
-      throw new Error(`Invalid option: ${arg}`);
-    }
-
-    let value = inlineValue;
-    if (value === undefined) {
-      const nextArg = args[index + 1];
-      if (!nextArg || nextArg.startsWith("--")) {
-        throw new Error(`Missing value for option --${rawKey}`);
+    if (arg.startsWith("--top=")) {
+      const topCount = Number.parseInt(arg.slice("--top=".length), 10);
+      if (!Number.isSafeInteger(topCount) || topCount <= 0) {
+        throw new Error(`--top must be a positive integer. Received: ${arg}`);
       }
-      value = nextArg;
-      index += 1;
-    }
-
-    if (rawKey === "input") {
-      inputPath = value;
+      options.topCount = topCount;
       continue;
     }
 
-    if (rawKey === "top") {
-      topCount = parsePositiveInteger(value, "--top");
-      continue;
-    }
-
-    throw new Error(`Unknown option: --${rawKey}`);
+    throw new Error(`Unknown option: ${arg}`);
   }
 
-  return { inputPath, topCount };
-}
-
-function parseCsv(content: string): string[][] {
-  const rows: string[][] = [];
-  let currentRow: string[] = [];
-  let currentValue = "";
-  let inQuotedField = false;
-
-  for (let index = 0; index < content.length; index += 1) {
-    const char = content[index];
-
-    if (!char) {
-      continue;
-    }
-
-    if (inQuotedField) {
-      if (char === '"') {
-        const nextChar = content[index + 1];
-        if (nextChar === '"') {
-          currentValue += '"';
-          index += 1;
-        } else {
-          inQuotedField = false;
-        }
-      } else {
-        currentValue += char;
-      }
-      continue;
-    }
-
-    if (char === '"') {
-      inQuotedField = true;
-      continue;
-    }
-
-    if (char === ",") {
-      currentRow.push(currentValue);
-      currentValue = "";
-      continue;
-    }
-
-    if (char === "\n") {
-      currentRow.push(currentValue);
-      rows.push(currentRow);
-      currentRow = [];
-      currentValue = "";
-      continue;
-    }
-
-    if (char === "\r") {
-      continue;
-    }
-
-    currentValue += char;
-  }
-
-  if (currentValue.length > 0 || currentRow.length > 0) {
-    currentRow.push(currentValue);
-    rows.push(currentRow);
-  }
-
-  return rows;
-}
-
-function extractSentenceColumn(rows: string[][]): string[] {
-  if (rows.length === 0) {
-    throw new Error("CSV is empty.");
-  }
-
-  const [header, ...dataRows] = rows;
-  const sentenceColumnIndex = header?.indexOf(SENTENCE_FIELD_NAME) ?? -1;
-  if (sentenceColumnIndex < 0) {
-    throw new Error(`CSV is missing expected '${SENTENCE_FIELD_NAME}' column.`);
-  }
-
-  return dataRows
-    .map((row) => row[sentenceColumnIndex] ?? "")
-    .filter((sentence) => sentence.trim().length > 0);
+  return options;
 }
 
 function printTopNgrams(
@@ -180,7 +73,6 @@ function printTopNgrams(
     const percentage = totalCardCount === 0
       ? 0
       : (stats.cardCount / totalCardCount) * 100;
-
     console.log(
       `${index + 1}. ${ngram} (${stats.occurrenceCount} occurrences, ${percentage.toFixed(1)}% of cards)`,
     );
@@ -188,15 +80,11 @@ function printTopNgrams(
 }
 
 async function runAnalyzeCsvNgrams(args = process.argv.slice(2)): Promise<void> {
-  const { inputPath, topCount } = parseCliOptions(args);
-  const csvFile = Bun.file(inputPath);
-  if (!(await csvFile.exists())) {
-    throw new Error(`CSV file does not exist: ${inputPath}`);
-  }
-
-  const csvContent = await csvFile.text();
-  const rows = parseCsv(csvContent.replace(/^\uFEFF/, ""));
-  const sentences = extractSentenceColumn(rows);
+  const { inputPath, topCount } = parseOptions(args);
+  const rows = await readPipelineCsvRows(inputPath);
+  const sentences = rows
+    .map((row) => row.Sentence.trim())
+    .filter((sentence) => sentence.length > 0);
 
   const bigrams = toSortedEntries(countNgrams(sentences, 2));
   const trigrams = toSortedEntries(countNgrams(sentences, 3));
