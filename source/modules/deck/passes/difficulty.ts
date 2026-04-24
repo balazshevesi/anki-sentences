@@ -2,7 +2,7 @@ import type { PipelineCsvRow } from "../csv";
 import { readPipelineCsvRows, writePipelineCsvRows } from "../csv";
 import { calculateSentenceDifficultyScore } from "../difficulty";
 import type { DeckBuildConfig } from "../types";
-import { loadWordFrequencyLookup } from "../../wordFrequencies/index";
+import { loadWordFrequencyLookup } from "../../wordFrequencies/lookup";
 
 export async function runDifficultyPass(
   config: DeckBuildConfig,

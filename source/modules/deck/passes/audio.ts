@@ -7,9 +7,9 @@ import type { DeckBuildConfig, DeckRuntimeConfig } from "../types";
 import {
   createGoogleTtsErrorMetadata,
   generateGoogleTtsAudioMetadata,
-  resolveGoogleTtsLanguageCode,
   type GoogleTtsConfig,
-} from "../../audioGeneration/index";
+} from "../../audioGeneration/googleTts";
+import { resolveGoogleTtsLanguageCode } from "../../audioGeneration/googleTtsLanguage";
 import { parseCardPayloadJson } from "../../shared/cardPayload";
 import { isReadyAudioMetadata } from "../../shared/audioMetadata";
 import { formatDuration } from "../../shared/formatDuration";

@@ -78,7 +78,7 @@ export function formatSentenceTranslation(translations: string[]): string {
   return translations.join("<br>");
 }
 
-export function normalizeSentenceTextForDedupe(text: string): string {
+function normalizeSentenceTextForDedupe(text: string): string {
   return text.trim().replace(/\s+/g, " ").toLocaleLowerCase();
 }
 

@@ -15,7 +15,7 @@ import {
   type WordCountFilter,
 } from "../sentenceRetrieval/index";
 
-export const DEFAULT_DECK_CONFIG_PATH = fileURLToPath(
+const DEFAULT_DECK_CONFIG_PATH = fileURLToPath(
   new URL("../../deck.config.jsonc", import.meta.url),
 );
 
@@ -149,7 +149,7 @@ const DeckConfigSchema = z
     } as DeckRuntimeConfig,
   }));
 
-export type LoadedDeckConfig = {
+type LoadedDeckConfig = {
   configPath: string;
   passes: PipelinePass[];
   csvPath: string;
@@ -210,7 +210,7 @@ export async function loadDeckConfig(
   };
 }
 
-export function buildDeckConfigJsonSchema(): Record<string, unknown> {
+function buildDeckConfigJsonSchema(): Record<string, unknown> {
   const jsonSchema = z.toJSONSchema(DeckConfigSchema, { io: "input" });
   return {
     $schema: "https://json-schema.org/draft/2020-12/schema",

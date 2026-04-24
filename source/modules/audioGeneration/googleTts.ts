@@ -210,7 +210,7 @@ function sanitizeSentenceId(sentenceId: string): string {
   return trimmed.replaceAll(/[^a-zA-Z0-9_-]/g, "_");
 }
 
-export function buildAudioFileName(sentenceId: string, sentence: string): string {
+function buildAudioFileName(sentenceId: string, sentence: string): string {
   const sentenceHash = createHash("sha1").update(sentence).digest("hex").slice(0, 10);
   return `tts-${sanitizeSentenceId(sentenceId)}-${sentenceHash}.mp3`;
 }

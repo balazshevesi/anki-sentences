@@ -44,20 +44,20 @@ const WORD_RARITIES = new Set<WordRarity>([
   "very_rare",
 ]);
 
-export const EMPTY_WORD_FREQUENCY: WordFrequencyInfo = {
+const EMPTY_WORD_FREQUENCY: WordFrequencyInfo = {
   rank: null,
   occurrencePercentage: null,
   rarity: "very_rare",
   hint: "",
 };
 
-export const EMPTY_WORD_TRANSLATION: WordTranslation = {
+const EMPTY_WORD_TRANSLATION: WordTranslation = {
   translatedText: "",
   alternatives: [],
   frequency: EMPTY_WORD_FREQUENCY,
 };
 
-export const EMPTY_CARD_PAYLOAD: CardPayload = {
+const EMPTY_CARD_PAYLOAD: CardPayload = {
   wordByWord: {},
   ngramTranslations: [],
   audioMetadata: null,
@@ -65,11 +65,11 @@ export const EMPTY_CARD_PAYLOAD: CardPayload = {
 
 export const EMPTY_CARD_PAYLOAD_JSON = JSON.stringify(EMPTY_CARD_PAYLOAD);
 
-export function isWordRarity(value: string): value is WordRarity {
+function isWordRarity(value: string): value is WordRarity {
   return WORD_RARITIES.has(value as WordRarity);
 }
 
-export function parseWordTranslation(value: unknown): WordTranslation {
+function parseWordTranslation(value: unknown): WordTranslation {
   if (typeof value === "string") {
     return {
       translatedText: value,
@@ -131,7 +131,7 @@ export function parseWordTranslation(value: unknown): WordTranslation {
   };
 }
 
-export function parseWordByWord(value: unknown): Record<string, WordTranslation> {
+function parseWordByWord(value: unknown): Record<string, WordTranslation> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {};
   }
@@ -152,7 +152,7 @@ export function parseWordByWordJson(raw: string): Record<string, WordTranslation
   }
 }
 
-export function normalizeNgramTranslation(value: unknown): NgramTranslation {
+function normalizeNgramTranslation(value: unknown): NgramTranslation {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {
       phrase: "",
@@ -192,7 +192,7 @@ export function normalizeNgramTranslation(value: unknown): NgramTranslation {
   };
 }
 
-export function parseNgramTranslations(value: unknown): NgramTranslation[] {
+function parseNgramTranslations(value: unknown): NgramTranslation[] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -210,7 +210,7 @@ export function parseNgramTranslationsJson(raw: string): NgramTranslation[] {
   }
 }
 
-export function parseCardPayload(value: unknown): CardPayload {
+function parseCardPayload(value: unknown): CardPayload {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return EMPTY_CARD_PAYLOAD;
   }

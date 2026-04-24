@@ -3,8 +3,6 @@ import type {
   WordRarity,
 } from "../shared/cardPayload";
 
-export type { WordFrequencyInfo, WordRarity } from "../shared/cardPayload";
-
 const DEFAULT_WORD_LIST_SIZE = "50k";
 const MODULE_DIR = new URL("./", import.meta.url);
 

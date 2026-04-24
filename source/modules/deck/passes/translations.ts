@@ -8,7 +8,7 @@ import {
 import type { PipelineCsvRow } from "../csv";
 import { readPipelineCsvRows, writePipelineCsvRows } from "../csv";
 import type { DeckBuildConfig, DeckRuntimeConfig } from "../types";
-import { loadWordFrequencyLookup } from "../../wordFrequencies/index";
+import { loadWordFrequencyLookup } from "../../wordFrequencies/lookup";
 import {
   parseCardPayloadJson,
   parseNgramTranslationsJson,

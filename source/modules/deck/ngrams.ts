@@ -3,13 +3,13 @@ export type NgramStats = {
   cardCount: number;
 };
 
-export type NgramCandidate = NgramStats & {
+type NgramCandidate = NgramStats & {
   text: string;
   ngramLength: 2 | 3;
   cardPercentage: number;
 };
 
-export function tokenizeWords(input: string): string[] {
+function tokenizeWords(input: string): string[] {
   const normalizedInput = input.toLowerCase();
   return normalizedInput.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu) ?? [];
 }

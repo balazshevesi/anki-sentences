@@ -97,5 +97,3 @@ async function runAnalyzeCsvNgrams(args = process.argv.slice(2)): Promise<void> 
 if (import.meta.main) {
   await runAnalyzeCsvNgrams();
 }
-
-export { runAnalyzeCsvNgrams };

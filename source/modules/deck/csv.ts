@@ -11,8 +11,7 @@ export const DECK_NOTE_FIELDS = [
   "difficulty",
 ] as const;
 
-export const DIFFICULTY_FIELD = "difficulty" as const;
-export const PIPELINE_CSV_FIELDS = [...DECK_NOTE_FIELDS] as const;
+const PIPELINE_CSV_FIELDS = [...DECK_NOTE_FIELDS] as const;
 
 type PipelineCsvField = (typeof PIPELINE_CSV_FIELDS)[number];
 
@@ -34,11 +33,11 @@ const DEFAULT_PIPELINE_ROW: PipelineCsvRow = {
   difficulty: "",
 };
 
-export function escapeCsvField(value: string): string {
+function escapeCsvField(value: string): string {
   return `"${value.replaceAll('"', '""')}"`;
 }
 
-export function parseCsv(content: string): string[][] {
+function parseCsv(content: string): string[][] {
   const rows: string[][] = [];
   let currentRow: string[] = [];
   let currentValue = "";

@@ -146,18 +146,6 @@ export function parseAudioMetadata(value: unknown): AudioMetadata | null {
   };
 }
 
-export function parseAudioMetadataJson(raw: string): AudioMetadata | null {
-  if (raw.trim().length === 0 || raw.trim() === "[]") {
-    return null;
-  }
-
-  try {
-    return parseAudioMetadata(JSON.parse(raw) as unknown);
-  } catch {
-    return null;
-  }
-}
-
 export function isReadyAudioMetadata(
   metadata: AudioMetadata | null,
 ): metadata is ReadyAudioMetadata {

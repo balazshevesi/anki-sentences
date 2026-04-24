@@ -1,5 +1,5 @@
-export const TATOEBA_LANGUAGE_SOURCE_URL = "https://tatoeba.org/en/downloads";
-export const TATOEBA_LANGUAGES_TARGET_FILE = new URL(
+const TATOEBA_LANGUAGE_SOURCE_URL = "https://tatoeba.org/en/downloads";
+const TATOEBA_LANGUAGES_TARGET_FILE = new URL(
   "./tatoebaLanguages.ts",
   import.meta.url,
 );
@@ -12,7 +12,7 @@ const NAMED_HTML_ENTITIES: Record<string, string> = {
   quot: '"',
 };
 
-export function decodeHtmlEntities(input: string): string {
+function decodeHtmlEntities(input: string): string {
   return input.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (fullMatch, rawEntity) => {
     if (rawEntity.startsWith("#x") || rawEntity.startsWith("#X")) {
       const codePoint = Number.parseInt(rawEntity.slice(2), 16);
@@ -28,7 +28,7 @@ export function decodeHtmlEntities(input: string): string {
   });
 }
 
-export function extractLanguagesJson(html: string): Record<string, string> {
+function extractLanguagesJson(html: string): Record<string, string> {
   const match = html.match(
     /languages-json="(\{.*?\})"\s+selected-language="ctrl\.langFrom"/s,
   );
@@ -61,7 +61,7 @@ export function extractLanguagesJson(html: string): Record<string, string> {
   return languages;
 }
 
-export function renderLanguagesFile(languages: Record<string, string>): string {
+function renderLanguagesFile(languages: Record<string, string>): string {
   const lines: string[] = [];
 
   lines.push("// Generated from Tatoeba downloads language selector data.");
@@ -93,7 +93,7 @@ export function renderLanguagesFile(languages: Record<string, string>): string {
   return `${lines.join("\n")}\n`;
 }
 
-export async function updateTatoebaLanguages(options?: {
+async function updateTatoebaLanguages(options?: {
   sourceUrl?: string;
   targetFile?: URL;
 }): Promise<void> {

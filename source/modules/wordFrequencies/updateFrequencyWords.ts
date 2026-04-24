@@ -1,5 +1,5 @@
-export const DEFAULT_FREQUENCY_YEAR = "2018";
-export const DEFAULT_FREQUENCY_SPECS = ["en:50k", "de:50k", "es:50k"];
+const DEFAULT_FREQUENCY_YEAR = "2018";
+const DEFAULT_FREQUENCY_SPECS = ["en:50k", "de:50k", "es:50k"];
 
 const SCRIPT_DIR = new URL("./", import.meta.url);
 
@@ -11,7 +11,7 @@ type FrequencyRow = {
   cumulativePercentage: number;
 };
 
-export interface FrequencySpec {
+interface FrequencySpec {
   language: string;
   size: string;
 }
@@ -36,11 +36,11 @@ function printUsage(): void {
   );
 }
 
-export function isValidToken(value: string): boolean {
+function isValidToken(value: string): boolean {
   return /^[a-z0-9_]+$/i.test(value);
 }
 
-export function parseSpec(rawSpec: string): FrequencySpec {
+function parseSpec(rawSpec: string): FrequencySpec {
   const [language, size] = rawSpec.split(":");
 
   if (!language || !size) {
@@ -61,7 +61,7 @@ export function parseSpec(rawSpec: string): FrequencySpec {
   };
 }
 
-export function parseCliArgs(
+function parseCliArgs(
   args: string[],
 ): { year: string; specs: FrequencySpec[] } {
   let year = DEFAULT_FREQUENCY_YEAR;
@@ -95,11 +95,11 @@ export function parseCliArgs(
   return { year, specs };
 }
 
-export function buildSourceUrl(year: string, spec: FrequencySpec): string {
+function buildSourceUrl(year: string, spec: FrequencySpec): string {
   return `https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/${year}/${spec.language}/${spec.language}_${spec.size}.txt`;
 }
 
-export function getOutputPath(spec: FrequencySpec): URL {
+function getOutputPath(spec: FrequencySpec): URL {
   return new URL(`${spec.language}${spec.size}.csv`, SCRIPT_DIR);
 }
 
@@ -174,7 +174,7 @@ function renderCsv(rows: FrequencyRow[]): string {
   return [header, ...body].join("\n");
 }
 
-export async function downloadAndWriteWordList(
+async function downloadAndWriteWordList(
   year: string,
   spec: FrequencySpec,
 ): Promise<void> {
@@ -199,7 +199,7 @@ export async function downloadAndWriteWordList(
   console.log(`Saved ${spec.language}:${spec.size} -> ${outputPath.pathname}`);
 }
 
-export async function runUpdateFrequencyWords(args = process.argv.slice(2)): Promise<void> {
+async function runUpdateFrequencyWords(args = process.argv.slice(2)): Promise<void> {
   const { year, specs } = parseCliArgs(args);
 
   for (const spec of specs) {

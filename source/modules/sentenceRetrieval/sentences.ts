@@ -8,9 +8,7 @@ import type {
   TatoebaApiErrorPayload,
 } from "./tatoebaSentences.types";
 
-export * from "./tatoebaSentences.types";
-
-export const DEFAULT_TATOEBA_API_BASE_URL = "https://api.tatoeba.org";
+const DEFAULT_TATOEBA_API_BASE_URL = "https://api.tatoeba.org";
 
 export class TatoebaApiError extends Error {
   readonly status: number;
@@ -231,7 +229,7 @@ export function getAfterCursorFromNextPageUrl(
   }
 }
 
-export function getAfterCursorFromPaging(paging: Paging): string | null {
+function getAfterCursorFromPaging(paging: Paging): string | null {
   if (!paging.next) {
     return null;
   }

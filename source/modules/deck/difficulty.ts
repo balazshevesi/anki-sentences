@@ -52,7 +52,7 @@ function scoreWordRarity(rank: number | null, maxRank: number): number {
   return Math.log(sanitizedRank) / Math.log(sanitizedMaxRank);
 }
 
-export function tokenizeSentenceForDifficulty(sentence: string): string[] {
+function tokenizeSentenceForDifficulty(sentence: string): string[] {
   if (sentence.trim().length === 0) {
     return [];
   }
