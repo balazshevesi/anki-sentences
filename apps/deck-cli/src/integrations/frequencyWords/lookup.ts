@@ -186,13 +186,13 @@ function getRarityLabel(rank: number | null, listSize: number): WordRarity {
   if (rank === null || rank > listSize) {
     return "very_rare";
   }
-  if (rank <= 1000) {
+  if (rank <= 2500) {
     return "very_common";
   }
-  if (rank <= 5000) {
+  if (rank <= 10000) {
     return "common";
   }
-  if (rank <= 20000) {
+  if (rank <= 30000) {
     return "uncommon";
   }
   return "rare";
@@ -202,13 +202,13 @@ function getRarityHint(rank: number | null, listSize: number): string {
   if (rank === null || rank > listSize) {
     return `Very rare (outside top ${listSize.toLocaleString()} words)`;
   }
-  if (rank <= 1000) {
+  if (rank <= 2500) {
     return `Very common (top ${rank.toLocaleString()})`;
   }
-  if (rank <= 5000) {
+  if (rank <= 10000) {
     return `Common (rank ${rank.toLocaleString()})`;
   }
-  if (rank <= 20000) {
+  if (rank <= 30000) {
     return `Uncommon (rank ${rank.toLocaleString()})`;
   }
   return `Rare (rank ${rank.toLocaleString()})`;
