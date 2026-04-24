@@ -4,16 +4,15 @@ Build Anki sentence decks from Tatoeba, with word-level translation hints from a
 
 ## Repo layout
 
-- `source/deck.config.jsonc` - single config file for all deck generation settings
-- `source/deck.config.schema.json` - JSON Schema generated from Zod (`z.toJSONSchema`)
-- `source/index.ts` - config-driven pipeline entrypoint
-- `source/modules/config/` - JSONC loader + Zod schema + schema generation script
-- `source/modules/deck/` - deck pipeline modules (CSV IO, retrieval, metadata enrichment, apkg build)
-- `source/modules/audioGeneration/` - Google TTS generation + language mapping helpers
-- `source/modules/sentenceRetrieval/` - typed Tatoeba API wrapper + tests
-- `source/modules/cardTemplate/` - Svelte card renderer bundled into a single HTML payload for Anki
-- `source/modules/wordTranslator/` - FastAPI server exposing Argos Translate at `/translate`
-- `source/modules/wordFrequencies/` - downloader for frequency list text files
+- `apps/deck-cli/deck.config.jsonc` - single config file for all deck generation settings
+- `apps/deck-cli/deck.config.schema.json` - JSON Schema generated from Zod (`z.toJSONSchema`)
+- `apps/deck-cli/src/index.ts` - config-driven pipeline entrypoint
+- `apps/deck-cli/src/orchestration/` - pipeline orchestration and ordered passes
+- `apps/deck-cli/src/deck/` - deck domain logic (CSV IO, enrichment helpers, APKG helpers)
+- `apps/deck-cli/src/integrations/` - API clients and external data adapters (Tatoeba, Argos, Google TTS, frequency lists)
+- `apps/deck-cli/src/contracts/` - shared card payload + audio metadata contracts
+- `apps/card-template/` - Svelte card renderer bundled into a single HTML payload for Anki
+- `apps/argos-translate-service/` - FastAPI server exposing Argos Translate at `/translate`
 
 ## Nix flake
 
@@ -32,14 +31,14 @@ nix develop --extra-experimental-features "nix-command flakes"
 Inside the shell, install project dependencies:
 
 ```bash
-bun install --cwd source
-bun install --cwd source/modules/cardTemplate
-uv sync --directory source/modules/wordTranslator
+bun install --cwd apps/deck-cli
+bun install --cwd apps/card-template
+uv sync --directory apps/argos-translate-service
 ```
 
 ## Argos configuration
 
-Deck generation reads Argos settings from `source/deck.config.jsonc`:
+Deck generation reads Argos settings from `apps/deck-cli/deck.config.jsonc`:
 
 ```jsonc
 "argos": {
@@ -104,22 +103,22 @@ Google TTS authentication uses OAuth2 credentials.
 1) Install dependencies:
 
 ```bash
-bun install --cwd source
-bun install --cwd source/modules/cardTemplate
-uv sync --directory source/modules/wordTranslator
+bun install --cwd apps/deck-cli
+bun install --cwd apps/card-template
+uv sync --directory apps/argos-translate-service
 ```
 
 2) Start the translation service (in a separate terminal):
 
 ```bash
-cd source
+cd apps/deck-cli
 bun run argos:start
 ```
 
 3) Run the full pass pipeline (retrieve -> enrich translations -> enrich difficulty -> enrich audio -> build apkg):
 
 ```bash
-cd source
+cd apps/deck-cli
 bun run deck:pipeline
 ```
 
@@ -127,14 +126,14 @@ bun run deck:pipeline
 
 The pipeline is now fully config-driven.
 
-1) Edit `source/deck.config.jsonc`.
+1) Edit `apps/deck-cli/deck.config.jsonc`.
 
 2) Choose which passes to run by updating the `passes` array.
 
 3) Run:
 
 ```bash
-cd source
+cd apps/deck-cli
 bun run deck:pipeline
 ```
 

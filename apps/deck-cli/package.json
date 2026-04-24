@@ -1,0 +1,41 @@
+{
+  "name": "deck-cli",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "patch-package": "^8.0.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "scripts": {
+    "postinstall": "patch-package",
+    "build": "sh build-with-argos.sh",
+    "test": "bun test",
+    "typecheck:cardTemplate": "bun run --cwd ../card-template typecheck",
+    "typecheck:source": "bunx tsc -p tsconfig.json --noEmit",
+    "typecheck": "bun run typecheck:source && bun run typecheck:cardTemplate",
+    "lint:py": "uvx ruff check ../argos-translate-service",
+    "lint": "bun run typecheck && bun run lint:py",
+    "template:build": "bun run --cwd ../card-template build",
+    "template:dev": "bun run --cwd ../card-template dev",
+    "template:install": "bun install --cwd ../card-template",
+    "config:schema": "bun run src/config/writeDeckConfigSchema.ts",
+    "argos:start": "sh -c 'uv run --directory ../argos-translate-service python -m uvicorn main:app --host ${ARGOS_HOST:-0.0.0.0} --port ${ARGOS_PORT:-8000} --reload'",
+    "deck:run": "bun run src/index.ts",
+    "deck:pipeline": "bun run template:build && bun run src/index.ts",
+    "deck:build": "bun run deck:pipeline",
+    "deck:analyze-ngrams": "bun run src/orchestration/analyzeCsvNgrams.ts",
+    "sentenceRetrieval:update": "bun run src/integrations/tatoeba/updateTatoebaLanguages.ts",
+    "wordFrequencies:words": "bun run src/integrations/frequencyWords/updateFrequencyWords.ts"
+  },
+  "dependencies": {
+    "anki-apkg-export": "4.0.3",
+    "google-auth-library": "^10.6.2",
+    "jsonc-parser": "^3.3.1",
+    "zod": "^4.0.1",
+    "promise-limit": "^2.7.0"
+  }
+}

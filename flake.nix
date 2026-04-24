@@ -32,24 +32,24 @@
           shellHook = ''
             export UV_PROJECT_ENVIRONMENT=".venv"
 
-            if [ ! -f source/.env ] && [ -f source/.env.example ]; then
-              cp source/.env.example source/.env
-              echo "Created source/.env from source/.env.example"
+            if [ ! -f apps/deck-cli/.env ] && [ -f apps/deck-cli/.env.example ]; then
+              cp apps/deck-cli/.env.example apps/deck-cli/.env
+              echo "Created apps/deck-cli/.env from apps/deck-cli/.env.example"
             fi
 
-            if [ -f source/package.json ]; then
-              echo "Installing JS deps in source/"
-              bun install --cwd source
+            if [ -f apps/deck-cli/package.json ]; then
+              echo "Installing JS deps in apps/deck-cli/"
+              bun install --cwd apps/deck-cli
             fi
 
-            if [ -f source/modules/cardTemplate/package.json ]; then
-              echo "Installing JS deps in source/modules/cardTemplate/"
-              bun install --cwd source/modules/cardTemplate
+            if [ -f apps/card-template/package.json ]; then
+              echo "Installing JS deps in apps/card-template/"
+              bun install --cwd apps/card-template
             fi
 
-            if [ -f source/modules/wordTranslator/pyproject.toml ]; then
-              echo "Installing Python deps in source/modules/wordTranslator/"
-              uv sync --directory source/modules/wordTranslator
+            if [ -f apps/argos-translate-service/pyproject.toml ]; then
+              echo "Installing Python deps in apps/argos-translate-service/"
+              uv sync --directory apps/argos-translate-service
             fi
 
             echo "Dev shell ready."
