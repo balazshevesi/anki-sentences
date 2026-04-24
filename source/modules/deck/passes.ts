@@ -24,18 +24,16 @@ import { calculateSentenceDifficultyScore } from "./difficulty";
 import {
   createGoogleTtsErrorMetadata,
   generateGoogleTtsAudioMetadata,
+  resolveGoogleTtsLanguageCode,
   type GoogleTtsConfig,
-} from "./audio";
-import { resolveGoogleTtsLanguageCode } from "./googleTtsLanguage";
+} from "../audioGeneration/index";
 import {
   EMPTY_CARD_PAYLOAD_JSON,
+  parseCardPayloadJson,
   parseNgramTranslationsJson,
   parseWordByWordJson,
 } from "../shared/cardPayload";
-import {
-  isReadyAudioMetadata,
-  parseAudioMetadataJson,
-} from "../shared/audioMetadata";
+import { isReadyAudioMetadata } from "../shared/audioMetadata";
 import { formatDuration } from "../shared/formatDuration";
 
 type PromiseLimitFn = <T>(fn: () => Promise<T>) => Promise<T>;
@@ -115,10 +113,12 @@ function neutralizeAnkiMustacheInBundle(value: string): string {
 function buildCardPayloadJson(
   wordByWordJson: string,
   ngramTranslationsJson: string,
+  audioMetadata: ReturnType<typeof parseCardPayloadJson>["audioMetadata"] = null,
 ): string {
   return JSON.stringify({
     wordByWord: parseWordByWordJson(wordByWordJson),
     ngramTranslations: parseNgramTranslationsJson(ngramTranslationsJson),
+    audioMetadata,
   });
 }
 
@@ -169,7 +169,6 @@ export async function runSentenceRetrievalPass(
     SentenceId: String(job.sentence.id),
     cardPayload: EMPTY_CARD_PAYLOAD_JSON,
     difficulty: "",
-    audioMetadata: "[]",
   }));
 
   await writePipelineCsvRows(csvPath, rows);
@@ -244,6 +243,7 @@ export async function runTranslationMetadataPass(
   const enrichedRows = await Promise.all(
     rows.map((row) =>
       sentenceLimit(async () => {
+        const existingCardPayload = parseCardPayloadJson(row.cardPayload);
         const enrichedRow = {
           ...row,
           cardPayload: buildCardPayloadJson(
@@ -253,6 +253,7 @@ export async function runTranslationMetadataPass(
               translatePhrase,
               candidateMap,
             ),
+            existingCardPayload.audioMetadata,
           ),
         };
 
@@ -299,9 +300,9 @@ function resolveGoogleTtsConfig(config: DeckBuildConfig): GoogleTtsConfig {
 }
 
 function canReuseReadyAudioMetadata(
-  metadata: ReturnType<typeof parseAudioMetadataJson>,
+  metadata: ReturnType<typeof parseCardPayloadJson>["audioMetadata"],
   googleTtsConfig: GoogleTtsConfig,
-): metadata is NonNullable<ReturnType<typeof parseAudioMetadataJson>> {
+): metadata is NonNullable<ReturnType<typeof parseCardPayloadJson>["audioMetadata"]> {
   if (!isReadyAudioMetadata(metadata)) {
     return false;
   }
@@ -348,7 +349,8 @@ export async function runAudioMetadataPass(
   const enrichedRows = await Promise.all(
     rows.map((row) =>
       sentenceLimit(async () => {
-        const existingMetadata = parseAudioMetadataJson(row.audioMetadata);
+        const existingCardPayload = parseCardPayloadJson(row.cardPayload);
+        const existingMetadata = existingCardPayload.audioMetadata;
         const existingAudioFilePath = isReadyAudioMetadata(existingMetadata)
           ? join(googleTtsConfig.audioOutputDir, existingMetadata.audioFileName)
           : null;
@@ -356,7 +358,7 @@ export async function runAudioMetadataPass(
           ? await Bun.file(existingAudioFilePath).exists()
           : false;
 
-        let nextAudioMetadata = row.audioMetadata;
+        let nextAudioMetadata = existingMetadata;
         const shouldRegenerate =
           config.audioForceRegenerate ||
           !canReuseReadyAudioMetadata(existingMetadata, googleTtsConfig) ||
@@ -364,7 +366,7 @@ export async function runAudioMetadataPass(
 
         if (!shouldRegenerate && existingMetadata) {
           reusedRows += 1;
-          nextAudioMetadata = JSON.stringify(existingMetadata);
+          nextAudioMetadata = existingMetadata;
         } else {
           try {
             const generatedMetadata = await generateGoogleTtsAudioMetadata(
@@ -372,14 +374,12 @@ export async function runAudioMetadataPass(
               googleTtsConfig,
             );
             generatedRows += 1;
-            nextAudioMetadata = JSON.stringify(generatedMetadata);
+            nextAudioMetadata = generatedMetadata;
           } catch (error) {
             failedRows += 1;
             const errorMessage =
               error instanceof Error ? error.message : `Unknown error: ${String(error)}`;
-            nextAudioMetadata = JSON.stringify(
-              createGoogleTtsErrorMetadata(row.SentenceId, errorMessage),
-            );
+            nextAudioMetadata = createGoogleTtsErrorMetadata(row.SentenceId, errorMessage);
           }
         }
 
@@ -394,7 +394,10 @@ export async function runAudioMetadataPass(
 
         return {
           ...row,
-          audioMetadata: nextAudioMetadata,
+          cardPayload: JSON.stringify({
+            ...existingCardPayload,
+            audioMetadata: nextAudioMetadata,
+          }),
         };
       }),
     ),
@@ -462,7 +465,6 @@ export async function runBuildApkgPass(
   const questionFormat = `
     <div id="front">{{Sentence}}</div>
     <div id="cardPayload" hidden>{{cardPayload}}</div>
-    <div id="audioMetadata" hidden>{{audioMetadata}}</div>
     ${questionFormatHtml}`;
   const answerFormat = "{{FrontSide}}<hr id=\"answer\">{{SentenceTranslation}}";
 
@@ -476,7 +478,8 @@ export async function runBuildApkgPass(
   const includedMediaFiles = new Set<string>();
 
   for (const row of rows) {
-    const parsedAudioMetadata = parseAudioMetadataJson(row.audioMetadata);
+    const parsedCardPayload = parseCardPayloadJson(row.cardPayload);
+    const parsedAudioMetadata = parsedCardPayload.audioMetadata;
     if (isReadyAudioMetadata(parsedAudioMetadata)) {
       const mediaFileName = parsedAudioMetadata.audioFileName;
       if (!includedMediaFiles.has(mediaFileName)) {
@@ -500,7 +503,6 @@ export async function runBuildApkgPass(
       row.SentenceId,
       row.cardPayload,
       row.difficulty,
-      row.audioMetadata,
       {
         sortField: DEFAULT_DECK_SORT_FIELD,
         tags: [

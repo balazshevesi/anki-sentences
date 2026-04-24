@@ -7,6 +7,7 @@ Build Anki sentence decks from Tatoeba, with word-level translation hints from a
 - `source/cli.ts` - CLI entrypoint with pass-based subcommands
 - `source/index.ts` - legacy entrypoint that forwards to the new pipeline CLI
 - `source/modules/deck/` - deck pipeline modules (CSV IO, retrieval, metadata enrichment, apkg build)
+- `source/modules/audioGeneration/` - Google TTS generation + language mapping helpers
 - `source/modules/sentenceRetrieval/` - typed Tatoeba API wrapper + tests
 - `source/modules/cardTemplate/` - Svelte card renderer bundled into a single HTML payload for Anki
 - `source/modules/wordTranslator/` - FastAPI server exposing Argos Translate at `/translate`
@@ -169,7 +170,7 @@ cd source
 bun run deck:build-apkg --csv ../output/example.csv --apkg ../output/example.apkg
 ```
 
-If `audioMetadata` contains ready Google TTS entries, matching `.mp3` files are automatically bundled into the APKG media collection.
+If `cardPayload.audioMetadata` contains ready Google TTS entries, matching `.mp3` files are automatically bundled into the APKG media collection.
 
 You can inspect all CLI options with:
 

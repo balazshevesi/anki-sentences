@@ -3,7 +3,7 @@ import {
   buildSsmlWithWordMarks,
   buildWordTimestamps,
   tokenizeSentenceForSpeech,
-} from "./audio";
+} from "./googleTts";
 
 describe("audio helpers", () => {
   test("tokenizeSentenceForSpeech splits by whitespace", () => {

@@ -1,3 +1,5 @@
+import { parseAudioMetadata, type AudioMetadata } from "./audioMetadata";
+
 export type WordRarity =
   | "very_common"
   | "common"
@@ -31,6 +33,7 @@ export type NgramTranslation = {
 export type CardPayload = {
   wordByWord: Record<string, WordTranslation>;
   ngramTranslations: NgramTranslation[];
+  audioMetadata: AudioMetadata | null;
 };
 
 const WORD_RARITIES = new Set<WordRarity>([
@@ -57,6 +60,7 @@ export const EMPTY_WORD_TRANSLATION: WordTranslation = {
 export const EMPTY_CARD_PAYLOAD: CardPayload = {
   wordByWord: {},
   ngramTranslations: [],
+  audioMetadata: null,
 };
 
 export const EMPTY_CARD_PAYLOAD_JSON = JSON.stringify(EMPTY_CARD_PAYLOAD);
@@ -214,11 +218,13 @@ export function parseCardPayload(value: unknown): CardPayload {
   const rawPayload = value as {
     wordByWord?: unknown;
     ngramTranslations?: unknown;
+    audioMetadata?: unknown;
   };
 
   return {
     wordByWord: parseWordByWord(rawPayload.wordByWord),
     ngramTranslations: parseNgramTranslations(rawPayload.ngramTranslations),
+    audioMetadata: parseAudioMetadata(rawPayload.audioMetadata),
   };
 }
 

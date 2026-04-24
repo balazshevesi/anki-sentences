@@ -2,7 +2,7 @@ import type { Command as CacCommand } from "cac";
 import { basename, dirname, join } from "node:path";
 import { isSupportedLanguageCode, type WordCountFilter } from "../sentenceRetrieval/index";
 import { toApkgPath, toCsvPath } from "../deck/csv";
-import { resolveGoogleTtsLanguageCode } from "../deck/googleTtsLanguage";
+import { resolveGoogleTtsLanguageCode } from "../audioGeneration/index";
 import {
   DEFAULT_ARGOS_ALTERNATIVES,
   DEFAULT_ARGOS_SOURCE,

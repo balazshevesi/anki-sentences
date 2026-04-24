@@ -5,7 +5,6 @@ export { loadDeckBuildConfig } from "./config";
 export { loadQuestionFormatHtml } from "./template";
 export { buildWordByWord, createPhraseTranslator, createWordTranslator } from "./translate";
 export {
-  AUDIO_METADATA_FIELD,
   DIFFICULTY_FIELD,
   PIPELINE_CSV_FIELDS,
   parsePipelineCsvRows,

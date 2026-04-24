@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { GoogleAuth } from "google-auth-library";
-import type { PipelineCsvRow } from "./csv";
 import {
   GOOGLE_TTS_PROVIDER,
   type AudioWordTimestamp,
@@ -27,6 +26,11 @@ type GoogleTtsApiResponse = {
   error?: {
     message?: unknown;
   };
+};
+
+type AudioGenerationRow = {
+  SentenceId: string;
+  Sentence: string;
 };
 
 export type GoogleTtsConfig = {
@@ -291,7 +295,7 @@ export function createGoogleTtsErrorMetadata(
 }
 
 export async function generateGoogleTtsAudioMetadata(
-  row: PipelineCsvRow,
+  row: AudioGenerationRow,
   config: GoogleTtsConfig,
 ): Promise<ReadyAudioMetadata> {
   const audioFileName = buildAudioFileName(row.SentenceId, row.Sentence);

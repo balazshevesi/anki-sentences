@@ -1,9 +1,12 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { DECK_NOTE_FIELDS } from "./constants";
-import { EMPTY_CARD_PAYLOAD_JSON } from "../shared/cardPayload";
+import {
+  EMPTY_CARD_PAYLOAD_JSON,
+  parseCardPayloadJson,
+} from "../shared/cardPayload";
+import { parseAudioMetadataJson } from "../shared/audioMetadata";
 
-export const AUDIO_METADATA_FIELD = "audioMetadata" as const;
 export const DIFFICULTY_FIELD = "difficulty" as const;
 export const PIPELINE_CSV_FIELDS = [...DECK_NOTE_FIELDS] as const;
 
@@ -25,7 +28,6 @@ const DEFAULT_PIPELINE_ROW: PipelineCsvRow = {
   SentenceId: "",
   cardPayload: EMPTY_CARD_PAYLOAD_JSON,
   difficulty: "",
-  audioMetadata: "[]",
 };
 
 export function escapeCsvField(value: string): string {
@@ -115,6 +117,7 @@ export function parsePipelineCsvRows(content: string): PipelineCsvRow[] {
   const [header, ...dataRows] = rows;
   const headerIndex = buildHeaderIndex(header ?? []);
   assertRequiredColumns(headerIndex);
+  const legacyAudioMetadataColumnIndex = headerIndex.get("audioMetadata");
 
   return dataRows
     .filter((row) => row.some((value) => value.trim().length > 0))
@@ -127,6 +130,21 @@ export function parsePipelineCsvRows(content: string): PipelineCsvRow[] {
           continue;
         }
         mapped[field] = row[columnIndex] ?? DEFAULT_PIPELINE_ROW[field];
+      }
+
+      if (legacyAudioMetadataColumnIndex !== undefined) {
+        const parsedCardPayload = parseCardPayloadJson(mapped.cardPayload);
+        if (!parsedCardPayload.audioMetadata) {
+          const parsedLegacyAudioMetadata = parseAudioMetadataJson(
+            row[legacyAudioMetadataColumnIndex] ?? "",
+          );
+          if (parsedLegacyAudioMetadata) {
+            mapped.cardPayload = JSON.stringify({
+              ...parsedCardPayload,
+              audioMetadata: parsedLegacyAudioMetadata,
+            });
+          }
+        }
       }
 
       return mapped;
