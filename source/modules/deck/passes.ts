@@ -8,7 +8,7 @@ import {
   formatSentenceTranslation,
   getSentenceTranslations,
 } from "./cards";
-import { DEFAULT_DECK_SORT_FIELD, DECK_NOTE_FIELDS } from "./constants";
+import { DECK_NOTE_FIELDS } from "./constants";
 import { loadQuestionFormatHtml } from "./template";
 import {
   createPhraseTranslator,
@@ -16,7 +16,7 @@ import {
   buildWordByWord,
 } from "./translate";
 import { listSentenceNgramCandidates } from "./ngrams";
-import type { DeckBuildConfig, TranslatePhrase } from "./types";
+import type { DeckBuildConfig, DeckRuntimeConfig, TranslatePhrase } from "./types";
 import { loadWordFrequencyLookup } from "../wordFrequencies/index";
 import type { PipelineCsvRow } from "./csv";
 import { readPipelineCsvRows, writePipelineCsvRows } from "./csv";
@@ -37,10 +37,6 @@ import { isReadyAudioMetadata } from "../shared/audioMetadata";
 import { formatDuration } from "../shared/formatDuration";
 
 type PromiseLimitFn = <T>(fn: () => Promise<T>) => Promise<T>;
-
-const DEFAULT_NGRAM_TRANSLATION_LIMIT_PER_CARD = 6;
-const DEFAULT_SENTENCE_METADATA_CONCURRENCY = 1;
-const DEFAULT_AUDIO_METADATA_CONCURRENCY = 2;
 
 function computeTranslationProgressInterval(totalRows: number): number {
   if (totalRows <= 10) {
@@ -71,36 +67,6 @@ function logProgress(
   );
 }
 
-function parsePositiveInteger(
-  rawValue: string | undefined,
-  optionName: string,
-  defaultValue: number,
-): number {
-  if (rawValue === undefined) {
-    return defaultValue;
-  }
-
-  const parsed = Number.parseInt(rawValue, 10);
-  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
-    throw new Error(
-      `${optionName} must be a positive integer. Received: ${rawValue}`,
-    );
-  }
-
-  return parsed;
-}
-
-const SENTENCE_METADATA_CONCURRENCY = parsePositiveInteger(
-  Bun.env.DECK_SENTENCE_CONCURRENCY,
-  "DECK_SENTENCE_CONCURRENCY",
-  DEFAULT_SENTENCE_METADATA_CONCURRENCY,
-);
-
-const AUDIO_METADATA_CONCURRENCY = parsePositiveInteger(
-  Bun.env.DECK_AUDIO_CONCURRENCY,
-  "DECK_AUDIO_CONCURRENCY",
-  DEFAULT_AUDIO_METADATA_CONCURRENCY,
-);
 
 function escapeSqliteStringLiteral(value: string): string {
   return value.replaceAll("'", "''");
@@ -126,11 +92,12 @@ async function buildNgramTranslations(
   sentence: string,
   translatePhrase: TranslatePhrase,
   candidateMap: ReturnType<typeof buildNgramCandidateMap>,
+  ngramTranslationLimitPerCard: number,
 ): Promise<string> {
   const sentenceCandidates = listSentenceNgramCandidates(
     sentence,
     candidateMap,
-    DEFAULT_NGRAM_TRANSLATION_LIMIT_PER_CARD,
+    ngramTranslationLimitPerCard,
   );
 
   if (sentenceCandidates.length === 0) {
@@ -158,8 +125,11 @@ async function buildNgramTranslations(
 export async function runSentenceRetrievalPass(
   config: DeckBuildConfig,
   csvPath: string,
+  runtime: DeckRuntimeConfig,
 ): Promise<PipelineCsvRow[]> {
-  const sentenceJobs = await fetchSentenceJobsForWords(config);
+  const sentenceJobs = await fetchSentenceJobsForWords(config, {
+    wordRetrievalConcurrency: runtime.wordRetrievalConcurrency,
+  });
   const rows: PipelineCsvRow[] = sentenceJobs.map((job) => ({
     Sentence: job.sentence.text,
     SentenceTranslation: formatSentenceTranslation(
@@ -178,6 +148,7 @@ export async function runSentenceRetrievalPass(
 export async function runTranslationMetadataPass(
   config: DeckBuildConfig,
   csvPath: string,
+  runtime: DeckRuntimeConfig,
 ): Promise<PipelineCsvRow[]> {
   const passStartedAt = Date.now();
   const rows = await readPipelineCsvRows(csvPath);
@@ -188,7 +159,7 @@ export async function runTranslationMetadataPass(
 
   console.log(`[translations] Loaded ${rows.length} rows from ${csvPath}.`);
   console.log(
-    `[translations] Preparing translation resources (sentence concurrency: ${SENTENCE_METADATA_CONCURRENCY}).`,
+    `[translations] Preparing translation resources (sentence concurrency: ${runtime.sentenceMetadataConcurrency}).`,
   );
 
   const frequencyLookup = await loadWordFrequencyLookup(config.argosSourceLanguage);
@@ -203,6 +174,7 @@ export async function runTranslationMetadataPass(
     sourceLanguage: config.argosSourceLanguage,
     targetLanguage: config.argosTargetLanguage,
     alternatives: config.argosAlternatives,
+    concurrency: runtime.translationConcurrency,
     getWordFrequencyInfo: frequencyLookup.getWordFrequency,
   });
   const translatePhrase = createPhraseTranslator({
@@ -210,6 +182,7 @@ export async function runTranslationMetadataPass(
     sourceLanguage: config.argosSourceLanguage,
     targetLanguage: config.argosTargetLanguage,
     alternatives: config.argosAlternatives,
+    concurrency: runtime.translationConcurrency,
   });
 
   const candidateMap = buildNgramCandidateMap(
@@ -225,10 +198,14 @@ export async function runTranslationMetadataPass(
         is_unapproved: false,
       },
     })),
+    {
+      minCardCount: runtime.ngramMinCardCount,
+      minCardPercentage: runtime.ngramMinCardPercentage,
+    },
   );
 
   const sentenceLimit = promiseLimit(
-    SENTENCE_METADATA_CONCURRENCY,
+    runtime.sentenceMetadataConcurrency,
   ) as PromiseLimitFn;
 
   const totalRows = rows.length;
@@ -252,6 +229,7 @@ export async function runTranslationMetadataPass(
               row.Sentence,
               translatePhrase,
               candidateMap,
+              runtime.ngramTranslationLimitPerCard,
             ),
             existingCardPayload.audioMetadata,
           ),
@@ -285,7 +263,7 @@ function resolveGoogleTtsConfig(config: DeckBuildConfig): GoogleTtsConfig {
     resolveGoogleTtsLanguageCode(config.sentenceLanguage);
   if (!languageCode) {
     throw new Error(
-      `Missing Google Text-to-Speech language code for sentence language '${config.sentenceLanguage}'. Set GOOGLE_TTS_LANGUAGE_CODE or pass --google-tts-language-code.`,
+      `Missing Google Text-to-Speech language code for sentence language '${config.sentenceLanguage}'. Set audio.languageCode in deck.config.jsonc or GOOGLE_TTS_LANGUAGE_CODE.`,
     );
   }
 
@@ -296,6 +274,7 @@ function resolveGoogleTtsConfig(config: DeckBuildConfig): GoogleTtsConfig {
     speakingRate: config.googleTtsSpeakingRate,
     pitch: config.googleTtsPitch,
     audioOutputDir: config.audioOutputDir,
+    quotaProject: config.googleCloudQuotaProject,
   };
 }
 
@@ -318,6 +297,7 @@ function canReuseReadyAudioMetadata(
 export async function runAudioMetadataPass(
   config: DeckBuildConfig,
   csvPath: string,
+  runtime: DeckRuntimeConfig,
 ): Promise<PipelineCsvRow[]> {
   const rows = await readPipelineCsvRows(csvPath);
   if (rows.length === 0) {
@@ -335,10 +315,10 @@ export async function runAudioMetadataPass(
   }
 
   console.log(
-    `[audio] Generating Google TTS audio for ${rows.length} rows (language: ${googleTtsConfig.languageCode}, concurrency: ${AUDIO_METADATA_CONCURRENCY}).`,
+    `[audio] Generating Google TTS audio for ${rows.length} rows (language: ${googleTtsConfig.languageCode}, concurrency: ${runtime.audioMetadataConcurrency}).`,
   );
 
-  const sentenceLimit = promiseLimit(AUDIO_METADATA_CONCURRENCY) as PromiseLimitFn;
+  const sentenceLimit = promiseLimit(runtime.audioMetadataConcurrency) as PromiseLimitFn;
   const progressInterval = computeTranslationProgressInterval(rows.length);
   const startedAt = Date.now();
   let completedRows = 0;
@@ -456,6 +436,7 @@ export async function runDifficultyPass(
 export async function runBuildApkgPass(
   config: DeckBuildConfig,
   csvPath: string,
+  runtime: DeckRuntimeConfig,
 ): Promise<{ cardCount: number }> {
   const rows = await readPipelineCsvRows(csvPath);
   const questionFormatHtml = neutralizeAnkiMustacheInBundle(
@@ -504,7 +485,7 @@ export async function runBuildApkgPass(
       row.cardPayload,
       row.difficulty,
       {
-        sortField: DEFAULT_DECK_SORT_FIELD,
+        sortField: runtime.ankiSortField,
         tags: [
           `sentence_lang_${config.sentenceLanguage}`,
           `translation_lang_${config.translationLanguage}`,

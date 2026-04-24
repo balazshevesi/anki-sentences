@@ -13,7 +13,6 @@
   "scripts": {
     "postinstall": "patch-package",
     "build": "sh build-with-argos.sh",
-    "cli": "bun run cli.ts",
     "test": "bun test",
     "typecheck:cardTemplate": "bun run --cwd modules/cardTemplate typecheck",
     "typecheck:source": "bunx tsc -p tsconfig.json --noEmit",
@@ -23,13 +22,10 @@
     "template:build": "bun run --cwd modules/cardTemplate build",
     "template:dev": "bun run --cwd modules/cardTemplate dev",
     "template:install": "bun install --cwd modules/cardTemplate",
+    "config:schema": "bun run modules/config/writeDeckConfigSchema.ts",
     "argos:start": "sh -c 'uv run --directory modules/wordTranslator python -m uvicorn main:app --host ${ARGOS_HOST:-0.0.0.0} --port ${ARGOS_PORT:-8000} --reload'",
-    "deck:retrieve": "bun run cli.ts retrieve",
-    "deck:enrich-translations": "bun run cli.ts enrich-translations",
-    "deck:enrich-difficulty": "bun run cli.ts enrich-difficulty",
-    "deck:enrich-audio": "bun run cli.ts enrich-audio",
-    "deck:build-apkg": "bun run template:build && bun run cli.ts build-apkg",
-    "deck:pipeline": "bun run template:build && bun run cli.ts pipeline",
+    "deck:run": "bun run index.ts",
+    "deck:pipeline": "bun run template:build && bun run index.ts",
     "deck:build": "bun run deck:pipeline",
     "deck:analyze-ngrams": "bun run modules/deck/analyzeCsvNgrams.ts",
     "sentenceRetrieval:update": "bun run modules/sentenceRetrieval/updateTatoebaLanguages.ts",
@@ -37,8 +33,9 @@
   },
   "dependencies": {
     "anki-apkg-export": "4.0.3",
-    "cac": "^6.7.14",
     "google-auth-library": "^10.6.2",
+    "jsonc-parser": "^3.3.1",
+    "zod": "^4.0.1",
     "promise-limit": "^2.7.0"
   }
 }

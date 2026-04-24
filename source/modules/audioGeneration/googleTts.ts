@@ -40,6 +40,7 @@ export type GoogleTtsConfig = {
   speakingRate: number;
   pitch: number;
   audioOutputDir: string;
+  quotaProject?: string;
 };
 
 function toAuthResolutionError(message: string): Error {
@@ -50,12 +51,17 @@ function toAuthResolutionError(message: string): Error {
       "Use one of these approaches:",
       "- Preferred local setup: `gcloud auth application-default login`",
       "- Service account setup: set GOOGLE_APPLICATION_CREDENTIALS to a service account JSON key file",
-      "- Manual token setup: set GOOGLE_TTS_ACCESS_TOKEN or pass --google-tts-access-token",
+      "- Manual token setup: set audio.accessToken in deck.config.jsonc or GOOGLE_TTS_ACCESS_TOKEN",
     ].join("\n"),
   );
 }
 
-function readQuotaProjectOverride(): string | undefined {
+function resolveQuotaProjectOverride(config: GoogleTtsConfig): string | undefined {
+  const fromConfig = config.quotaProject?.trim();
+  if (fromConfig && fromConfig.length > 0) {
+    return fromConfig;
+  }
+
   const fromEnv = Bun.env.GOOGLE_CLOUD_QUOTA_PROJECT?.trim();
   if (fromEnv && fromEnv.length > 0) {
     return fromEnv;
@@ -85,7 +91,7 @@ async function resolveGoogleAuthHeaders(config: GoogleTtsConfig): Promise<Header
     }
   }
 
-  const quotaProjectOverride = readQuotaProjectOverride();
+  const quotaProjectOverride = resolveQuotaProjectOverride(config);
   if (quotaProjectOverride && !headers.has("x-goog-user-project")) {
     headers.set("x-goog-user-project", quotaProjectOverride);
   }

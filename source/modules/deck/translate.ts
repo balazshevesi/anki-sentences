@@ -26,6 +26,7 @@ type TranslatorOptions = {
   sourceLanguage: string;
   targetLanguage: string;
   alternatives: number;
+  concurrency: number;
 };
 
 type BasicTranslation = {
@@ -33,31 +34,10 @@ type BasicTranslation = {
   alternatives: string[];
 };
 
-const DEFAULT_TRANSLATION_CONCURRENCY = 1;
-
-function parseTranslationConcurrency(rawValue: string | undefined): number {
-  if (rawValue === undefined) {
-    return DEFAULT_TRANSLATION_CONCURRENCY;
-  }
-
-  const parsedValue = Number.parseInt(rawValue, 10);
-  if (!Number.isSafeInteger(parsedValue) || parsedValue <= 0) {
-    throw new Error(
-      `DECK_TRANSLATION_CONCURRENCY must be a positive integer. Received: ${rawValue}`,
-    );
-  }
-
-  return parsedValue;
-}
-
-const TRANSLATION_CONCURRENCY = parseTranslationConcurrency(
-  Bun.env.DECK_TRANSLATION_CONCURRENCY,
-);
-
 function createBaseTranslator(options: TranslatorOptions): TranslatePhrase {
   const cache = new Map<string, Promise<PhraseTranslation>>();
   const translateLimit = promiseLimit(
-    TRANSLATION_CONCURRENCY,
+    options.concurrency,
   ) as PromiseLimitFn;
 
   return async (text: string) => {
@@ -99,6 +79,7 @@ export function createWordTranslator(options: {
   sourceLanguage: string;
   targetLanguage: string;
   alternatives: number;
+  concurrency: number;
   getWordFrequencyInfo: (word: string) => WordFrequencyInfo;
 }): TranslateWord {
   const baseTranslator = createBaseTranslator(options);

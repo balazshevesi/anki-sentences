@@ -41,6 +41,9 @@ type NgramThresholdOptions = {
 type CardsForWordsOptions = {
   searchSentencesFn?: SearchSentencesFn;
   ngramThresholds?: NgramThresholdOptions;
+  wordRetrievalConcurrency?: number;
+  sentenceProcessConcurrency?: number;
+  ngramTranslationLimitPerCard?: number;
 };
 
 type CardBuildDependencies = {
@@ -50,7 +53,7 @@ type CardBuildDependencies = {
 };
 
 function parseConcurrency(
-  rawValue: string | undefined,
+  rawValue: number | undefined,
   optionName: string,
   defaultValue: number,
 ): number {
@@ -58,14 +61,13 @@ function parseConcurrency(
     return defaultValue;
   }
 
-  const parsedValue = Number.parseInt(rawValue, 10);
-  if (!Number.isSafeInteger(parsedValue) || parsedValue <= 0) {
+  if (!Number.isSafeInteger(rawValue) || rawValue <= 0) {
     throw new Error(
       `${optionName} must be a positive integer. Received: ${rawValue}`,
     );
   }
 
-  return parsedValue;
+  return rawValue;
 }
 
 function escapeForRegex(value: string): string {
@@ -92,18 +94,6 @@ function shouldExcludeSentence(text: string, patterns: RegExp[]): boolean {
   const normalizedText = text.trim().toLocaleLowerCase();
   return patterns.some((pattern) => pattern.test(normalizedText));
 }
-
-const WORD_RETRIEVAL_CONCURRENCY = parseConcurrency(
-  Bun.env.DECK_WORD_CONCURRENCY,
-  "DECK_WORD_CONCURRENCY",
-  DEFAULT_WORD_RETRIEVAL_CONCURRENCY,
-);
-
-const SENTENCE_PROCESS_CONCURRENCY = parseConcurrency(
-  Bun.env.DECK_SENTENCE_CONCURRENCY,
-  "DECK_SENTENCE_CONCURRENCY",
-  DEFAULT_SENTENCE_PROCESS_CONCURRENCY,
-);
 
 export function getSentenceTranslations(
   sentence: { translations?: Array<{ text: string }> },
@@ -172,9 +162,17 @@ export function dedupeSentenceJobs(sentenceJobs: SentenceJob[]): SentenceJob[] {
 
 export async function fetchSentenceJobsForWords(
   config: DeckBuildConfig,
-  options: Pick<CardsForWordsOptions, "searchSentencesFn"> = {},
+  options: Pick<
+    CardsForWordsOptions,
+    "searchSentencesFn" | "wordRetrievalConcurrency"
+  > = {},
 ): Promise<SentenceJob[]> {
-  const wordLimit = promiseLimit(WORD_RETRIEVAL_CONCURRENCY) as PromiseLimitFn;
+  const wordRetrievalConcurrency = parseConcurrency(
+    options.wordRetrievalConcurrency,
+    "wordRetrievalConcurrency",
+    DEFAULT_WORD_RETRIEVAL_CONCURRENCY,
+  );
+  const wordLimit = promiseLimit(wordRetrievalConcurrency) as PromiseLimitFn;
   const searchSentencesFn = options.searchSentencesFn ?? searchSentences;
   const sentenceExclusionPatterns = buildSentenceExclusionPatterns(
     config.sentenceExclusions,
@@ -235,11 +233,12 @@ async function buildNgramTranslations(
   sentence: string,
   translatePhrase: TranslatePhrase,
   candidateMap: ReturnType<typeof selectNgramCandidates>,
+  ngramTranslationLimitPerCard: number,
 ): Promise<string> {
   const sentenceCandidates = listSentenceNgramCandidates(
     sentence,
     candidateMap,
-    DEFAULT_NGRAM_TRANSLATION_LIMIT_PER_CARD,
+    ngramTranslationLimitPerCard,
   );
 
   if (sentenceCandidates.length === 0) {
@@ -268,7 +267,13 @@ export async function buildCardFromSentenceJob(
   sentenceJob: SentenceJob,
   config: DeckBuildConfig,
   dependencies: CardBuildDependencies,
+  options: Pick<CardsForWordsOptions, "ngramTranslationLimitPerCard"> = {},
 ): Promise<CardData> {
+  const ngramTranslationLimitPerCard = parseConcurrency(
+    options.ngramTranslationLimitPerCard,
+    "ngramTranslationLimitPerCard",
+    DEFAULT_NGRAM_TRANSLATION_LIMIT_PER_CARD,
+  );
   const translation = formatSentenceTranslation(
     getSentenceTranslations(
       sentenceJob.sentence,
@@ -283,6 +288,7 @@ export async function buildCardFromSentenceJob(
     sentenceJob.sentence.text,
     dependencies.translatePhrase,
     dependencies.candidateMap,
+    ngramTranslationLimitPerCard,
   );
 
   return {
@@ -301,8 +307,14 @@ export async function getCardsForWords(
   translatePhrase: TranslatePhrase,
   options: CardsForWordsOptions = {},
 ): Promise<CardData[]> {
+  const sentenceProcessConcurrency = parseConcurrency(
+    options.sentenceProcessConcurrency,
+    "sentenceProcessConcurrency",
+    DEFAULT_SENTENCE_PROCESS_CONCURRENCY,
+  );
   const sentenceJobs = await fetchSentenceJobsForWords(config, {
     searchSentencesFn: options.searchSentencesFn,
+    wordRetrievalConcurrency: options.wordRetrievalConcurrency,
   });
 
   const candidateMap = buildNgramCandidateMap(
@@ -311,7 +323,7 @@ export async function getCardsForWords(
   );
 
   const sentenceLimit = promiseLimit(
-    SENTENCE_PROCESS_CONCURRENCY,
+    sentenceProcessConcurrency,
   ) as PromiseLimitFn;
 
   return await Promise.all(
@@ -321,6 +333,8 @@ export async function getCardsForWords(
           translateWord,
           translatePhrase,
           candidateMap,
+        }, {
+          ngramTranslationLimitPerCard: options.ngramTranslationLimitPerCard,
         }),
       ),
     ),

@@ -1,0 +1,73 @@
+{
+  "$schema": "./deck.config.schema.json",
+
+  // Ordered pass list. Remove entries to skip a pass.
+  "passes": [
+    "retrieve",
+    "enrich-translations",
+    "enrich-difficulty",
+    "enrich-audio",
+    "build-apkg"
+  ],
+
+  // CSV path used by all pipeline passes.
+  "csvPath": "../output/example.csv",
+
+  "deck": {
+    "name": "EN-HU sentence deck",
+    "outputPath": "../output/example.apkg",
+    "words": [
+      "must",
+      "laughing",
+      "wonder",
+      "amazing",
+      "president",
+      "none",
+      "station",
+      "personal",
+      "professor",
+      "computer",
+      "further",
+      "allowed"
+    ],
+    "sentenceLanguage": "eng",
+    "translationLanguage": "hun",
+    "sentenceTranslationLimit": 3,
+    "sentenceWordCount": "15-50",
+    "sentenceLimit": 25,
+    "sentenceExclusions": []
+  },
+
+  "argos": {
+    "sourceLanguage": "en",
+    "targetLanguage": "hu",
+    "alternatives": 3,
+    "translateUrl": "http://127.0.0.1:8000/translate"
+  },
+
+  "audio": {
+    "outputDir": "../output/example-audio",
+    "forceRegenerate": false,
+    "accessToken": null,
+    "apiKey": null,
+    "languageCode": null,
+    "voiceName": null,
+    "speakingRate": 1,
+    "pitch": 0,
+    "concurrency": 2,
+    "quotaProject": null
+  },
+
+  "runtime": {
+    "wordRetrievalConcurrency": 1,
+    "sentenceMetadataConcurrency": 1,
+    "translationConcurrency": 1,
+    "ngramTranslationLimitPerCard": 6,
+    "ngramMinCardCount": 2,
+    "ngramMinCardPercentage": 3
+  },
+
+  "anki": {
+    "sortField": 0
+  }
+}

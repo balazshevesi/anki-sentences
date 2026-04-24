@@ -4,8 +4,10 @@ Build Anki sentence decks from Tatoeba, with word-level translation hints from a
 
 ## Repo layout
 
-- `source/cli.ts` - CLI entrypoint with pass-based subcommands
-- `source/index.ts` - legacy entrypoint that forwards to the new pipeline CLI
+- `source/deck.config.jsonc` - single config file for all deck generation settings
+- `source/deck.config.schema.json` - JSON Schema generated from Zod (`z.toJSONSchema`)
+- `source/index.ts` - config-driven pipeline entrypoint
+- `source/modules/config/` - JSONC loader + Zod schema + schema generation script
 - `source/modules/deck/` - deck pipeline modules (CSV IO, retrieval, metadata enrichment, apkg build)
 - `source/modules/audioGeneration/` - Google TTS generation + language mapping helpers
 - `source/modules/sentenceRetrieval/` - typed Tatoeba API wrapper + tests
@@ -37,17 +39,23 @@ uv sync --directory source/modules/wordTranslator
 
 ## Argos configuration
 
-Argos host/port defaults are read from `source/.env`.
+Deck generation reads Argos settings from `source/deck.config.jsonc`:
 
-Then adjust values as needed:
+```jsonc
+"argos": {
+  "sourceLanguage": "en",
+  "targetLanguage": "hu",
+  "alternatives": 3,
+  "translateUrl": "http://127.0.0.1:8000/translate"
+}
+```
+
+The local Argos server startup script still supports `.env` host/port overrides:
 
 ```dotenv
 ARGOS_HOST=127.0.0.1
 ARGOS_PORT=8000
-ARGOS_TRANSLATION_CACHE_SIZE=5000
 ```
-
-`ARGOS_TRANSLATION_CACHE_SIZE` controls the in-memory LRU cache size in the Argos API server (`0` disables caching).
 
 ## Google Text-to-Speech configuration
 
@@ -79,15 +87,15 @@ GOOGLE_TTS_ACCESS_TOKEN=ya29.your_access_token
 
 Optional overrides:
 
-```dotenv
-GOOGLE_TTS_LANGUAGE_CODE=en-US
-GOOGLE_TTS_VOICE=en-US-Chirp3-HD-Achernar
-GOOGLE_TTS_SPEAKING_RATE=1
-GOOGLE_TTS_PITCH=0
-DECK_AUDIO_CONCURRENCY=2
+```jsonc
+"audio": {
+  "languageCode": "en-US",
+  "voiceName": "en-US-Chirp3-HD-Achernar",
+  "speakingRate": 1,
+  "pitch": 0,
+  "concurrency": 2
+}
 ```
-
-You can also pass these values via CLI options (`--google-tts-*`, `--audio-dir`, `--audio-force`).
 
 `GOOGLE_TTS_API_KEY` is kept only for backward compatibility in config, but authentication uses OAuth2.
 
@@ -117,67 +125,32 @@ bun run deck:pipeline
 
 ## Pipeline passes
 
-All passes are intentionally separated and operate through a CSV file.
+The pipeline is now fully config-driven.
 
-1) Sentence retrieval (includes sentence-level translations from Tatoeba):
+1) Edit `source/deck.config.jsonc`.
 
-```bash
-cd source
-bun run deck:retrieve --csv ../output/example.csv --word must,laughing
-```
+2) Choose which passes to run by updating the `passes` array.
 
-To reduce political/news-like content during retrieval:
+3) Run:
 
 ```bash
 cd source
-bun run deck:retrieve --csv ../output/example.csv --word must,laughing --exclude-politics
+bun run deck:pipeline
 ```
 
-You can also block custom terms:
+Optional: use a different config file with `DECK_CONFIG_PATH=/absolute/or/relative/path.jsonc`.
 
-```bash
-cd source
-bun run deck:retrieve --csv ../output/example.csv --word must,laughing --sentence-exclusions president,election,chancellor
-```
+Pass names:
 
-2) Add word-level and n-gram translation metadata to the same CSV:
+- `retrieve`
+- `enrich-translations`
+- `enrich-difficulty`
+- `enrich-audio`
+- `build-apkg`
 
-```bash
-cd source
-bun run deck:enrich-translations --csv ../output/example.csv
-```
-
-3) Calculate sentence difficulty + sort CSV from easiest to hardest:
-
-```bash
-cd source
-bun run deck:enrich-difficulty --csv ../output/example.csv
-```
-
-4) Generate Google TTS audio + word timestamps and write metadata into the CSV:
-
-```bash
-cd source
-bun run deck:enrich-audio --csv ../output/example.csv
-```
-
-Audio files are written to `../output/example-audio` by default (or to `--audio-dir` when provided).
-
-5) Build the card template + convert CSV to APKG (CSV is kept):
-
-```bash
-cd source
-bun run deck:build-apkg --csv ../output/example.csv --apkg ../output/example.apkg
-```
+Audio files are written to `audio.outputDir` from `deck.config.jsonc`.
 
 If `cardPayload.audioMetadata` contains ready Google TTS entries, matching `.mp3` files are automatically bundled into the APKG media collection.
-
-You can inspect all CLI options with:
-
-```bash
-cd source
-bun run cli.ts --help
-```
 
 ## Data sources
 

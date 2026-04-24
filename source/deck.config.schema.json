@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DeckConfig",
+  "type": "object",
+  "properties": {
+    "passes": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "retrieve",
+          "enrich-translations",
+          "enrich-difficulty",
+          "enrich-audio",
+          "build-apkg"
+        ]
+      }
+    },
+    "csvPath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "deck": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outputPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "words": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "sentenceLanguage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "translationLanguage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sentenceTranslationLimit": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "sentenceWordCount": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^!?(?:\\d+|\\d+-\\d+|\\d+-|-\\d+)(?:,(?:\\d+|\\d+-\\d+|\\d+-|-\\d+)){0,3}$"
+        },
+        "sentenceLimit": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "sentenceExclusions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "name",
+        "outputPath",
+        "words",
+        "sentenceLanguage",
+        "translationLanguage",
+        "sentenceTranslationLimit",
+        "sentenceWordCount",
+        "sentenceLimit",
+        "sentenceExclusions"
+      ],
+      "additionalProperties": false
+    },
+    "argos": {
+      "type": "object",
+      "properties": {
+        "sourceLanguage": {
+          "type": "string",
+          "pattern": "^[a-z_]{2,16}$"
+        },
+        "targetLanguage": {
+          "type": "string",
+          "pattern": "^[a-z_]{2,16}$"
+        },
+        "alternatives": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "translateUrl": {
+          "type": "string",
+          "minLength": 1,
+          "format": "uri"
+        }
+      },
+      "required": [
+        "sourceLanguage",
+        "targetLanguage",
+        "alternatives",
+        "translateUrl"
+      ],
+      "additionalProperties": false
+    },
+    "audio": {
+      "type": "object",
+      "properties": {
+        "outputDir": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forceRegenerate": {
+          "type": "boolean"
+        },
+        "accessToken": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "apiKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "languageCode": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,3}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "voiceName": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "speakingRate": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 2
+        },
+        "pitch": {
+          "type": "number",
+          "minimum": -20,
+          "maximum": 20
+        },
+        "concurrency": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "quotaProject": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "outputDir",
+        "forceRegenerate",
+        "speakingRate",
+        "pitch",
+        "concurrency"
+      ],
+      "additionalProperties": false
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "wordRetrievalConcurrency": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "sentenceMetadataConcurrency": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "translationConcurrency": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "ngramTranslationLimitPerCard": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "ngramMinCardCount": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "ngramMinCardPercentage": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "wordRetrievalConcurrency",
+        "sentenceMetadataConcurrency",
+        "translationConcurrency",
+        "ngramTranslationLimitPerCard",
+        "ngramMinCardCount",
+        "ngramMinCardPercentage"
+      ],
+      "additionalProperties": false
+    },
+    "anki": {
+      "type": "object",
+      "properties": {
+        "sortField": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "sortField"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "passes",
+    "csvPath",
+    "deck",
+    "argos",
+    "audio",
+    "runtime",
+    "anki"
+  ],
+  "additionalProperties": false
+}

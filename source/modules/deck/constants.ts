@@ -6,5 +6,3 @@ export const DECK_NOTE_FIELDS = [
   "cardPayload",
   "difficulty",
 ] as const;
-
-export const DEFAULT_DECK_SORT_FIELD = 0;

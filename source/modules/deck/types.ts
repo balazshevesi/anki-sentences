@@ -3,6 +3,16 @@ import type { WordTranslation } from "../shared/cardPayload";
 
 export type { WordTranslation } from "../shared/cardPayload";
 
+export const PIPELINE_PASS_NAMES = [
+  "retrieve",
+  "enrich-translations",
+  "enrich-difficulty",
+  "enrich-audio",
+  "build-apkg",
+] as const;
+
+export type PipelinePass = (typeof PIPELINE_PASS_NAMES)[number];
+
 export type CardData = {
   sentence: string;
   translation: string;
@@ -39,6 +49,18 @@ export type DeckBuildConfig = {
   googleTtsPitch: number;
   audioOutputDir: string;
   audioForceRegenerate: boolean;
+  googleCloudQuotaProject?: string;
+};
+
+export type DeckRuntimeConfig = {
+  wordRetrievalConcurrency: number;
+  sentenceMetadataConcurrency: number;
+  audioMetadataConcurrency: number;
+  translationConcurrency: number;
+  ngramTranslationLimitPerCard: number;
+  ngramMinCardCount: number;
+  ngramMinCardPercentage: number;
+  ankiSortField: number;
 };
 
 export type TranslateWord = (word: string) => Promise<WordTranslation>;

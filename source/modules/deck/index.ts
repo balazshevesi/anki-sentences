@@ -1,7 +1,7 @@
-export { DEFAULT_DECK_SORT_FIELD, DECK_NOTE_FIELDS } from "./constants";
+export { DECK_NOTE_FIELDS } from "./constants";
 
 export { getCardsForWords } from "./cards";
-export { loadDeckBuildConfig } from "./config";
+export { runDeckPipeline, type DeckPipelineConfig } from "./pipeline";
 export { loadQuestionFormatHtml } from "./template";
 export { buildWordByWord, createPhraseTranslator, createWordTranslator } from "./translate";
 export {
@@ -25,8 +25,12 @@ export {
 export type {
   CardData,
   DeckBuildConfig,
+  DeckRuntimeConfig,
   PhraseTranslation,
+  PipelinePass,
   TranslatePhrase,
   TranslateWord,
   WordTranslation,
 } from "./types";
+
+export { PIPELINE_PASS_NAMES } from "./types";
