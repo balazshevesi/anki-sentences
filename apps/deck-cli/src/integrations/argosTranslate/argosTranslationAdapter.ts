@@ -54,11 +54,11 @@ function createBaseTranslator(options: TranslatorOptions): TranslatePhrase {
       translateText(options, normalizedText),
     ).catch((error: unknown) => {
       console.warn(
-        `Falling back to original text for '${normalizedText}':`,
+        `Translation unavailable for '${normalizedText}', leaving empty translation:`,
         error,
       );
       return {
-        translatedText: normalizedText,
+        translatedText: "",
         alternatives: [],
       };
     });

@@ -11,6 +11,19 @@ body {
   padding: 0.5rem;
 }
 
+#front,
+#front * {
+  box-sizing: border-box;
+}
+
+#front button {
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 0;
+  box-shadow: none;
+  text-shadow: none;
+}
+
 .card-template-loading {
   visibility: hidden;
 }

@@ -8,9 +8,9 @@ import {
 import { resolveGoogleAuthHeaders } from "./googleTtsAuth";
 import { requestGoogleTtsSynthesis } from "./googleTtsHttp";
 import { writeAudioBufferToOutputFile } from "./googleTtsStorage";
-import { transcodeLinear16ToAac } from "./googleTtsTranscode";
+import { transcodeLinear16ToMp3 } from "./googleTtsTranscode";
 
-const OUTPUT_AUDIO_EXTENSION = "aac";
+const OUTPUT_AUDIO_EXTENSION = "mp3";
 const WORD_MARK_PREFIX = "word_";
 
 type GoogleTtsTimepoint = {
@@ -164,12 +164,12 @@ async function synthesizeWithGoogleTextToSpeech(
     },
     headers: authHeaders,
   });
-  const aacAudioBuffer = await transcodeLinear16ToAac(
+  const mp3AudioBuffer = await transcodeLinear16ToMp3(
     synthesis.linear16AudioBuffer,
   );
 
   return {
-    audioBuffer: aacAudioBuffer,
+    audioBuffer: mp3AudioBuffer,
     words: buildWordTimestamps(
       tokens,
       markNames,

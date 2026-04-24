@@ -75,6 +75,19 @@
     );
   }
 
+  function isLikelyUntranslatedWord(
+    sourceWord: string,
+    translation: WordTranslation,
+  ): boolean {
+    if (translation.alternatives.length > 0) {
+      return false;
+    }
+
+    const source = normalizeTokenForMatch(sourceWord);
+    const translated = normalizeTokenForMatch(translation.translatedText);
+    return source.length > 0 && source === translated;
+  }
+
   function normalizeNgramTranslations(
     input: NgramTranslation[],
   ): NgramTranslation[] {
@@ -306,8 +319,9 @@
     <div class="sentence" role="group" aria-label="Sentence words">
       {#each tokens as word, index (`${word}-${index}`)}
         {@const translation = getTranslation(word)}
-      {@const translatedWord = translation.translatedText}
-      {@const alternatives = translation.alternatives}
+      {@const untranslatedFallback = isLikelyUntranslatedWord(word, translation)}
+      {@const translatedWord = untranslatedFallback ? "" : translation.translatedText}
+      {@const alternatives = untranslatedFallback ? [] : translation.alternatives}
       {@const frequency = translation.frequency}
       {@const phraseTranslations = getNgramTranslationsForWord(word)}
         <span class="word-wrapper">
@@ -413,6 +427,7 @@
   }
 
   .word {
+    margin: 0;
     border: 0;
     background: transparent;
     color: inherit;
@@ -421,6 +436,9 @@
     line-height: inherit;
     padding: 0;
     text-align: inherit;
+    border-radius: 0;
+    box-shadow: none;
+    text-shadow: none;
   }
 
   .word:hover {

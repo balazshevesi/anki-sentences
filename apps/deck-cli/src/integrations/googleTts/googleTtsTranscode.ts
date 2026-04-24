@@ -2,20 +2,20 @@ import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const OUTPUT_AUDIO_EXTENSION = "aac";
+const OUTPUT_AUDIO_EXTENSION = "mp3";
 const FFMPEG_BINARY = "ffmpeg";
 const FFMPEG_TRANSCODE_TIMEOUT_MS = 20_000;
 
 function toAudioTranscodeError(details: string): Error {
   return new Error(
     [
-      `Failed to transcode Google Text-to-Speech output to AAC: ${details}`,
+      `Failed to transcode Google Text-to-Speech output to MP3: ${details}`,
       "Install ffmpeg and ensure it is available on PATH.",
     ].join(" "),
   );
 }
 
-export async function transcodeLinear16ToAac(
+export async function transcodeLinear16ToMp3(
   linear16AudioBuffer: Buffer,
 ): Promise<Buffer> {
   const fileStem = `tts-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -36,11 +36,9 @@ export async function transcodeLinear16ToAac(
           "-i",
           inputPath,
           "-c:a",
-          "aac",
-          "-b:a",
-          "128k",
-          "-f",
-          "adts",
+          "libmp3lame",
+          "-q:a",
+          "4",
           outputPath,
         ],
         {

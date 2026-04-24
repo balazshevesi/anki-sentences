@@ -3,10 +3,10 @@
 
   // Ordered pass list. Remove entries to skip a pass.
   "passes": [
-    // "retrieve",
-    // "enrich-translations",
-    // "enrich-difficulty",
-    // "enrich-audio",
+    "retrieve",
+    "enrich-translations",
+    "enrich-difficulty",
+    "enrich-audio",
     "build-apkg",
   ],
 
@@ -17,9 +17,6 @@
     "name": "EN-HU sentence deck",
     "outputPath": "../../output/example.apkg",
     "words": [
-      "must",
-      "laughing",
-      "wonder",
       "amazing",
       "president",
       "none",
@@ -34,7 +31,7 @@
     "translationLanguage": "hun",
     "sentenceTranslationLimit": 3,
     "sentenceWordCount": "15-50",
-    "sentenceLimit": 3,
+    "sentenceLimit": 2,
     "sentenceExclusions": [],
   },
 

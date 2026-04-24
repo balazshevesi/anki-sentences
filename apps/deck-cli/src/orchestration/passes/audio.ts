@@ -12,6 +12,8 @@ import { formatDuration } from "../../contracts/formatDuration";
 
 type PromiseLimitFn = <T>(fn: () => Promise<T>) => Promise<T>;
 
+const EXPECTED_AUDIO_EXTENSION = ".mp3";
+
 function progressInterval(totalRows: number): number {
   return totalRows <= 10 ? 1 : Math.max(1, Math.ceil(totalRows / 10));
 }
@@ -90,6 +92,11 @@ export async function runAudioMetadataPass(
         const existingAudioFilePath = isReadyAudioMetadata(existingMetadata)
           ? join(googleTtsConfig.audioOutputDir, existingMetadata.audioFileName)
           : null;
+        const hasExpectedAudioExtension = isReadyAudioMetadata(existingMetadata)
+          ? existingMetadata.audioFileName
+              .toLowerCase()
+              .endsWith(EXPECTED_AUDIO_EXTENSION)
+          : false;
         const hasExistingAudioFile = existingAudioFilePath
           ? await Bun.file(existingAudioFilePath).exists()
           : false;
@@ -102,6 +109,7 @@ export async function runAudioMetadataPass(
           existingMetadata.voiceName !== (googleTtsConfig.voiceName ?? null) ||
           existingMetadata.speakingRate !== googleTtsConfig.speakingRate ||
           existingMetadata.pitch !== googleTtsConfig.pitch ||
+          !hasExpectedAudioExtension ||
           !hasExistingAudioFile;
 
         if (!shouldRegenerate && existingMetadata) {
