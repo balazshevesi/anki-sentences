@@ -13,15 +13,6 @@ export const PIPELINE_PASS_NAMES = [
 
 export type PipelinePass = (typeof PIPELINE_PASS_NAMES)[number];
 
-export type CardData = {
-  sentence: string;
-  translation: string;
-  keyword: string;
-  sentenceId: string;
-  wordByWord: string;
-  ngramTranslations: string;
-};
-
 export type PhraseTranslation = {
   translatedText: string;
   alternatives: string[];

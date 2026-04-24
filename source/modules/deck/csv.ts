@@ -1,11 +1,19 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import { DECK_NOTE_FIELDS } from "./constants";
 import {
   EMPTY_CARD_PAYLOAD_JSON,
   parseCardPayloadJson,
 } from "../shared/cardPayload";
 import { parseAudioMetadataJson } from "../shared/audioMetadata";
+
+export const DECK_NOTE_FIELDS = [
+  "Sentence",
+  "SentenceTranslation",
+  "Keyword",
+  "SentenceId",
+  "cardPayload",
+  "difficulty",
+] as const;
 
 export const DIFFICULTY_FIELD = "difficulty" as const;
 export const PIPELINE_CSV_FIELDS = [...DECK_NOTE_FIELDS] as const;

@@ -4,14 +4,12 @@ import {
   APP_DIST_INDEX_HTML_PATH,
 } from "../cardTemplate/index";
 
-const APP_DIST_HTML_PATH = APP_DIST_INDEX_HTML_PATH;
-
 export async function loadQuestionFormatHtml(): Promise<string> {
-  if (!existsSync(APP_DIST_HTML_PATH)) {
+  if (!existsSync(APP_DIST_INDEX_HTML_PATH)) {
     throw new Error(
       `Missing app bundle at source/modules/cardTemplate/dist/index.html. Run \`${APP_BUILD_COMMAND}\` first.`,
     );
   }
 
-  return await Bun.file(APP_DIST_HTML_PATH).text();
+  return await Bun.file(APP_DIST_INDEX_HTML_PATH).text();
 }

@@ -8,7 +8,6 @@ import {
   formatSentenceTranslation,
   getSentenceTranslations,
 } from "./cards";
-import { DECK_NOTE_FIELDS } from "./constants";
 import { loadQuestionFormatHtml } from "./template";
 import {
   createPhraseTranslator,
@@ -19,7 +18,7 @@ import { listSentenceNgramCandidates } from "./ngrams";
 import type { DeckBuildConfig, DeckRuntimeConfig, TranslatePhrase } from "./types";
 import { loadWordFrequencyLookup } from "../wordFrequencies/index";
 import type { PipelineCsvRow } from "./csv";
-import { readPipelineCsvRows, writePipelineCsvRows } from "./csv";
+import { DECK_NOTE_FIELDS, readPipelineCsvRows, writePipelineCsvRows } from "./csv";
 import { calculateSentenceDifficultyScore } from "./difficulty";
 import {
   createGoogleTtsErrorMetadata,
@@ -66,7 +65,6 @@ function logProgress(
     `[${label}] Progress ${completedRows}/${totalRows} (${percentage}%) after ${formatDuration(elapsedMs)}${etaText}`,
   );
 }
-
 
 function escapeSqliteStringLiteral(value: string): string {
   return value.replaceAll("'", "''");

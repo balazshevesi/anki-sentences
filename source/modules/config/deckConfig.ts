@@ -28,21 +28,7 @@ const WORD_COUNT_FILTER_PATTERN = /^!?(?:\d+|\d+-\d+|\d+-|-\d+)(?:,(?:\d+|\d+-\d
 
 const DeckConfigSchema = z
   .object({
-    passes: z
-      .array(z.enum(PIPELINE_PASS_NAMES))
-      .min(1)
-      .superRefine((passes, context) => {
-        const seen = new Set<PipelinePass>();
-        for (const pass of passes) {
-          if (seen.has(pass)) {
-            context.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: `passes must not contain duplicate value '${pass}'.`,
-            });
-          }
-          seen.add(pass);
-        }
-      }),
+    passes: z.array(z.enum(PIPELINE_PASS_NAMES)).min(1),
     csvPath: NON_EMPTY_STRING,
     deck: z
       .object({
@@ -115,22 +101,6 @@ export type LoadedDeckConfig = {
   runtime: DeckRuntimeConfig;
 };
 
-function toLineColumn(content: string, offset: number): string {
-  let line = 1;
-  let column = 1;
-
-  for (let index = 0; index < offset && index < content.length; index += 1) {
-    if (content[index] === "\n") {
-      line += 1;
-      column = 1;
-    } else {
-      column += 1;
-    }
-  }
-
-  return `${line}:${column}`;
-}
-
 function parseJsonc(content: string, filePath: string): unknown {
   const errors: ParseError[] = [];
   const parsed = parse(content, errors, {
@@ -139,13 +109,11 @@ function parseJsonc(content: string, filePath: string): unknown {
   });
 
   if (errors.length > 0) {
-    const details = errors
-      .map((error) => {
-        const location = toLineColumn(content, error.offset);
-        return `${location} ${printParseErrorCode(error.error)}`;
-      })
-      .join("\n");
-    throw new Error(`Invalid JSONC in ${filePath}:\n${details}`);
+    throw new Error(
+      `Invalid JSONC in ${filePath}: ${errors
+        .map((error) => printParseErrorCode(error.error))
+        .join(", ")}`,
+    );
   }
 
   return parsed;
@@ -156,21 +124,13 @@ function resolveConfigPath(configDir: string, value: string): string {
   return isAbsolute(trimmed) ? trimmed : resolve(configDir, trimmed);
 }
 
-function toUniqueLowercaseTerms(values: string[]): string[] {
+function toUniqueValues(values: string[], lowercase = false): string[] {
   return Array.from(
     new Set(
       values
-        .map((value) => value.trim().toLocaleLowerCase())
-        .filter((value) => value.length > 0),
-    ),
-  );
-}
-
-function toUniqueValues(values: string[]): string[] {
-  return Array.from(
-    new Set(
-      values
-        .map((value) => value.trim())
+        .map((value) =>
+          lowercase ? value.trim().toLocaleLowerCase() : value.trim(),
+        )
         .filter((value) => value.length > 0),
     ),
   );
@@ -201,7 +161,7 @@ function mapLoadedConfig(
       sentenceWordCount: input.deck.sentenceWordCount as WordCountFilter,
       sentenceLimit: input.deck.sentenceLimit,
       argosTranslateUrl: Bun.env.ARGOS_TRANSLATE_URL?.trim() || input.argos.translateUrl,
-      sentenceExclusions: toUniqueLowercaseTerms(input.deck.sentenceExclusions),
+      sentenceExclusions: toUniqueValues(input.deck.sentenceExclusions, true),
       googleTtsApiKey: input.audio.apiKey ?? Bun.env.GOOGLE_TTS_API_KEY,
       googleTtsAccessToken:
         input.audio.accessToken ?? Bun.env.GOOGLE_TTS_ACCESS_TOKEN,

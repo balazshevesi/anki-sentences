@@ -40,19 +40,16 @@ export async function runDeckPipeline(config: DeckPipelineConfig): Promise<void>
     `[pipeline] Starting deck pipeline (${config.csvPath} -> ${config.deck.outputPath})`,
   );
 
-  for (const pass of config.passes) {
-    if (pass === "retrieve") {
+  const runPass: Record<PipelinePass, () => Promise<void>> = {
+    retrieve: async () => {
       await runStep(
         "retrieve",
         `Retrieving sentence rows into ${config.csvPath}...`,
         () => runSentenceRetrievalPass(config.deck, config.csvPath, config.runtime),
-        (rows) =>
-          `Retrieved ${rows.length} sentence rows into ${config.csvPath}`,
+        (rows) => `Retrieved ${rows.length} sentence rows into ${config.csvPath}`,
       );
-      continue;
-    }
-
-    if (pass === "enrich-translations") {
+    },
+    "enrich-translations": async () => {
       await runStep(
         "translations",
         `Adding translation metadata to rows from ${config.csvPath}...`,
@@ -60,10 +57,8 @@ export async function runDeckPipeline(config: DeckPipelineConfig): Promise<void>
         (rows) =>
           `Added word and n-gram translation metadata to ${rows.length} rows in ${config.csvPath}`,
       );
-      continue;
-    }
-
-    if (pass === "enrich-difficulty") {
+    },
+    "enrich-difficulty": async () => {
       await runStep(
         "difficulty",
         `Calculating difficulty scores for rows from ${config.csvPath}...`,
@@ -71,10 +66,8 @@ export async function runDeckPipeline(config: DeckPipelineConfig): Promise<void>
         (rows) =>
           `Calculated difficulty scores and sorted ${rows.length} rows in ${config.csvPath}`,
       );
-      continue;
-    }
-
-    if (pass === "enrich-audio") {
+    },
+    "enrich-audio": async () => {
       await runStep(
         "audio",
         `Generating Google TTS audio for rows from ${config.csvPath}...`,
@@ -82,16 +75,20 @@ export async function runDeckPipeline(config: DeckPipelineConfig): Promise<void>
         (rows) =>
           `Generated audio metadata for ${rows.length} rows in ${config.csvPath}`,
       );
-      continue;
-    }
+    },
+    "build-apkg": async () => {
+      await runStep(
+        "build",
+        `Building Anki package from ${config.csvPath}...`,
+        () => runBuildApkgPass(config.deck, config.csvPath, config.runtime),
+        (result) =>
+          `Built ${result.cardCount} cards from ${config.csvPath} into ${config.deck.outputPath}`,
+      );
+    },
+  };
 
-    await runStep(
-      "build",
-      `Building Anki package from ${config.csvPath}...`,
-      () => runBuildApkgPass(config.deck, config.csvPath, config.runtime),
-      (result) =>
-        `Built ${result.cardCount} cards from ${config.csvPath} into ${config.deck.outputPath}`,
-    );
+  for (const pass of config.passes) {
+    await runPass[pass]();
   }
 
   console.log(
