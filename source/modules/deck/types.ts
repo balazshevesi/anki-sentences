@@ -32,7 +32,6 @@ export type DeckBuildConfig = {
   sentenceLimit: number;
   argosTranslateUrl: string;
   sentenceExclusions: string[];
-  googleTtsApiKey?: string;
   googleTtsAccessToken?: string;
   googleTtsLanguageCode?: string;
   googleTtsVoiceName?: string;

@@ -97,7 +97,7 @@ Optional overrides:
 }
 ```
 
-`GOOGLE_TTS_API_KEY` is kept only for backward compatibility in config, but authentication uses OAuth2.
+Google TTS authentication uses OAuth2 credentials.
 
 ## Quick start
 
@@ -172,9 +172,7 @@ If `cardPayload.audioMetadata` contains ready Google TTS entries, matching `.mp3
 ### Code
 
 - [ ] Make everything even more easily swappable (ex: AWS Polly for 11labs, Argos for google translate, etc)
+- [ ] Add proper code formatting
 - [ ] Add full generation guide in readme
 - [ ] Add more details (license, inspiration, etc) and stuff in the readme 
 - [ ] Finish wiring everything up so that i can generate 10k sentences
-- [x] Add caching of translations to the Argos server
-- [x] Look up how ordering of cards work in anki. Then maybe calculate a difficulty score for each sentence (based on the number of words in a sentence as well as the frequency of the words) and order the deck based on that
-- [ ] While building, do better console logs so that progress is clearer

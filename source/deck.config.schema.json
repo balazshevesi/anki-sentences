@@ -3,6 +3,10 @@
   "title": "DeckConfig",
   "type": "object",
   "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1
+    },
     "passes": {
       "minItems": 1,
       "type": "array",
@@ -125,17 +129,6 @@
           "type": "boolean"
         },
         "accessToken": {
-          "anyOf": [
-            {
-              "type": "string",
-              "minLength": 1
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "apiKey": {
           "anyOf": [
             {
               "type": "string",

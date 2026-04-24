@@ -7,7 +7,7 @@
     "enrich-translations",
     "enrich-difficulty",
     "enrich-audio",
-    "build-apkg"
+    "build-apkg",
   ],
 
   // CSV path used by all pipeline passes.
@@ -28,34 +28,33 @@
       "professor",
       "computer",
       "further",
-      "allowed"
+      "allowed",
     ],
     "sentenceLanguage": "eng",
     "translationLanguage": "hun",
     "sentenceTranslationLimit": 3,
     "sentenceWordCount": "15-50",
-    "sentenceLimit": 25,
-    "sentenceExclusions": []
+    "sentenceLimit": 35,
+    "sentenceExclusions": [],
   },
 
   "argos": {
     "sourceLanguage": "en",
     "targetLanguage": "hu",
     "alternatives": 3,
-    "translateUrl": "http://127.0.0.1:8000/translate"
+    "translateUrl": "http://127.0.0.1:8000/translate",
   },
 
   "audio": {
     "outputDir": "../output/example-audio",
     "forceRegenerate": false,
     "accessToken": null,
-    "apiKey": null,
     "languageCode": null,
     "voiceName": null,
     "speakingRate": 1,
     "pitch": 0,
     "concurrency": 2,
-    "quotaProject": null
+    "quotaProject": null,
   },
 
   "runtime": {
@@ -64,10 +63,10 @@
     "translationConcurrency": 1,
     "ngramTranslationLimitPerCard": 6,
     "ngramMinCardCount": 2,
-    "ngramMinCardPercentage": 3
+    "ngramMinCardPercentage": 3,
   },
 
   "anki": {
-    "sortField": 0
-  }
+    "sortField": 0,
+  },
 }

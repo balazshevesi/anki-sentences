@@ -1,10 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import {
-  EMPTY_CARD_PAYLOAD_JSON,
-  parseCardPayloadJson,
-} from "../shared/cardPayload";
-import { parseAudioMetadataJson } from "../shared/audioMetadata";
+import { EMPTY_CARD_PAYLOAD_JSON } from "../shared/cardPayload";
 
 export const DECK_NOTE_FIELDS = [
   "Sentence",
@@ -125,7 +121,6 @@ export function parsePipelineCsvRows(content: string): PipelineCsvRow[] {
   const [header, ...dataRows] = rows;
   const headerIndex = buildHeaderIndex(header ?? []);
   assertRequiredColumns(headerIndex);
-  const legacyAudioMetadataColumnIndex = headerIndex.get("audioMetadata");
 
   return dataRows
     .filter((row) => row.some((value) => value.trim().length > 0))
@@ -138,21 +133,6 @@ export function parsePipelineCsvRows(content: string): PipelineCsvRow[] {
           continue;
         }
         mapped[field] = row[columnIndex] ?? DEFAULT_PIPELINE_ROW[field];
-      }
-
-      if (legacyAudioMetadataColumnIndex !== undefined) {
-        const parsedCardPayload = parseCardPayloadJson(mapped.cardPayload);
-        if (!parsedCardPayload.audioMetadata) {
-          const parsedLegacyAudioMetadata = parseAudioMetadataJson(
-            row[legacyAudioMetadataColumnIndex] ?? "",
-          );
-          if (parsedLegacyAudioMetadata) {
-            mapped.cardPayload = JSON.stringify({
-              ...parsedCardPayload,
-              audioMetadata: parsedLegacyAudioMetadata,
-            });
-          }
-        }
       }
 
       return mapped;

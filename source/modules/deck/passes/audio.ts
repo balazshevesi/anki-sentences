@@ -71,12 +71,6 @@ export async function runAudioMetadataPass(
   };
   await mkdir(googleTtsConfig.audioOutputDir, { recursive: true });
 
-  if (config.googleTtsApiKey?.trim()) {
-    console.warn(
-      "[audio] GOOGLE_TTS_API_KEY is deprecated for this API; OAuth2 credentials are used instead.",
-    );
-  }
-
   console.log(
     `[audio] Generating Google TTS audio for ${rows.length} rows (language: ${googleTtsConfig.languageCode}, concurrency: ${runtime.audioMetadataConcurrency}).`,
   );

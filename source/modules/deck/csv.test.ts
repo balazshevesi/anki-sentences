@@ -42,19 +42,6 @@ describe("pipeline CSV", () => {
     expect(parsed).toEqual(inputRows);
   });
 
-  test("migrates legacy audioMetadata column into cardPayload", () => {
-    const rows = parsePipelineCsvRows(
-      [
-        "Sentence,SentenceTranslation,Keyword,SentenceId,cardPayload,difficulty,audioMetadata",
-        '"Hello world","Szia","hello","123","{""wordByWord"":{},""ngramTranslations"":[]}","","{""status"":""ready"",""provider"":""google_text_to_speech"",""sentenceId"":""123"",""generatedAt"":""2026-01-01T00:00:00.000Z"",""audioFileName"":""tts-123-aabbccddee.mp3"",""ankiSoundTag"":""[sound:tts-123-aabbccddee.mp3]"",""languageCode"":""en-US"",""voiceName"":null,""speakingRate"":1,""pitch"":0,""words"":[]}"',
-      ].join("\n"),
-    );
-
-    expect(rows).toHaveLength(1);
-    expect(rows[0]?.cardPayload).toBe(
-      '{"wordByWord":{},"ngramTranslations":[],"audioMetadata":{"status":"ready","provider":"google_text_to_speech","sentenceId":"123","generatedAt":"2026-01-01T00:00:00.000Z","audioFileName":"tts-123-aabbccddee.mp3","ankiSoundTag":"[sound:tts-123-aabbccddee.mp3]","languageCode":"en-US","voiceName":null,"speakingRate":1,"pitch":0,"words":[]}}',
-    );
-  });
 });
 
 describe("path helpers", () => {

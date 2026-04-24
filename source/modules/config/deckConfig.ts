@@ -25,6 +25,7 @@ export const DEFAULT_DECK_CONFIG_SCHEMA_PATH = fileURLToPath(
 
 const DeckConfigSchema = z
   .object({
+    $schema: z.string().trim().min(1).optional(),
     passes: z.array(z.enum(PIPELINE_PASS_NAMES)).min(1),
     csvPath: z.string().trim().min(1),
     deck: z
@@ -77,7 +78,6 @@ const DeckConfigSchema = z
         outputDir: z.string().trim().min(1),
         forceRegenerate: z.boolean(),
         accessToken: z.string().trim().min(1).nullable().optional(),
-        apiKey: z.string().trim().min(1).nullable().optional(),
         languageCode: z
           .string()
           .trim()
@@ -128,7 +128,6 @@ const DeckConfigSchema = z
       sentenceExclusions: Array.from(
         new Set(config.deck.sentenceExclusions.map((value) => value.toLocaleLowerCase())),
       ),
-      googleTtsApiKey: config.audio.apiKey ?? undefined,
       googleTtsAccessToken: config.audio.accessToken ?? undefined,
       googleTtsLanguageCode: config.audio.languageCode ?? undefined,
       googleTtsVoiceName: config.audio.voiceName ?? undefined,
@@ -191,7 +190,6 @@ export async function loadDeckConfig(
     outputPath: resolvePath(config.deck.outputPath),
     argosTranslateUrl:
       Bun.env.ARGOS_TRANSLATE_URL?.trim() || config.deck.argosTranslateUrl,
-    googleTtsApiKey: config.deck.googleTtsApiKey ?? Bun.env.GOOGLE_TTS_API_KEY,
     googleTtsAccessToken:
       config.deck.googleTtsAccessToken ?? Bun.env.GOOGLE_TTS_ACCESS_TOKEN,
     googleTtsLanguageCode:
