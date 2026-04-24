@@ -158,20 +158,16 @@ If `cardPayload.audioMetadata` contains ready Google TTS entries, matching `.mp3
 - Frequency lists: `https://github.com/hermitdave/FrequencyWords`
 - Argos Translate: `https://github.com/argosopentech/argos-translate`
 
-## TODO
+## TODO (the project is currently like 90% complete)
 
-### Functionality
-
-- [ ] Make the card template prettier
-- [ ] Add scripts for audio generation with GCP TTS, save as AAC inside m4a/mp4. (AAC for quality, small file size, compatibility with anki) (m4a/mp4 for storing custom metadata)
-- [ ] Add UI for audio playback (jump to timestamp of a word, play+pause icons, add some indicator of which word is currently being spoken)
-- [ ] Tweak word frequency categorization to be more accurate
-- [ ] Fix the UI flickering on the card flips (html/js-loading issue)
-
-### Code
-
-- [ ] Make everything even more easily swappable (ex: AWS Polly for 11labs, Argos for google translate, etc)
-- [ ] Add proper code formatting
-- [ ] Add full generation guide in readme
+- [ ] Make the card templates display things properly
+  - [ ] Fix the UI flickering on the card flips (html/js-loading issue)
+  - [ ] Center the text and fix the styling
+  - [ ] Sync spoken word(s) with displayed text (underline spoken word) + on click of a word: jump to timestamp of audio
+- [ ] Fix formatting of audio clips, AAC would be a little better (ffmpeg?)
+- [ ] Add the loop for gathering x the most common words before generating
+- [ ] Implement proper adapter pattern so that services can be swapped easier
+- [ ] Add full guide in readme
 - [ ] Add more details (license, inspiration, etc) and stuff in the readme 
-- [ ] Finish wiring everything up so that i can generate 10k sentences
+- [ ] Add proper code formatting
+- [ ] Tweak word frequency categorization to be more accurate
