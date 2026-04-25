@@ -162,7 +162,7 @@ If `cardPayload.audioMetadata` contains ready Google TTS entries, matching `.aac
 
 ## TODO (the project is currently like 90% complete, maybe like 5h left of work)
 
-- [ ] MAJOR: work around ankis wierd built in audio, and somehow, hook my audio playback into it.
+- [x] MAJOR: work around ankis wierd built in audio, and somehow, hook my audio playback into it.
 - [ ] Final tweaks to UI template, like a proper css-reset, propper support for dark/light, proper audio(may not really possible though?)
 - [ ] Add the loop for gathering the x most common words before generating
 - [ ] Add full guide in readme
