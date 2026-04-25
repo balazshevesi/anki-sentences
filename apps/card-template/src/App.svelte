@@ -371,12 +371,17 @@
     syncWordHighlightFromAudio();
   }
 
+  function isAnswerSide(): boolean {
+    return document.getElementById("answer") !== null;
+  }
+
   $effect(() => {
     if (
       !autoplay ||
       !readyAudioMetadata ||
       !audioElement ||
-      hasAutoplayAttempted
+      hasAutoplayAttempted ||
+      isAnswerSide()
     ) {
       return;
     }

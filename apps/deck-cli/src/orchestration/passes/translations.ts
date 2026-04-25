@@ -17,6 +17,26 @@ import { formatDuration } from "../../contracts/formatDuration";
 
 type PromiseLimitFn = <T>(fn: () => Promise<T>) => Promise<T>;
 
+function stripFrequencyFromWordByWordJson(rawWordByWord: string): Record<
+  string,
+  {
+    translatedText: string;
+    alternatives: string[];
+  }
+> {
+  const parsedWordByWord = parseWordByWordJson(rawWordByWord);
+
+  return Object.fromEntries(
+    Object.entries(parsedWordByWord).map(([word, translation]) => [
+      word,
+      {
+        translatedText: translation.translatedText,
+        alternatives: [...translation.alternatives],
+      },
+    ]),
+  );
+}
+
 function progressInterval(totalRows: number): number {
   return totalRows <= 10 ? 1 : Math.max(1, Math.ceil(totalRows / 10));
 }
@@ -147,7 +167,8 @@ export async function runTranslationMetadataPass(
         return {
           ...row,
           cardPayload: JSON.stringify({
-            wordByWord: parseWordByWordJson(wordByWord),
+            // Intentionally omit per-word frequency from persisted payload.
+            wordByWord: stripFrequencyFromWordByWordJson(wordByWord),
             ngramTranslations: parseNgramTranslationsJson(ngramTranslations),
             audioMetadata: existingCardPayload.audioMetadata,
           }),

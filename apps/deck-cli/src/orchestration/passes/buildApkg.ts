@@ -25,12 +25,26 @@ function sanitizeCardPayloadForTemplate(
   templateAudioFileName: string | null,
 ): string {
   const parsedPayload = parseCardPayloadJson(rawPayload);
+  const wordByWordWithoutFrequency = Object.fromEntries(
+    Object.entries(parsedPayload.wordByWord).map(([word, translation]) => [
+      word,
+      {
+        translatedText: translation.translatedText,
+        alternatives: [...translation.alternatives],
+      },
+    ]),
+  );
+
   if (!isReadyAudioMetadata(parsedPayload.audioMetadata)) {
-    return rawPayload;
+    return JSON.stringify({
+      ...parsedPayload,
+      wordByWord: wordByWordWithoutFrequency,
+    });
   }
 
   return JSON.stringify({
     ...parsedPayload,
+    wordByWord: wordByWordWithoutFrequency,
     audioMetadata: {
       ...parsedPayload.audioMetadata,
       audioFileName:
