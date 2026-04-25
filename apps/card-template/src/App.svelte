@@ -560,7 +560,7 @@
   }
 
   .word:hover {
-    background: #f8f9fa;
+    opacity: 0.9;
   }
 
   .word:focus-visible {

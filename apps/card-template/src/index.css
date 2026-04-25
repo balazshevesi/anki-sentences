@@ -22,3 +22,28 @@
 .card-template-loading {
   visibility: hidden;
 }
+
+#back-translation-wrapper {
+  margin: 0 auto;
+  max-width: 50rem;
+  padding: 1rem;
+  color: #202122;
+  font-family: "Linux Libertine", "Georgia", "Times New Roman", serif;
+}
+
+#back-translation {
+  text-align: center;
+  font-size: 2rem;
+  line-height: 1.7;
+}
+
+@media (max-width: 640px) {
+  #back-translation-wrapper {
+    padding: 0.75rem;
+  }
+
+  #back-translation {
+    font-size: 1.45rem;
+    line-height: 1.55;
+  }
+}

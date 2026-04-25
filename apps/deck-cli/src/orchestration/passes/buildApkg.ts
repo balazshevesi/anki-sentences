@@ -137,7 +137,12 @@ export async function runBuildApkgPass(
     <card-config hidden autoplay="true" replaykeybind="r"></card-config>
     ${ANKI_COMPAT_POLYFILLS}
     ${questionFormatHtml}`;
-  const answerFormat = '{{FrontSide}}<hr id="answer">{{SentenceTranslation}}';
+  const answerFormat = `
+    {{FrontSide}}
+    <hr id="answer">
+    <div id="back-translation-wrapper">
+      <div id="back-translation">{{SentenceTranslation}}</div>
+    </div>`;
 
   const deck = new Anki(config.deckName, {
     fields: [...DECK_NOTE_FIELDS],
