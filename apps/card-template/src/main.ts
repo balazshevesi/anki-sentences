@@ -18,11 +18,92 @@ type AppCardPayload = {
   wordByWord: Record<string, WordTranslation>;
   ngramTranslations: NgramTranslation[];
   audioMetadata: AudioMetadata | null;
+  autoplay: boolean;
+  replayKeybind: string | null;
 };
 
 type TemplatePayload = AppCardPayload & {
   target: HTMLElement;
 };
+
+const DEFAULT_AUTOPLAY = false;
+const DEFAULT_REPLAY_KEYBIND = "r";
+
+function getCardConfigAttributeValue(
+  configElement: Element | null,
+  attributeNames: string[],
+): string | null {
+  if (!configElement) {
+    return null;
+  }
+
+  for (const attributeName of attributeNames) {
+    const value = configElement.getAttribute(attributeName);
+    if (value !== null) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function parseCardConfigBooleanAttribute(
+  rawValue: string | null,
+  fallback: boolean,
+): boolean {
+  if (rawValue === null) {
+    return fallback;
+  }
+
+  const normalizedValue = rawValue.trim().toLowerCase();
+  if (normalizedValue.length === 0) {
+    return true;
+  }
+
+  if (["1", "true", "yes", "on"].includes(normalizedValue)) {
+    return true;
+  }
+
+  if (["0", "false", "no", "off"].includes(normalizedValue)) {
+    return false;
+  }
+
+  return fallback;
+}
+
+function parseCardConfigReplayKeybindAttribute(
+  rawValue: string | null,
+): string | null {
+  if (rawValue === null) {
+    return DEFAULT_REPLAY_KEYBIND;
+  }
+
+  const normalizedValue = rawValue.trim();
+  if (normalizedValue.length === 0) {
+    return null;
+  }
+
+  if (["none", "off", "false"].includes(normalizedValue.toLowerCase())) {
+    return null;
+  }
+
+  return normalizedValue;
+}
+
+function readCardConfig(): { autoplay: boolean; replayKeybind: string | null } {
+  const configElement = document.querySelector("card-config");
+  const rawAutoplay = getCardConfigAttributeValue(configElement, ["autoplay"]);
+  const rawReplayKeybind = getCardConfigAttributeValue(configElement, [
+    "replaykeybind",
+    "replay-keybind",
+    "replayKeybind",
+  ]);
+
+  return {
+    autoplay: parseCardConfigBooleanAttribute(rawAutoplay, DEFAULT_AUTOPLAY),
+    replayKeybind: parseCardConfigReplayKeybindAttribute(rawReplayKeybind),
+  };
+}
 
 function hasMeaningfulCardPayload(payload: CardPayload): boolean {
   return (
@@ -71,6 +152,7 @@ function readTemplatePayload(): TemplatePayload | null {
   const cardPayload: CardPayload = parseTemplateCardPayload(
     cardPayloadElement.textContent ?? "",
   );
+  const cardConfig = readCardConfig();
 
   frontElement.textContent = "";
 
@@ -80,6 +162,8 @@ function readTemplatePayload(): TemplatePayload | null {
     wordByWord: cardPayload.wordByWord,
     ngramTranslations: cardPayload.ngramTranslations,
     audioMetadata: cardPayload.audioMetadata,
+    autoplay: cardConfig.autoplay,
+    replayKeybind: cardConfig.replayKeybind,
   };
 }
 
@@ -87,6 +171,7 @@ function readDevelopmentPayload(): TemplatePayload {
   const target = document.createElement("div");
   target.id = "front";
   document.body.appendChild(target);
+  const cardConfig = readCardConfig();
   const cardText = DEV_SAMPLE_CARD_TEXT;
   const cardPayload: CardPayload = parseCardPayloadJson(
     DEV_SAMPLE_CARD_PAYLOAD_JSON,
@@ -98,6 +183,8 @@ function readDevelopmentPayload(): TemplatePayload {
     wordByWord: cardPayload.wordByWord,
     ngramTranslations: cardPayload.ngramTranslations,
     audioMetadata: cardPayload.audioMetadata,
+    autoplay: cardConfig.autoplay,
+    replayKeybind: cardConfig.replayKeybind,
   };
 }
 
@@ -116,6 +203,8 @@ mount(App, {
     wordByWord: payload.wordByWord,
     ngramTranslations: payload.ngramTranslations,
     audioMetadata: payload.audioMetadata,
+    autoplay: payload.autoplay,
+    replayKeybind: payload.replayKeybind,
   },
 });
 

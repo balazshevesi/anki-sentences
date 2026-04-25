@@ -134,6 +134,7 @@ export async function runBuildApkgPass(
   const questionFormat = `
     <div id="front" class="card-template-loading">{{Sentence}}</div>
     <div id="cardPayload" hidden>{{cardPayload}}</div>
+    <card-config hidden autoplay="true" replaykeybind="r"></card-config>
     ${ANKI_COMPAT_POLYFILLS}
     ${questionFormatHtml}`;
   const answerFormat = '{{FrontSide}}<hr id="answer">{{SentenceTranslation}}';
@@ -164,7 +165,8 @@ export async function runBuildApkgPass(
           ? parsedAudioMetadata.ankiSoundTag
           : "";
     if (isReadyAudioMetadata(parsedAudioMetadata)) {
-      const mediaFileName = templateAudioFileName ?? parsedAudioMetadata.audioFileName;
+      const mediaFileName =
+        templateAudioFileName ?? parsedAudioMetadata.audioFileName;
       if (!includedMediaFiles.has(mediaFileName)) {
         const mediaFilePath = join(config.audioOutputDir, mediaFileName);
         const mediaFile = Bun.file(mediaFilePath);

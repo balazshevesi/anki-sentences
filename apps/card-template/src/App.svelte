@@ -17,10 +17,18 @@
     wordByWord: Record<string, WordTranslation>;
     ngramTranslations: NgramTranslation[];
     audioMetadata: AudioMetadata | null;
+    autoplay: boolean;
+    replayKeybind: string | null;
   };
 
-  let { cardText, wordByWord, ngramTranslations, audioMetadata }: Props =
-    $props();
+  let {
+    cardText,
+    wordByWord,
+    ngramTranslations,
+    audioMetadata,
+    autoplay,
+    replayKeybind,
+  }: Props = $props();
 
   function tokenizeSentence(input: string): string[] {
     return input
@@ -129,10 +137,59 @@
   let activeAudioWordIndex = $state<number | null>(null);
   let playbackClipEndMs = $state<number | null>(null);
   let playbackFrameId = $state<number | null>(null);
+  let hasAutoplayAttempted = $state(false);
+
+  function normalizeReplayKeybind(value: string | null): string | null {
+    if (value === null) {
+      return null;
+    }
+
+    const normalized = value.trim().toLowerCase();
+    return normalized.length > 0 ? normalized : null;
+  }
+
+  function formatReplayKeybindLabel(value: string | null): string | null {
+    if (!value) {
+      return null;
+    }
+
+    return value.length === 1 ? value.toUpperCase() : value;
+  }
+
+  function isEditableKeyboardTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof Element)) {
+      return false;
+    }
+
+    if (target instanceof HTMLElement && target.isContentEditable) {
+      return true;
+    }
+
+    return (
+      target.closest("input, textarea, select, [contenteditable='true']") !==
+      null
+    );
+  }
+
+  let normalizedReplayKeybind = $derived(normalizeReplayKeybind(replayKeybind));
+  let replayKeybindLabel = $derived(
+    formatReplayKeybindLabel(normalizedReplayKeybind),
+  );
 
   function onWordClick(index: number): void {
     jumpToWord(index);
     openWordIndex = openWordIndex === index ? null : index;
+  }
+
+  function replayAudioFromStart(): void {
+    if (!audioElement) {
+      return;
+    }
+
+    playbackClipEndMs = null;
+    activeAudioWordIndex = null;
+    audioElement.currentTime = 0;
+    void audioElement.play().catch(() => {});
   }
 
   function getWordByIndex(index: number): AudioWordTimestamp | null {
@@ -313,77 +370,133 @@
   function onAudioSeeking(): void {
     syncWordHighlightFromAudio();
   }
+
+  $effect(() => {
+    if (
+      !autoplay ||
+      !readyAudioMetadata ||
+      !audioElement ||
+      hasAutoplayAttempted
+    ) {
+      return;
+    }
+
+    hasAutoplayAttempted = true;
+    setTimeout(() => {
+      replayAudioFromStart();
+    }, 0);
+  });
+
+  $effect(() => {
+    const activeReplayKeybind = normalizedReplayKeybind;
+    if (!activeReplayKeybind) {
+      return;
+    }
+
+    const onWindowKeyDown = (event: KeyboardEvent): void => {
+      if (event.defaultPrevented) {
+        return;
+      }
+
+      if (event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+
+      if (isEditableKeyboardTarget(event.target)) {
+        return;
+      }
+
+      if (event.key.trim().toLowerCase() !== activeReplayKeybind) {
+        return;
+      }
+
+      event.preventDefault();
+      replayAudioFromStart();
+    };
+
+    window.addEventListener("keyup", onWindowKeyDown);
+    return () => {
+      window.removeEventListener("keyup", onWindowKeyDown);
+    };
+  });
 </script>
 
 <main class="card">
-    <div class="sentence" role="group" aria-label="Sentence words">
-      {#each tokens as word, index (`${word}-${index}`)}
-        {@const translation = getTranslation(word)}
-      {@const untranslatedFallback = isLikelyUntranslatedWord(word, translation)}
-      {@const translatedWord = untranslatedFallback ? "" : translation.translatedText}
-      {@const alternatives = untranslatedFallback ? [] : translation.alternatives}
+  <div class="sentence" role="group" aria-label="Sentence words">
+    {#each tokens as word, index (`${word}-${index}`)}
+      {@const translation = getTranslation(word)}
+      {@const untranslatedFallback = isLikelyUntranslatedWord(
+        word,
+        translation,
+      )}
+      {@const translatedWord = untranslatedFallback
+        ? ""
+        : translation.translatedText}
+      {@const alternatives = untranslatedFallback
+        ? []
+        : translation.alternatives}
       {@const frequency = translation.frequency}
       {@const phraseTranslations = getNgramTranslationsForWord(word)}
-        <span class="word-wrapper">
-          <button
-            class={`word ${activeAudioWordIndex === index ? "word-active" : ""}`}
-            type="button"
-            onclick={() => onWordClick(index)}
-          >
-            {word}
-          </button>
-          {#if openWordIndex === index}
-            <div class="popover-content">
-              {#if translatedWord}
-                <div class="translation-main">{translatedWord}</div>
-                {#if alternatives.length > 0}
-                  <div class="translation-alt">
-                    {#each alternatives as alternative}
-                      {alternative}
-                      <br />
-                    {/each}
-                  </div>
-                {/if}
-                {#if frequency.hint}
-                  <div class="translation-frequency">
-                    {frequency.hint}
-                    {#if frequency.occurrencePercentage !== null}
-                      ({frequency.occurrencePercentage.toFixed(4)}%)
-                    {/if}
-                  </div>
-                {/if}
-                {#if phraseTranslations.length > 0}
-                  <div class="phrase-section">
-                    <div class="phrase-title">Common phrases with this word</div>
-                    {#each phraseTranslations as rawItem, phraseIndex (`phrase-${phraseIndex}`)}
-                      {@const item = normalizeNgramTranslation(rawItem)}
-                      <div class="phrase-entry">
-                        <div class="phrase-source">{item.phrase}</div>
-                        <div class="phrase-translation">
-                          {item.translatedText}
-                        </div>
-                        {#if item.alternatives.length > 0}
-                          <div class="phrase-alt">
-                            {item.alternatives.join(" | ")}
-                          </div>
-                        {/if}
-                        <div class="phrase-meta">
-                          {item.ngramLength}-gram, {item.cardPercentage.toFixed(
-                            1,
-                          )}% of cards
-                        </div>
-                      </div>
-                    {/each}
-                  </div>
-                {/if}
-              {:else}
-                <div class="translation-empty">(no translation)</div>
+      <span class="word-wrapper">
+        <button
+          class={`word ${activeAudioWordIndex === index ? "word-active" : ""}`}
+          type="button"
+          onclick={() => onWordClick(index)}
+        >
+          {word}
+        </button>
+        {#if openWordIndex === index}
+          <div class="popover-content">
+            {#if translatedWord}
+              <div class="translation-main">{translatedWord}</div>
+              {#if alternatives.length > 0}
+                <div class="translation-alt">
+                  {#each alternatives as alternative}
+                    {alternative}
+                    <br />
+                  {/each}
+                </div>
               {/if}
-            </div>
-          {/if}
-        </span>
-      {/each}
-    </div>
+              {#if frequency.hint}
+                <div class="translation-frequency">
+                  {frequency.hint}
+                  {#if frequency.occurrencePercentage !== null}
+                    ({frequency.occurrencePercentage.toFixed(4)}%)
+                  {/if}
+                </div>
+              {/if}
+              {#if phraseTranslations.length > 0}
+                <div class="phrase-section">
+                  <div class="phrase-title">Common phrases with this word</div>
+                  {#each phraseTranslations as rawItem, phraseIndex (`phrase-${phraseIndex}`)}
+                    {@const item = normalizeNgramTranslation(rawItem)}
+                    <div class="phrase-entry">
+                      <div class="phrase-source">{item.phrase}</div>
+                      <div class="phrase-translation">
+                        {item.translatedText}
+                      </div>
+                      {#if item.alternatives.length > 0}
+                        <div class="phrase-alt">
+                          {item.alternatives.join(" | ")}
+                        </div>
+                      {/if}
+                      <div class="phrase-meta">
+                        {item.ngramLength}-gram, {item.cardPercentage.toFixed(
+                          1,
+                        )}% of cards
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            {:else}
+              <div class="translation-empty">(no translation)</div>
+            {/if}
+          </div>
+        {/if}
+      </span>
+    {/each}
+  </div>
 
   {#if readyAudioMetadata}
     <div class="audio-row">
@@ -399,7 +512,12 @@
         onseeking={onAudioSeeking}
       ></audio>
 
-      <p class="audio-hint">Click a word to jump to that point in the audio.</p>
+      <p class="audio-hint">
+        Click a word to jump to that point in the audio.
+        {#if replayKeybindLabel}
+          Press {replayKeybindLabel} to replay the sentence audio.
+        {/if}
+      </p>
     </div>
   {/if}
 </main>
@@ -451,7 +569,7 @@
   }
 
   .word-active {
-    color: #36c;
+    /*color: #36c;*/
     text-decoration: underline;
     text-underline-offset: 0.16em;
   }

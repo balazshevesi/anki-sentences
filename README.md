@@ -162,15 +162,9 @@ If `cardPayload.audioMetadata` contains ready Google TTS entries, matching `.aac
 
 ## TODO (the project is currently like 90% complete, maybe like 5h left of work)
 
-- [ ] Make the card templates display things properly
-  - [ ] Fix the UI flickering on the card flips (html/js-loading issue)
-  - [x] Center the text and fix the styling
-  - [x] Sync spoken word(s) with displayed text (underline spoken word) + on click of a word: jump to timestamp of audio (duolingo style)
-- [x] Encode generated audio clips as AAC
+- [ ] MAJOR: work around ankis wierd built in audio, and somehow, hook my audio playback into it.
+- [ ] Final tweaks to UI template, like a proper css-reset, propper support for dark/light, proper audio(may not really possible though?)
 - [ ] Add the loop for gathering the x most common words before generating
-- [x] Implement proper adapter pattern so that services can be swapped easier
 - [ ] Add full guide in readme
 - [ ] Add more details (license, inspiration, etc) and stuff in the readme 
-- [x] Add proper code formatting
-- [x] Tweak word frequency categorization to be more accurate
 - [ ] Double check that all the scripts make sense
