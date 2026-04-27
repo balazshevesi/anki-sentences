@@ -19,6 +19,7 @@
     audioMetadata: AudioMetadata | null;
     autoplay: boolean;
     replayKeybind: string | null;
+    instanceId: string;
   };
 
   let {
@@ -28,7 +29,12 @@
     audioMetadata,
     autoplay,
     replayKeybind,
+    instanceId,
   }: Props = $props();
+
+  type CardTemplateWindow = Window & {
+    __cardTemplateActiveInstanceId?: string;
+  };
 
   function tokenizeSentence(input: string): string[] {
     return input
@@ -81,19 +87,6 @@
       normalizedWordLookup[normalizeTokenForMatch(word)] ??
       EMPTY_WORD_TRANSLATION
     );
-  }
-
-  function isLikelyUntranslatedWord(
-    sourceWord: string,
-    translation: WordTranslation,
-  ): boolean {
-    if (translation.alternatives.length > 0) {
-      return false;
-    }
-
-    const source = normalizeTokenForMatch(sourceWord);
-    const translated = normalizeTokenForMatch(translation.translatedText);
-    return source.length > 0 && source === translated;
   }
 
   function normalizeNgramTranslations(
@@ -156,21 +149,6 @@
     return value.length === 1 ? value.toUpperCase() : value;
   }
 
-  function isEditableKeyboardTarget(target: EventTarget | null): boolean {
-    if (!(target instanceof Element)) {
-      return false;
-    }
-
-    if (target instanceof HTMLElement && target.isContentEditable) {
-      return true;
-    }
-
-    return (
-      target.closest("input, textarea, select, [contenteditable='true']") !==
-      null
-    );
-  }
-
   let normalizedReplayKeybind = $derived(normalizeReplayKeybind(replayKeybind));
   let replayKeybindLabel = $derived(
     formatReplayKeybindLabel(normalizedReplayKeybind),
@@ -181,10 +159,49 @@
     openWordIndex = openWordIndex === index ? null : index;
   }
 
-  function replayAudioFromStart(): void {
+  function isActiveCardInstance(): boolean {
     if (!audioElement) {
+      return false;
+    }
+
+    const cardTemplateWindow = window as CardTemplateWindow;
+    if (cardTemplateWindow.__cardTemplateActiveInstanceId !== instanceId) {
+      return false;
+    }
+
+    if (!audioElement.isConnected) {
+      return false;
+    }
+
+    const frontElement = audioElement.closest("#front");
+    return (
+      frontElement instanceof HTMLElement &&
+      frontElement.isConnected &&
+      frontElement.dataset.cardTemplateActive === "true"
+    );
+  }
+
+  function syncAudioElementSource(): void {
+    if (!audioElement || !readyAudioMetadata) {
       return;
     }
+
+    const expectedSource = readyAudioMetadata.audioFileName;
+    const currentSource = audioElement.getAttribute("src") ?? "";
+    if (currentSource === expectedSource) {
+      return;
+    }
+
+    audioElement.setAttribute("src", expectedSource);
+    audioElement.load();
+  }
+
+  function replayAudioFromStart(): void {
+    if (!audioElement || !isActiveCardInstance()) {
+      return;
+    }
+
+    syncAudioElementSource();
 
     playbackClipEndMs = null;
     activeAudioWordIndex = null;
@@ -288,9 +305,16 @@
 
   function jumpToWord(index: number): void {
     const timestamp = getWordTimestamp(index);
-    if (!audioElement || !timestamp || timestamp.startMs === null) {
+    if (
+      !audioElement ||
+      !timestamp ||
+      timestamp.startMs === null ||
+      !isActiveCardInstance()
+    ) {
       return;
     }
+
+    syncAudioElementSource();
 
     playbackClipEndMs = getWordEndMs(timestamp) - 1;
 
@@ -381,7 +405,8 @@
       !readyAudioMetadata ||
       !audioElement ||
       hasAutoplayAttempted ||
-      isAnswerSide()
+      isAnswerSide() ||
+      !isActiveCardInstance()
     ) {
       return;
     }
@@ -391,55 +416,14 @@
       replayAudioFromStart();
     }, 0);
   });
-
-  $effect(() => {
-    const activeReplayKeybind = normalizedReplayKeybind;
-    if (!activeReplayKeybind) {
-      return;
-    }
-
-    const onWindowKeyDown = (event: KeyboardEvent): void => {
-      if (event.defaultPrevented) {
-        return;
-      }
-
-      if (event.altKey || event.ctrlKey || event.metaKey) {
-        return;
-      }
-
-      if (isEditableKeyboardTarget(event.target)) {
-        return;
-      }
-
-      if (event.key.trim().toLowerCase() !== activeReplayKeybind) {
-        return;
-      }
-
-      event.preventDefault();
-      replayAudioFromStart();
-    };
-
-    window.addEventListener("keyup", onWindowKeyDown);
-    return () => {
-      window.removeEventListener("keyup", onWindowKeyDown);
-    };
-  });
 </script>
 
 <main class="card">
   <div class="sentence" role="group" aria-label="Sentence words">
     {#each tokens as word, index (`${word}-${index}`)}
       {@const translation = getTranslation(word)}
-      {@const untranslatedFallback = isLikelyUntranslatedWord(
-        word,
-        translation,
-      )}
-      {@const translatedWord = untranslatedFallback
-        ? ""
-        : translation.translatedText}
-      {@const alternatives = untranslatedFallback
-        ? []
-        : translation.alternatives}
+      {@const translatedWord = translation.translatedText}
+      {@const alternatives = translation.alternatives}
       {@const frequency = translation.frequency}
       {@const phraseTranslations = getNgramTranslationsForWord(word)}
       <span class="word-wrapper">
@@ -507,6 +491,7 @@
     <div class="audio-row">
       <audio
         bind:this={audioElement}
+        data-card-template-instance-id={instanceId}
         src={readyAudioMetadata.audioFileName}
         controls
         preload="metadata"
@@ -565,7 +550,7 @@
   }
 
   .word:hover {
-    opacity: 0.9;
+    opacity: 0.8;
   }
 
   .word:focus-visible {
