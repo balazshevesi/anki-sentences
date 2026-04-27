@@ -10,6 +10,7 @@
     type AudioMetadata,
     type AudioWordTimestamp,
   } from "../../deck-cli/src/contracts/audioMetadata";
+  import TranslationPopover from "./TranslationPopover.svelte";
 
   type Props = {
     cardText: string;
@@ -26,7 +27,6 @@
     ngramTranslations,
     audioMetadata,
     autoplay,
-    replayKeybind,
   }: Props = $props();
 
   const tokenPattern = /[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu;
@@ -45,12 +45,6 @@
         )
         .filter(([word]) => word.length > 0),
     );
-  };
-
-  const formatReplayKeybindLabel = (value: string | null): string | null => {
-    const normalized = value?.trim();
-    if (!normalized) return null;
-    return normalized.length === 1 ? normalized.toUpperCase() : normalized;
   };
 
   let tokens: string[] = $derived(
@@ -189,6 +183,7 @@
     jumpToWord(index);
     openWordIndex = openWordIndex === index ? null : index;
   };
+  const closePopover = (): void => (openWordIndex = null);
   const onAudioPause = (): void => (playbackClipEndMs = null);
   const onAudioEnded = (): void => {
     playbackClipEndMs = null;
@@ -233,48 +228,12 @@
         >
           {word}
         </button>
-
         {#if openWordIndex === index}
-          <div class="popover-content">
-            {#if translation.translatedText}
-              <div class="translation-main">{translation.translatedText}</div>
-
-              {#if translation.alternatives.length > 0}
-                <div class="translation-alt">
-                  {#each translation.alternatives as alternative}
-                    {alternative}
-                    <br />
-                  {/each}
-                </div>
-              {/if}
-
-              {#if phraseTranslations.length > 0}
-                <div class="phrase-section">
-                  <div class="phrase-title">Common phrases with this word</div>
-                  {#each phraseTranslations as item, phraseIndex (`phrase-${phraseIndex}`)}
-                    <div class="phrase-entry">
-                      <div class="phrase-source">{item.phrase}</div>
-                      <div class="phrase-translation">
-                        {item.translatedText}
-                      </div>
-                      {#if item.alternatives.length > 0}
-                        <div class="phrase-alt">
-                          {item.alternatives.join(" | ")}
-                        </div>
-                      {/if}
-                      <div class="phrase-meta">
-                        {item.ngramLength}-gram, {item.cardPercentage.toFixed(
-                          1,
-                        )}% of cards
-                      </div>
-                    </div>
-                  {/each}
-                </div>
-              {/if}
-            {:else}
-              <div class="translation-empty">(no translation)</div>
-            {/if}
-          </div>
+          <TranslationPopover
+            {translation}
+            {phraseTranslations}
+            onClose={closePopover}
+          />
         {/if}
       </span>
     {/each}
