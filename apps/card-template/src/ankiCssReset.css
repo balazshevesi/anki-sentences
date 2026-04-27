@@ -1,0 +1,25 @@
+#front {
+  margin: 0;
+}
+
+#front,
+#front * {
+  box-sizing: border-box;
+}
+
+#front button {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  line-height: inherit;
+  box-shadow: none;
+  text-align: inherit;
+  text-shadow: none;
+}

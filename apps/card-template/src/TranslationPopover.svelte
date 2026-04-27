@@ -39,12 +39,15 @@
   });
 </script>
 
-<div class="popover-content" bind:this={popoverElement}>
+<div
+  class="absolute top-full left-1/2 z-10 mt-1.5 min-w-44 max-w-sm -translate-x-1/2 border border-gray-400 bg-white px-3 py-2 text-base leading-normal text-neutral-800 shadow-lg"
+  bind:this={popoverElement}
+>
   {#if translation.translatedText}
-    <div class="translation-main">{translation.translatedText}</div>
+    <div class="font-bold">{translation.translatedText}</div>
 
     {#if translation.alternatives.length > 0}
-      <div class="translation-alt">
+      <div class="mt-1 text-sm text-zinc-600">
         {#each translation.alternatives as alternative}
           {alternative}
           <br />
@@ -53,20 +56,22 @@
     {/if}
 
     {#if phraseTranslations.length > 0}
-      <div class="phrase-section">
-        <div class="phrase-title">Common phrases with this word</div>
+      <div class="mt-2 border-t border-gray-200 pt-2">
+        <div class="text-xs tracking-wide text-zinc-600 uppercase">
+          Common phrases with this word
+        </div>
         {#each phraseTranslations as item, phraseIndex (`phrase-${phraseIndex}`)}
-          <div class="phrase-entry">
-            <div class="phrase-source">{item.phrase}</div>
-            <div class="phrase-translation">
+          <div class="mt-1.5">
+            <div class="text-xs text-zinc-600">{item.phrase}</div>
+            <div class="font-semibold">
               {item.translatedText}
             </div>
             {#if item.alternatives.length > 0}
-              <div class="phrase-alt">
+              <div class="text-xs text-zinc-600">
                 {item.alternatives.join(" | ")}
               </div>
             {/if}
-            <div class="phrase-meta">
+            <div class="text-xs text-zinc-600">
               {item.ngramLength}-gram, {item.cardPercentage.toFixed(1)}% of
               cards
             </div>
@@ -75,6 +80,6 @@
       </div>
     {/if}
   {:else}
-    <div class="translation-empty">(no translation)</div>
+    <div class="mt-1 text-sm text-zinc-600">(no translation)</div>
   {/if}
 </div>

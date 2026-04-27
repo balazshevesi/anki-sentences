@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
+import tailwindcss from "@tailwindcss/vite";
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 
@@ -16,5 +17,9 @@ export default defineConfig({
   build: {
     target: "es2015",
   },
-  plugins: [svelte({ compilerOptions: { runes: true } }), viteSingleFile()],
+  plugins: [
+    tailwindcss(),
+    svelte({ compilerOptions: { runes: true } }),
+    viteSingleFile(),
+  ],
 });

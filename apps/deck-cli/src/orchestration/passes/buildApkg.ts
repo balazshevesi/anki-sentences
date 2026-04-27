@@ -146,7 +146,7 @@ export async function runBuildApkgPass(
   );
 
   const questionFormat = `
-    <div id="front" class="card-template-loading">{{Sentence}}</div>
+    <div id="front" class="card-template-loading" style="visibility: hidden">{{Sentence}}</div>
     <div id="cardPayload" hidden>{{cardPayload}}</div>
     <card-config hidden autoplay="true" replaykeybind="r"></card-config>
     ${ANKI_COMPAT_POLYFILLS}
@@ -154,8 +154,8 @@ export async function runBuildApkgPass(
   const answerFormat = `
     {{FrontSide}}
     <hr id="answer">
-    <div id="back-translation-wrapper">
-      <div id="back-translation">{{SentenceTranslation}}</div>
+    <div class="mx-auto max-w-3xl p-5 font-serif leading-normal sm:p-6">
+      <div class="text-center text-2xl leading-normal sm:text-3xl sm:leading-relaxed">{{SentenceTranslation}}</div>
     </div>`;
 
   const deck = new Anki(config.deckName, {

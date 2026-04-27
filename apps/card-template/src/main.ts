@@ -62,7 +62,8 @@ const readCardConfig = (
     replayKeybind: parseReplayKeybind(
       configElement?.getAttribute("replaykeybind") ??
         configElement?.getAttribute("replay-keybind") ??
-        configElement?.getAttribute("replayKeybind") ?? null,
+        configElement?.getAttribute("replayKeybind") ??
+        null,
     ),
   };
 };
@@ -216,7 +217,7 @@ const installGlobalEventListeners = (window: AnkiWindow): void => {
   window.ankiListenersInstalled = true;
 };
 
-const mountApp = (payload : TemplatePayload) => {
+const mountApp = (payload: TemplatePayload) => {
   ankiWindow.__cleanUp?.();
   const { target, ...props } = payload;
   const app = mount(App, { target, props });
@@ -224,6 +225,7 @@ const mountApp = (payload : TemplatePayload) => {
     unmount(app);
     delete ankiWindow.__cleanUp;
   };
+  target.style.visibility = "";
   target.classList.remove("card-template-loading");
 };
 

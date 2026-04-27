@@ -214,15 +214,19 @@
   });
 </script>
 
-<main class="card">
-  <div class="sentence" role="group" aria-label="Sentence words">
+<main class="m-0 mx-auto max-w-3xl p-5 font-serif leading-normal sm:p-6">
+  <div
+    class="flex flex-wrap justify-center gap-x-1.5 gap-y-0.5 text-center text-2xl leading-normal sm:text-3xl sm:leading-relaxed"
+    role="group"
+    aria-label="Sentence words"
+  >
     {#each tokens as word, index (`${word}-${index}`)}
       {@const translation = getTranslation(word)}
       {@const phraseTranslations = getNgramTranslationsForWord(word)}
 
-      <span class="word-wrapper">
+      <span class="relative inline-flex items-baseline">
         <button
-          class={`word ${activeAudioWordIndex === index ? "word-active" : ""}`}
+          class={`hover:opacity-80 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-blue-700 ${activeAudioWordIndex === index ? "underline underline-offset-4" : ""}`}
           type="button"
           onclick={() => onWordClick(index)}
         >
@@ -240,8 +244,9 @@
   </div>
 
   {#if readyAudioMetadata}
-    <div class="audio-row">
+    <div class="mt-4 block border-t border-gray-400 pt-3">
       <audio
+        class="w-full"
         bind:this={audioElement}
         src={readyAudioMetadata.audioFileName}
         controls
