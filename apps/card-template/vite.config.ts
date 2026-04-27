@@ -16,8 +16,5 @@ export default defineConfig({
   build: {
     target: "es2015",
   },
-  plugins: [
-    svelte({ compilerOptions: { runes: true } }),
-    viteSingleFile(),
-  ],
+  plugins: [svelte({ compilerOptions: { runes: true } }), viteSingleFile()],
 });

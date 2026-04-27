@@ -20,69 +20,55 @@
     replayKeybind: string | null;
   };
 
-  let { cardText, wordByWord, ngramTranslations, audioMetadata, autoplay, replayKeybind }: Props =
-    $props();
+  let {
+    cardText,
+    wordByWord,
+    ngramTranslations,
+    audioMetadata,
+    autoplay,
+    replayKeybind,
+  }: Props = $props();
 
-  function tokenizeSentence(input: string): string[] {
-    return input.trim().split(/\s+/).filter((token) => token.length > 0);
-  }
+  const tokenPattern = /[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu;
 
-  function createTokenPattern(): RegExp {
-    const fallbackPattern = /[A-Za-z0-9]+(?:['’\-][A-Za-z0-9]+)*/g;
-    try {
-      return new RegExp("[\\p{L}\\p{N}]+(?:['’\\-][\\p{L}\\p{N}]+)*", "gu");
-    } catch {
-      return fallbackPattern;
-    }
-  }
-
-  const tokenPattern = createTokenPattern();
-
-  function normalizeToken(input: string): string {
+  const normalizeToken = (input: string): string => {
     return input.toLowerCase().match(tokenPattern)?.[0] ?? "";
-  }
+  };
 
-  function buildNormalizedWordLookup(
+  const buildNormalizedWordLookup = (
     source: Record<string, WordTranslation>,
-  ): Record<string, WordTranslation> {
+  ): Record<string, WordTranslation> => {
     return Object.fromEntries(
       Object.entries(source)
-        .map(([word, translation]) => [normalizeToken(word), translation] as const)
+        .map(
+          ([word, translation]) => [normalizeToken(word), translation] as const,
+        )
         .filter(([word]) => word.length > 0),
     );
-  }
+  };
 
-  function normalizeNgramTranslations(input: NgramTranslation[]): NgramTranslation[] {
-    return input
-      .map((item) => normalizeNgramTranslation(item))
-      .filter((item) => item.phrase.length > 0 && item.translatedText.length > 0);
-  }
+  const formatReplayKeybindLabel = (value: string | null): string | null => {
+    const normalized = value?.trim();
+    if (!normalized) return null;
+    return normalized.length === 1 ? normalized.toUpperCase() : normalized;
+  };
 
-  function normalizeReplayKeybind(value: string | null): string | null {
-    if (!value) {
-      return null;
-    }
-
-    const normalized = value.trim();
-    return normalized.length > 0 ? normalized : null;
-  }
-
-  function formatReplayKeybindLabel(value: string | null): string | null {
-    if (!value) {
-      return null;
-    }
-
-    return value.length === 1 ? value.toUpperCase() : value;
-  }
-
-  let tokens: string[] = $derived(tokenizeSentence(cardText));
+  let tokens: string[] = $derived(
+    cardText
+      .trim()
+      .split(/\s+/)
+      .filter((token) => token.length > 0),
+  );
   let normalizedWordLookup = $derived(buildNormalizedWordLookup(wordByWord));
-  let normalizedNgrams = $derived(normalizeNgramTranslations(ngramTranslations));
+  let normalizedNgrams = $derived(
+    ngramTranslations
+      .map((item) => normalizeNgramTranslation(item))
+      .filter(
+        (item) => item.phrase.length > 0 && item.translatedText.length > 0,
+      ),
+  );
   let readyAudioMetadata = $derived(
     isReadyAudioMetadata(audioMetadata) ? audioMetadata : null,
-  );
-  let replayKeybindLabel = $derived(
-    formatReplayKeybindLabel(normalizeReplayKeybind(replayKeybind)),
   );
 
   let openWordIndex = $state<number | null>(null);
@@ -91,45 +77,26 @@
   let playbackClipEndMs = $state<number | null>(null);
   let hasAutoplayAttempted = $state(false);
 
-  function getTranslation(word: unknown): WordTranslation {
-    if (typeof word !== "string") {
-      return EMPTY_WORD_TRANSLATION;
-    }
-
+  const getTranslation = (word: unknown): WordTranslation => {
+    if (typeof word !== "string") return EMPTY_WORD_TRANSLATION;
     return (
       wordByWord[word] ??
       normalizedWordLookup[normalizeToken(word)] ??
       EMPTY_WORD_TRANSLATION
     );
-  }
+  };
 
-  function getNgramTranslationsForWord(word: unknown): NgramTranslation[] {
-    if (typeof word !== "string") {
-      return [];
-    }
-
+  const getNgramTranslationsForWord = (word: unknown): NgramTranslation[] => {
+    if (typeof word !== "string") return [];
     const normalizedWord = normalizeToken(word);
-    if (!normalizedWord) {
-      return [];
-    }
-
+    if (!normalizedWord) return [];
     return normalizedNgrams.filter((item) =>
       item.phrase.toLowerCase().match(tokenPattern)?.includes(normalizedWord),
     );
-  }
+  };
 
-  function getWordByIndex(index: number): AudioWordTimestamp | null {
-    if (!readyAudioMetadata) {
-      return null;
-    }
-
-    return readyAudioMetadata.words.find((entry) => entry.index === index) ?? null;
-  }
-
-  function getEstimatedWordDurationMs(): number {
-    if (!readyAudioMetadata) {
-      return 420;
-    }
+  const getEstimatedWordDurationMs = (): number => {
+    if (!readyAudioMetadata) return 420;
 
     const durations = readyAudioMetadata.words
       .map((word) => {
@@ -143,44 +110,29 @@
       .filter((duration): duration is number => duration !== null)
       .sort((a, b) => a - b);
 
-    if (durations.length === 0) {
-      return 420;
-    }
-
+    if (durations.length === 0) return 420;
     const middle = Math.floor(durations.length / 2);
     return Math.max(120, Math.min(1_200, durations[middle] ?? 420));
-  }
+  };
 
   let estimatedWordDurationMs = $derived(getEstimatedWordDurationMs());
 
-  function getWordEndMs(word: AudioWordTimestamp): number | null {
-    if (!readyAudioMetadata || word.startMs === null) {
-      return null;
-    }
-
-    if (word.endMs !== null && word.endMs > word.startMs) {
-      return word.endMs;
-    }
-
-    const nextWordStartMs = readyAudioMetadata.words
-      .filter((entry) => entry.index > word.index && entry.startMs !== null)
-      .map((entry) => entry.startMs)
-      .sort((a, b) => a - b)[0];
-
+  const getWordEndMs = (word: AudioWordTimestamp): number | null => {
+    if (!readyAudioMetadata || word.startMs === null) return null;
+    if (word.endMs !== null && word.endMs > word.startMs) return word.endMs;
+    const nextWordStartMs = readyAudioMetadata.words.find(
+      (entry) => entry.index > word.index && entry.startMs !== null,
+    )?.startMs;
     return nextWordStartMs ?? word.startMs + estimatedWordDurationMs;
-  }
+  };
 
-  function findActiveAudioWordIndex(currentMs: number): number | null {
-    if (!readyAudioMetadata) {
-      return null;
-    }
-
+  const findActiveAudioWordIndex = (currentMs: number): number | null => {
+    if (!readyAudioMetadata) return null;
     for (let index = 0; index < readyAudioMetadata.words.length; index += 1) {
       const currentWord = readyAudioMetadata.words[index];
       if (!currentWord || currentWord.startMs === null) {
         continue;
       }
-
       const nextWord = readyAudioMetadata.words[index + 1];
       const effectiveEndMs = currentWord.endMs ?? nextWord?.startMs ?? null;
 
@@ -196,15 +148,11 @@
         return currentWord.index;
       }
     }
-
     return null;
-  }
+  };
 
-  function syncWordHighlightFromAudio(): void {
-    if (!audioElement) {
-      return;
-    }
-
+  const syncWordHighlightFromAudio = (): void => {
+    if (!audioElement) return;
     const currentMs = Math.round(audioElement.currentTime * 1_000);
     if (playbackClipEndMs !== null && currentMs >= playbackClipEndMs) {
       audioElement.currentTime = playbackClipEndMs / 1_000;
@@ -212,27 +160,22 @@
       playbackClipEndMs = null;
       return;
     }
-
     activeAudioWordIndex = findActiveAudioWordIndex(currentMs);
-  }
+  };
 
-  function replayAudioFromStart(): void {
-    if (!audioElement) {
-      return;
-    }
-
+  const replayAudioFromStart = (): void => {
+    if (!audioElement) return;
     playbackClipEndMs = null;
     activeAudioWordIndex = null;
     audioElement.currentTime = 0;
     void audioElement.play().catch(() => {});
-  }
+  };
 
-  function jumpToWord(index: number): void {
-    const timestamp = getWordByIndex(index);
-    if (!audioElement || !timestamp || timestamp.startMs === null) {
-      return;
-    }
-
+  const jumpToWord = (index: number): void => {
+    const timestamp = readyAudioMetadata?.words.find(
+      (entry) => entry.index === index,
+    );
+    if (!audioElement || !timestamp || timestamp.startMs === null) return;
     const endMs = getWordEndMs(timestamp);
     playbackClipEndMs = endMs !== null ? endMs - 1 : null;
     audioElement.currentTime = timestamp.startMs / 1_000;
@@ -240,30 +183,23 @@
     void audioElement.play().catch(() => {
       playbackClipEndMs = null;
     });
-  }
+  };
 
-  function onWordClick(index: number): void {
+  const onWordClick = (index: number): void => {
     jumpToWord(index);
     openWordIndex = openWordIndex === index ? null : index;
-  }
-
-  function onAudioPause(): void {
-    playbackClipEndMs = null;
-  }
-
-  function onAudioEnded(): void {
+  };
+  const onAudioPause = (): void => (playbackClipEndMs = null);
+  const onAudioEnded = (): void => {
     playbackClipEndMs = null;
     activeAudioWordIndex = null;
-  }
-
-  function onAudioSeeking(): void {
+  };
+  const onAudioSeeking = (): void => {
     playbackClipEndMs = null;
     syncWordHighlightFromAudio();
-  }
-
-  function isAnswerSide(): boolean {
-    return document.getElementById("answer") !== null;
-  }
+  };
+  const isAnswerSide = (): boolean =>
+    document.getElementById("answer") !== null;
 
   $effect(() => {
     if (
@@ -315,16 +251,21 @@
               {#if phraseTranslations.length > 0}
                 <div class="phrase-section">
                   <div class="phrase-title">Common phrases with this word</div>
-                  {#each phraseTranslations as rawItem, phraseIndex (`phrase-${phraseIndex}`)}
-                    {@const item = normalizeNgramTranslation(rawItem)}
+                  {#each phraseTranslations as item, phraseIndex (`phrase-${phraseIndex}`)}
                     <div class="phrase-entry">
                       <div class="phrase-source">{item.phrase}</div>
-                      <div class="phrase-translation">{item.translatedText}</div>
+                      <div class="phrase-translation">
+                        {item.translatedText}
+                      </div>
                       {#if item.alternatives.length > 0}
-                        <div class="phrase-alt">{item.alternatives.join(" | ")}</div>
+                        <div class="phrase-alt">
+                          {item.alternatives.join(" | ")}
+                        </div>
                       {/if}
                       <div class="phrase-meta">
-                        {item.ngramLength}-gram, {item.cardPercentage.toFixed(1)}% of cards
+                        {item.ngramLength}-gram, {item.cardPercentage.toFixed(
+                          1,
+                        )}% of cards
                       </div>
                     </div>
                   {/each}
@@ -351,13 +292,6 @@
         ontimeupdate={syncWordHighlightFromAudio}
         onseeking={onAudioSeeking}
       ></audio>
-
-      <p class="audio-hint">
-        Click a word to jump to that point in the audio.
-        {#if replayKeybindLabel}
-          Press {replayKeybindLabel} to replay the sentence audio.
-        {/if}
-      </p>
     </div>
   {/if}
 </main>
