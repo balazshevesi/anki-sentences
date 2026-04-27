@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
   import {
     EMPTY_WORD_TRANSLATION,
     normalizeNgramTranslation,
@@ -19,35 +18,17 @@
     audioMetadata: AudioMetadata | null;
     autoplay: boolean;
     replayKeybind: string | null;
-    instanceId: string;
   };
 
-  let {
-    cardText,
-    wordByWord,
-    ngramTranslations,
-    audioMetadata,
-    autoplay,
-    replayKeybind,
-    instanceId,
-  }: Props = $props();
-
-  type CardTemplateWindow = Window & {
-    __cardTemplateActiveInstanceId?: string;
-  };
+  let { cardText, wordByWord, ngramTranslations, audioMetadata, autoplay, replayKeybind }: Props =
+    $props();
 
   function tokenizeSentence(input: string): string[] {
-    return input
-      .trim()
-      .split(/\s+/)
-      .filter((token) => token.length > 0);
+    return input.trim().split(/\s+/).filter((token) => token.length > 0);
   }
 
-  let tokens: string[] = $derived(tokenizeSentence(cardText));
-
-  function createTokenMatchPattern(): RegExp {
+  function createTokenPattern(): RegExp {
     const fallbackPattern = /[A-Za-z0-9]+(?:['’\-][A-Za-z0-9]+)*/g;
-
     try {
       return new RegExp("[\\p{L}\\p{N}]+(?:['’\\-][\\p{L}\\p{N}]+)*", "gu");
     } catch {
@@ -55,14 +36,10 @@
     }
   }
 
-  const tokenMatchPattern = createTokenMatchPattern();
+  const tokenPattern = createTokenPattern();
 
-  function tokenizeForMatch(input: string): string[] {
-    return input.toLowerCase().match(tokenMatchPattern) ?? [];
-  }
-
-  function normalizeTokenForMatch(input: string): string {
-    return tokenizeForMatch(input)[0] ?? "";
+  function normalizeToken(input: string): string {
+    return input.toLowerCase().match(tokenPattern)?.[0] ?? "";
   }
 
   function buildNormalizedWordLookup(
@@ -70,74 +47,23 @@
   ): Record<string, WordTranslation> {
     return Object.fromEntries(
       Object.entries(source)
-        .map(([key, value]) => [normalizeTokenForMatch(key), value] as const)
-        .filter(([key]) => key.length > 0),
+        .map(([word, translation]) => [normalizeToken(word), translation] as const)
+        .filter(([word]) => word.length > 0),
     );
   }
 
-  let normalizedWordLookup = $derived(buildNormalizedWordLookup(wordByWord));
-
-  function getTranslation(word: unknown): WordTranslation {
-    if (typeof word !== "string") {
-      return EMPTY_WORD_TRANSLATION;
-    }
-
-    return (
-      wordByWord[word] ??
-      normalizedWordLookup[normalizeTokenForMatch(word)] ??
-      EMPTY_WORD_TRANSLATION
-    );
-  }
-
-  function normalizeNgramTranslations(
-    input: NgramTranslation[],
-  ): NgramTranslation[] {
-    if (!Array.isArray(input)) {
-      return [];
-    }
-
+  function normalizeNgramTranslations(input: NgramTranslation[]): NgramTranslation[] {
     return input
       .map((item) => normalizeNgramTranslation(item))
-      .filter(
-        (item) => item.phrase.length > 0 && item.translatedText.length > 0,
-      );
+      .filter((item) => item.phrase.length > 0 && item.translatedText.length > 0);
   }
-
-  let normalizedNgramTranslations = $derived(
-    normalizeNgramTranslations(ngramTranslations),
-  );
-
-  function getNgramTranslationsForWord(word: unknown): NgramTranslation[] {
-    if (typeof word !== "string") {
-      return [];
-    }
-
-    const normalizedWord = normalizeTokenForMatch(word);
-    if (!normalizedWord) {
-      return [];
-    }
-
-    return normalizedNgramTranslations.filter((item) =>
-      tokenizeForMatch(item.phrase).includes(normalizedWord),
-    );
-  }
-
-  let readyAudioMetadata = $derived(
-    isReadyAudioMetadata(audioMetadata) ? audioMetadata : null,
-  );
-  let openWordIndex = $state<number | null>(null);
-  let audioElement = $state<HTMLAudioElement | null>(null);
-  let activeAudioWordIndex = $state<number | null>(null);
-  let playbackClipEndMs = $state<number | null>(null);
-  let playbackFrameId = $state<number | null>(null);
-  let hasAutoplayAttempted = $state(false);
 
   function normalizeReplayKeybind(value: string | null): string | null {
-    if (value === null) {
+    if (!value) {
       return null;
     }
 
-    const normalized = value.trim().toLowerCase();
+    const normalized = value.trim();
     return normalized.length > 0 ? normalized : null;
   }
 
@@ -149,64 +75,47 @@
     return value.length === 1 ? value.toUpperCase() : value;
   }
 
-  let normalizedReplayKeybind = $derived(normalizeReplayKeybind(replayKeybind));
+  let tokens: string[] = $derived(tokenizeSentence(cardText));
+  let normalizedWordLookup = $derived(buildNormalizedWordLookup(wordByWord));
+  let normalizedNgrams = $derived(normalizeNgramTranslations(ngramTranslations));
+  let readyAudioMetadata = $derived(
+    isReadyAudioMetadata(audioMetadata) ? audioMetadata : null,
+  );
   let replayKeybindLabel = $derived(
-    formatReplayKeybindLabel(normalizedReplayKeybind),
+    formatReplayKeybindLabel(normalizeReplayKeybind(replayKeybind)),
   );
 
-  function onWordClick(index: number): void {
-    jumpToWord(index);
-    openWordIndex = openWordIndex === index ? null : index;
-  }
+  let openWordIndex = $state<number | null>(null);
+  let audioElement = $state<HTMLAudioElement | null>(null);
+  let activeAudioWordIndex = $state<number | null>(null);
+  let playbackClipEndMs = $state<number | null>(null);
+  let hasAutoplayAttempted = $state(false);
 
-  function isActiveCardInstance(): boolean {
-    if (!audioElement) {
-      return false;
+  function getTranslation(word: unknown): WordTranslation {
+    if (typeof word !== "string") {
+      return EMPTY_WORD_TRANSLATION;
     }
 
-    const cardTemplateWindow = window as CardTemplateWindow;
-    if (cardTemplateWindow.__cardTemplateActiveInstanceId !== instanceId) {
-      return false;
-    }
-
-    if (!audioElement.isConnected) {
-      return false;
-    }
-
-    const frontElement = audioElement.closest("#front");
     return (
-      frontElement instanceof HTMLElement &&
-      frontElement.isConnected &&
-      frontElement.dataset.cardTemplateActive === "true"
+      wordByWord[word] ??
+      normalizedWordLookup[normalizeToken(word)] ??
+      EMPTY_WORD_TRANSLATION
     );
   }
 
-  function syncAudioElementSource(): void {
-    if (!audioElement || !readyAudioMetadata) {
-      return;
+  function getNgramTranslationsForWord(word: unknown): NgramTranslation[] {
+    if (typeof word !== "string") {
+      return [];
     }
 
-    const expectedSource = readyAudioMetadata.audioFileName;
-    const currentSource = audioElement.getAttribute("src") ?? "";
-    if (currentSource === expectedSource) {
-      return;
+    const normalizedWord = normalizeToken(word);
+    if (!normalizedWord) {
+      return [];
     }
 
-    audioElement.setAttribute("src", expectedSource);
-    audioElement.load();
-  }
-
-  function replayAudioFromStart(): void {
-    if (!audioElement || !isActiveCardInstance()) {
-      return;
-    }
-
-    syncAudioElementSource();
-
-    playbackClipEndMs = null;
-    activeAudioWordIndex = null;
-    audioElement.currentTime = 0;
-    void audioElement.play().catch(() => {});
+    return normalizedNgrams.filter((item) =>
+      item.phrase.toLowerCase().match(tokenPattern)?.includes(normalizedWord),
+    );
   }
 
   function getWordByIndex(index: number): AudioWordTimestamp | null {
@@ -214,17 +123,15 @@
       return null;
     }
 
-    return (
-      readyAudioMetadata.words.find((entry) => entry.index === index) ?? null
-    );
+    return readyAudioMetadata.words.find((entry) => entry.index === index) ?? null;
   }
 
-  function calculateEstimatedWordDurationMs(): number {
+  function getEstimatedWordDurationMs(): number {
     if (!readyAudioMetadata) {
       return 420;
     }
 
-    const explicitDurations = readyAudioMetadata.words
+    const durations = readyAudioMetadata.words
       .map((word) => {
         if (word.startMs === null || word.endMs === null) {
           return null;
@@ -236,16 +143,15 @@
       .filter((duration): duration is number => duration !== null)
       .sort((a, b) => a - b);
 
-    if (explicitDurations.length === 0) {
+    if (durations.length === 0) {
       return 420;
     }
 
-    const middleIndex = Math.floor(explicitDurations.length / 2);
-    const medianDuration = explicitDurations[middleIndex] ?? 420;
-    return Math.max(120, Math.min(1_200, medianDuration));
+    const middle = Math.floor(durations.length / 2);
+    return Math.max(120, Math.min(1_200, durations[middle] ?? 420));
   }
 
-  let estimatedWordDurationMs = $derived(calculateEstimatedWordDurationMs());
+  let estimatedWordDurationMs = $derived(getEstimatedWordDurationMs());
 
   function getWordEndMs(word: AudioWordTimestamp): number | null {
     if (!readyAudioMetadata || word.startMs === null) {
@@ -261,15 +167,7 @@
       .map((entry) => entry.startMs)
       .sort((a, b) => a - b)[0];
 
-    if (typeof nextWordStartMs === "number") {
-      return nextWordStartMs;
-    }
-
-    return word.startMs + estimatedWordDurationMs;
-  }
-
-  function getWordTimestamp(index: number): AudioWordTimestamp | null {
-    return getWordByIndex(index);
+    return nextWordStartMs ?? word.startMs + estimatedWordDurationMs;
   }
 
   function findActiveAudioWordIndex(currentMs: number): number | null {
@@ -277,52 +175,29 @@
       return null;
     }
 
-    const words = readyAudioMetadata.words;
-    for (let index = 0; index < words.length; index += 1) {
-      const current = words[index];
-      if (!current || current.startMs === null) {
+    for (let index = 0; index < readyAudioMetadata.words.length; index += 1) {
+      const currentWord = readyAudioMetadata.words[index];
+      if (!currentWord || currentWord.startMs === null) {
         continue;
       }
 
-      const next = words[index + 1];
-      const fallbackEndMs = next?.startMs ?? null;
-      const effectiveEndMs = current.endMs ?? fallbackEndMs;
+      const nextWord = readyAudioMetadata.words[index + 1];
+      const effectiveEndMs = currentWord.endMs ?? nextWord?.startMs ?? null;
 
-      if (effectiveEndMs === null) {
-        if (currentMs >= current.startMs) {
-          return current.index;
-        }
-        continue;
+      if (effectiveEndMs === null && currentMs >= currentWord.startMs) {
+        return currentWord.index;
       }
 
-      if (currentMs >= current.startMs && currentMs < effectiveEndMs) {
-        return current.index;
+      if (
+        effectiveEndMs !== null &&
+        currentMs >= currentWord.startMs &&
+        currentMs < effectiveEndMs
+      ) {
+        return currentWord.index;
       }
     }
 
     return null;
-  }
-
-  function jumpToWord(index: number): void {
-    const timestamp = getWordTimestamp(index);
-    if (
-      !audioElement ||
-      !timestamp ||
-      timestamp.startMs === null ||
-      !isActiveCardInstance()
-    ) {
-      return;
-    }
-
-    syncAudioElementSource();
-
-    playbackClipEndMs = getWordEndMs(timestamp) - 1;
-
-    audioElement.currentTime = timestamp.startMs / 1_000;
-    activeAudioWordIndex = index;
-    void audioElement.play().catch(() => {
-      playbackClipEndMs = null;
-    });
   }
 
   function syncWordHighlightFromAudio(): void {
@@ -331,7 +206,6 @@
     }
 
     const currentMs = Math.round(audioElement.currentTime * 1_000);
-
     if (playbackClipEndMs !== null && currentMs >= playbackClipEndMs) {
       audioElement.currentTime = playbackClipEndMs / 1_000;
       audioElement.pause();
@@ -342,56 +216,48 @@
     activeAudioWordIndex = findActiveAudioWordIndex(currentMs);
   }
 
-  function stopPlaybackLoop(): void {
-    if (playbackFrameId === null) {
+  function replayAudioFromStart(): void {
+    if (!audioElement) {
       return;
     }
 
-    cancelAnimationFrame(playbackFrameId);
-    playbackFrameId = null;
+    playbackClipEndMs = null;
+    activeAudioWordIndex = null;
+    audioElement.currentTime = 0;
+    void audioElement.play().catch(() => {});
   }
 
-  function startPlaybackLoop(): void {
-    if (playbackFrameId !== null) {
+  function jumpToWord(index: number): void {
+    const timestamp = getWordByIndex(index);
+    if (!audioElement || !timestamp || timestamp.startMs === null) {
       return;
     }
 
-    const frame = (): void => {
-      syncWordHighlightFromAudio();
-      playbackFrameId = requestAnimationFrame(frame);
-    };
-
-    playbackFrameId = requestAnimationFrame(frame);
+    const endMs = getWordEndMs(timestamp);
+    playbackClipEndMs = endMs !== null ? endMs - 1 : null;
+    audioElement.currentTime = timestamp.startMs / 1_000;
+    activeAudioWordIndex = index;
+    void audioElement.play().catch(() => {
+      playbackClipEndMs = null;
+    });
   }
 
-  onDestroy(() => {
-    stopPlaybackLoop();
-  });
-
-  function onAudioPlay(): void {
-    startPlaybackLoop();
+  function onWordClick(index: number): void {
+    jumpToWord(index);
+    openWordIndex = openWordIndex === index ? null : index;
   }
 
   function onAudioPause(): void {
-    stopPlaybackLoop();
     playbackClipEndMs = null;
   }
 
   function onAudioEnded(): void {
-    stopPlaybackLoop();
     playbackClipEndMs = null;
     activeAudioWordIndex = null;
   }
 
-  function onAudioTimeUpdate(event: Event): void {
-    if (!(event.currentTarget instanceof HTMLAudioElement)) {
-      return;
-    }
-
-    syncWordHighlightFromAudio();
-  }
-
   function onAudioSeeking(): void {
+    playbackClipEndMs = null;
     syncWordHighlightFromAudio();
   }
 
@@ -405,8 +271,7 @@
       !readyAudioMetadata ||
       !audioElement ||
       hasAutoplayAttempted ||
-      isAnswerSide() ||
-      !isActiveCardInstance()
+      isAnswerSide()
     ) {
       return;
     }
@@ -422,10 +287,8 @@
   <div class="sentence" role="group" aria-label="Sentence words">
     {#each tokens as word, index (`${word}-${index}`)}
       {@const translation = getTranslation(word)}
-      {@const translatedWord = translation.translatedText}
-      {@const alternatives = translation.alternatives}
-      {@const frequency = translation.frequency}
       {@const phraseTranslations = getNgramTranslationsForWord(word)}
+
       <span class="word-wrapper">
         <button
           class={`word ${activeAudioWordIndex === index ? "word-active" : ""}`}
@@ -434,26 +297,21 @@
         >
           {word}
         </button>
+
         {#if openWordIndex === index}
           <div class="popover-content">
-            {#if translatedWord}
-              <div class="translation-main">{translatedWord}</div>
-              {#if alternatives.length > 0}
+            {#if translation.translatedText}
+              <div class="translation-main">{translation.translatedText}</div>
+
+              {#if translation.alternatives.length > 0}
                 <div class="translation-alt">
-                  {#each alternatives as alternative}
+                  {#each translation.alternatives as alternative}
                     {alternative}
                     <br />
                   {/each}
                 </div>
               {/if}
-              {#if frequency.hint}
-                <div class="translation-frequency">
-                  {frequency.hint}
-                  {#if frequency.occurrencePercentage !== null}
-                    ({frequency.occurrencePercentage.toFixed(4)}%)
-                  {/if}
-                </div>
-              {/if}
+
               {#if phraseTranslations.length > 0}
                 <div class="phrase-section">
                   <div class="phrase-title">Common phrases with this word</div>
@@ -461,18 +319,12 @@
                     {@const item = normalizeNgramTranslation(rawItem)}
                     <div class="phrase-entry">
                       <div class="phrase-source">{item.phrase}</div>
-                      <div class="phrase-translation">
-                        {item.translatedText}
-                      </div>
+                      <div class="phrase-translation">{item.translatedText}</div>
                       {#if item.alternatives.length > 0}
-                        <div class="phrase-alt">
-                          {item.alternatives.join(" | ")}
-                        </div>
+                        <div class="phrase-alt">{item.alternatives.join(" | ")}</div>
                       {/if}
                       <div class="phrase-meta">
-                        {item.ngramLength}-gram, {item.cardPercentage.toFixed(
-                          1,
-                        )}% of cards
+                        {item.ngramLength}-gram, {item.cardPercentage.toFixed(1)}% of cards
                       </div>
                     </div>
                   {/each}
@@ -491,14 +343,12 @@
     <div class="audio-row">
       <audio
         bind:this={audioElement}
-        data-card-template-instance-id={instanceId}
         src={readyAudioMetadata.audioFileName}
         controls
         preload="metadata"
-        onplay={onAudioPlay}
         onpause={onAudioPause}
         onended={onAudioEnded}
-        ontimeupdate={onAudioTimeUpdate}
+        ontimeupdate={syncWordHighlightFromAudio}
         onseeking={onAudioSeeking}
       ></audio>
 
@@ -511,140 +361,3 @@
     </div>
   {/if}
 </main>
-
-<style>
-  .card {
-    margin: 0 auto;
-    max-width: 50rem;
-    padding: 1rem;
-  }
-
-  .sentence {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.15rem 0.35rem;
-    font-size: 2rem;
-    line-height: 1.7;
-  }
-
-  .word-wrapper {
-    position: relative;
-    display: inline-flex;
-    align-items: baseline;
-  }
-
-  .word {
-    margin: 0;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    font: inherit;
-    line-height: inherit;
-    padding: 0;
-    text-align: inherit;
-    border-radius: 0;
-    box-shadow: none;
-    text-shadow: none;
-  }
-
-  .word:hover {
-    opacity: 0.8;
-  }
-
-  .word:focus-visible {
-    outline: 1px solid #36c;
-    outline-offset: 1px;
-  }
-
-  .word-active {
-    /*color: #36c;*/
-    text-decoration: underline;
-    text-underline-offset: 0.16em;
-  }
-
-  .popover-content {
-    position: absolute;
-    left: 50%;
-    top: calc(100% + 0.35rem);
-    transform: translateX(-50%);
-    z-index: 10;
-    max-width: 22rem;
-    min-width: 11rem;
-    border: 1px solid #a2a9b1;
-    background: #fff;
-    color: #202122;
-    box-shadow: 0 4px 18px rgb(0 0 0 / 18%);
-    padding: 0.65rem 0.8rem;
-    font-size: 0.95rem;
-    line-height: 1.4;
-  }
-
-  .translation-main {
-    font-weight: 700;
-  }
-
-  .translation-alt,
-  .translation-frequency,
-  .translation-empty {
-    color: #54595d;
-    margin-top: 0.3rem;
-    font-size: 0.86rem;
-  }
-
-  .phrase-section {
-    margin-top: 0.45rem;
-    border-top: 1px solid #eaecf0;
-    padding-top: 0.45rem;
-  }
-
-  .phrase-title {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #54595d;
-  }
-
-  .phrase-entry {
-    margin-top: 0.35rem;
-  }
-
-  .phrase-source,
-  .phrase-meta,
-  .phrase-alt {
-    color: #54595d;
-    font-size: 0.78rem;
-  }
-
-  .phrase-translation {
-    font-weight: 600;
-  }
-
-  .audio-row {
-    margin-top: 1rem;
-    border-top: 1px solid #a2a9b1;
-    padding-top: 0.75rem;
-  }
-
-  .audio-row audio {
-    width: 100%;
-  }
-
-  .audio-hint {
-    margin: 0.45rem 0 0;
-    color: #54595d;
-    font-size: 0.82rem;
-  }
-
-  @media (max-width: 640px) {
-    .card {
-      padding: 0.75rem;
-    }
-
-    .sentence {
-      font-size: 1.45rem;
-      line-height: 1.55;
-    }
-  }
-</style>

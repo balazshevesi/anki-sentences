@@ -18,6 +18,128 @@
   text-shadow: none;
 }
 
+#front .card {
+  margin: 0 auto;
+  max-width: 50rem;
+  padding: 1rem;
+}
+
+#front .sentence {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.15rem 0.35rem;
+  font-size: 2rem;
+  line-height: 1.7;
+}
+
+#front .word-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+}
+
+#front .word {
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  line-height: inherit;
+  padding: 0;
+  text-align: inherit;
+}
+
+#front .word:hover {
+  opacity: 0.8;
+}
+
+#front .word:focus-visible {
+  outline: 1px solid #36c;
+  outline-offset: 1px;
+}
+
+#front .word-active {
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+#front .popover-content {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 0.35rem);
+  transform: translateX(-50%);
+  z-index: 10;
+  max-width: 22rem;
+  min-width: 11rem;
+  border: 1px solid #a2a9b1;
+  background: #fff;
+  color: #202122;
+  box-shadow: 0 4px 18px rgb(0 0 0 / 18%);
+  padding: 0.65rem 0.8rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+#front .translation-main {
+  font-weight: 700;
+}
+
+#front .translation-alt,
+#front .translation-empty {
+  color: #54595d;
+  margin-top: 0.3rem;
+  font-size: 0.86rem;
+}
+
+#front .phrase-section {
+  margin-top: 0.45rem;
+  border-top: 1px solid #eaecf0;
+  padding-top: 0.45rem;
+}
+
+#front .phrase-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #54595d;
+}
+
+#front .phrase-entry {
+  margin-top: 0.35rem;
+}
+
+#front .phrase-source,
+#front .phrase-meta,
+#front .phrase-alt {
+  color: #54595d;
+  font-size: 0.78rem;
+}
+
+#front .phrase-translation {
+  font-weight: 600;
+}
+
+#front .audio-row {
+  display: block;
+  margin-top: 1rem;
+  border-top: 1px solid #a2a9b1;
+  padding-top: 0.75rem;
+}
+
+#front .audio-row audio {
+  width: 100%;
+}
+
+#front .audio-hint {
+  display: block;
+  margin: 0.45rem 0 0;
+  color: #54595d;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
 .card-template-loading {
   visibility: hidden;
 }
@@ -36,6 +158,15 @@
 }
 
 @media (max-width: 640px) {
+  #front .card {
+    padding: 0.75rem;
+  }
+
+  #front .sentence {
+    font-size: 1.45rem;
+    line-height: 1.55;
+  }
+
   #back-translation-wrapper {
     padding: 0.75rem;
   }
