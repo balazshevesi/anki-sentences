@@ -206,9 +206,6 @@ If `cardPayload.audioMetadata` contains ready Google TTS entries, matching `.aac
 
 ## TODO (the project is currently like 90% complete, maybe like 5h left of work)
 
-- [ ] Tweak UI interactions a little
-- [ ] Rework the word-by-word translation pipeline, it would probably be best to just have one big js object which would essentially contain the translations for all words. This dictionary could be loaded into the anki window object. Maybe provide this as an alternative option available to configure in the config?
+- [ ] Add full guide in readme + breakdown of the API costs breakdown of API usage
 - [ ] Add the loop for gathering the x most common words before generating
-- [ ] Add full guide in readme + breakdown of the API costs breakdown of generating 10k sentences
-- [ ] Add google translate adapter
 - [ ] Add more details (license, inspiration, etc) and stuff in the readme

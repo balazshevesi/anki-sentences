@@ -180,9 +180,12 @@
   };
 
   const onWordClick = (index: number): void => {
-    jumpToWord(index);
     openWordIndex = openWordIndex === index ? null : index;
   };
+  const canPlayWordAudio = (index: number): boolean =>
+    readyAudioMetadata?.words.some(
+      (entry) => entry.index === index && entry.startMs !== null,
+    ) ?? false;
   const closePopover = (): void => (openWordIndex = null);
   const onAudioPause = (): void => (playbackClipEndMs = null);
   const onAudioEnded = (): void => {
@@ -236,6 +239,9 @@
           <TranslationPopover
             {translation}
             {phraseTranslations}
+            onPlayAudio={canPlayWordAudio(index)
+              ? () => jumpToWord(index)
+              : null}
             onClose={closePopover}
           />
         {/if}

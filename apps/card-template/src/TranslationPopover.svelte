@@ -7,10 +7,12 @@
   type Props = {
     translation: WordTranslation;
     phraseTranslations: NgramTranslation[];
+    onPlayAudio: (() => void) | null;
     onClose: () => void;
   };
 
-  let { translation, phraseTranslations, onClose }: Props = $props();
+  let { translation, phraseTranslations, onPlayAudio, onClose }: Props =
+    $props();
   let popoverElement = $state<HTMLDivElement | null>(null);
 
   $effect(() => {
@@ -40,7 +42,7 @@
 </script>
 
 <div
-  class="absolute top-full left-1/2 z-10 mt-1.5 min-w-44 max-w-sm -translate-x-1/2 border border-gray-400 bg-white px-3 py-2 text-base leading-normal text-neutral-800 shadow-lg"
+  class="absolute top-full left-1/2 z-10 mt-1.5 min-w-44 max-w-sm -translate-x-1/2 border border-gray-400 bg-white px-3 py-2 text-left text-base leading-normal text-neutral-800 shadow-lg"
   bind:this={popoverElement}
 >
   {#if translation.translatedText}
@@ -81,5 +83,14 @@
     {/if}
   {:else}
     <div class="mt-1 text-sm text-zinc-600">(no translation)</div>
+  {/if}
+
+  {#if onPlayAudio}
+    <button
+      class="mt-2 block text-sm font-semibold text-blue-700 underline underline-offset-2"
+      type="button"
+      onclick={onPlayAudio}
+      >🔊
+    </button>
   {/if}
 </div>

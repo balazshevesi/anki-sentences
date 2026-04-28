@@ -3,12 +3,12 @@
 
   // Ordered pass list. Remove entries to skip a pass.
   "passes": [
-    "retrieve",
-    "enrich-translations",
-    "enrich-translation-alternatives",
-    "enrich-difficulty",
-    "enrich-audio",
-    "build-apkg",
+    // "retrieve", // retrives sentences, along with their full translations
+    // "enrich-translations", // enrich the sentences with word-by-word translations
+    // "enrich-translation-alternatives", // will (potentially) missing alternatives for the word-by-word translations
+    // "enrich-difficulty", // calculate the difficulty score for each sentence, and order them accordingly
+    // "enrich-audio", // generate text-to-speech-audio
+    "build-apkg", // build the card template and create the actuall apkg
   ],
 
   // CSV path used by all pipeline passes.
