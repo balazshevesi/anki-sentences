@@ -252,13 +252,13 @@ Useful commands:
 - Google Cloud Translation: `https://cloud.google.com/translate`
 - Google Cloud Text-to-Speech: `https://cloud.google.com/text-to-speech`
 
-## Project Status
+## Project Status + Notes
 
 This project is feature-complete for its original goal: generating personal Anki sentence decks from Tatoeba with translation hints, difficulty ordering, audio, and a bundled card UI.
 
 Future work is expected to be maintenance, source updates, small quality fixes.
 
-Feel free to reach out if you have any questions :)
+Dont hesitate to send a pr and feel free to reach out if you have any questions :)
 
 ## License
 
