@@ -1,5 +1,7 @@
 # Anki Language Sentence Study Decks
 
+<video src="./assets/demo.mov" controls muted playsinline></video>
+
 A toolkit for building sentence-based [Anki](https://apps.ankiweb.net/) decks from [Tatoeba](https://tatoeba.org/en/) data.
 
 The project takes a list of target words, or the top N words from a frequency list, finds useful example sentences, enriches each card with translations, difficulty metadata, and Google Text-to-Speech audio, then exports a ready-to-import `.apkg` file.
