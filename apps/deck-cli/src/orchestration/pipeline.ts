@@ -20,7 +20,9 @@ export async function runDeckPipeline(config: {
   passes: PipelinePass[];
 }): Promise<void> {
   const startedAt = Date.now();
-  const integrations = createIntegrationContext();
+  const integrations = createIntegrationContext({
+    translationProvider: config.deck.translationProvider,
+  });
   console.log(
     `[pipeline] Starting deck pipeline (${config.csvPath} -> ${config.deck.outputPath})`,
   );

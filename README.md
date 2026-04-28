@@ -1,6 +1,6 @@
 # anki-language-sentence-study-decks
 
-Build Anki sentence decks from Tatoeba, with word-level translation hints from a local Argos Translate server and Google Text-to-Speech audio metadata.
+Build Anki sentence decks from Tatoeba, with word-level translation hints from Argos or Google Translate and Google Text-to-Speech audio metadata.
 
 ## Repo layout
 
@@ -36,18 +36,24 @@ bun install --cwd apps/card-template
 uv sync --directory apps/argos-translate-service
 ```
 
-## Argos configuration
+## Translation configuration
 
-Deck generation reads Argos settings from `apps/deck-cli/deck.config.jsonc`:
+Deck generation reads translation settings from `apps/deck-cli/deck.config.jsonc`. Use `translation.provider` to choose Argos or Google:
 
 ```jsonc
-"argos": {
+"translation": {
+  "provider": "argos",
   "sourceLanguage": "en",
   "targetLanguage": "hu",
-  "alternatives": 3,
-  "translateUrl": "http://127.0.0.1:8000/translate"
+  "argos": {
+    "translateUrl": "http://127.0.0.1:8000/translate",
+    "cachePath": "../../output/argos-translate-cache.json",
+    "alternatives": 3
+  }
 }
 ```
+
+Argos responses are cached in `translation.argos.cachePath`. The cache avoids translating the same word or n-gram again in later runs.
 
 The local Argos server startup script still supports `.env` host/port overrides:
 
@@ -55,6 +61,32 @@ The local Argos server startup script still supports `.env` host/port overrides:
 ARGOS_HOST=127.0.0.1
 ARGOS_PORT=8000
 ```
+
+To use Google Cloud Translation instead, set `translation.provider` to `"google"`:
+
+```jsonc
+"translation": {
+  "provider": "google",
+  "sourceLanguage": "de",
+  "targetLanguage": "en",
+  "argos": {
+    "translateUrl": "http://127.0.0.1:8000/translate",
+    "cachePath": "../../output/argos-translate-cache.json",
+    "alternatives": 3
+  },
+  "google": {
+    "translateUrl": "https://translation.googleapis.com/language/translate/v2",
+    "cachePath": "../../output/google-translate-cache.json",
+    "accessToken": null,
+    "apiKey": null,
+    "quotaProject": null
+  }
+}
+```
+
+Google Translate responses are cached separately in `translation.google.cachePath`; this should be a different file from the Argos cache.
+
+Google Translate auth supports either `GOOGLE_TRANSLATE_API_KEY`, `GOOGLE_TRANSLATE_ACCESS_TOKEN`, or local application-default credentials from `gcloud auth application-default login`. Optional env overrides are `GOOGLE_TRANSLATE_URL` and `GOOGLE_TRANSLATE_QUOTA_PROJECT`.
 
 ## Google Text-to-Speech configuration
 
@@ -76,7 +108,7 @@ gcloud auth application-default login
 
 Alternative: use a service account key file:
 
-```dotenv
+```dotenvn
 GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
 ```
 
@@ -102,7 +134,7 @@ Google TTS authentication uses OAuth2 credentials.
 
 ## Quick start
 
-1) Install dependencies:
+1. Install dependencies:
 
 ```bash
 bun install --cwd apps/deck-cli
@@ -110,14 +142,14 @@ bun install --cwd apps/card-template
 uv sync --directory apps/argos-translate-service
 ```
 
-2) Start the translation service (in a separate terminal):
+2. Start the translation service (in a separate terminal):
 
 ```bash
 cd apps/deck-cli
 bun run argos:start
 ```
 
-3) Run the full pass pipeline (retrieve -> enrich translations -> enrich difficulty -> enrich audio -> build apkg):
+3. Run the full pass pipeline (retrieve -> enrich translations -> enrich difficulty -> enrich audio -> build apkg):
 
 ```bash
 cd apps/deck-cli
@@ -139,11 +171,11 @@ Copy the full contents of `apps/card-template/dist/index.html` into the front te
 
 The pipeline is now fully config-driven.
 
-1) Edit `apps/deck-cli/deck.config.jsonc`.
+1. Edit `apps/deck-cli/deck.config.jsonc`.
 
-2) Choose which passes to run by updating the `passes` array.
+2. Choose which passes to run by updating the `passes` array.
 
-3) Run:
+3. Run:
 
 ```bash
 cd apps/deck-cli
@@ -175,8 +207,6 @@ If `cardPayload.audioMetadata` contains ready Google TTS entries, matching `.aac
 
 - [ ] Tweak UI interactions a little
 - [ ] Rework the word-by-word translation pipeline, it would probably be best to just have one big js object which would essentially contain the translations for all words. This dictionary could be loaded into the anki window object. Maybe provide this as an alternative option available to configure in the config?
-- [x] Tweak the pipeline of how the UI gets mounted into the app in order to allow for the script part to be compleately copy-pasteble. Users should be able to just create a new build of the UI and copy-paste it into their existing anki deck with ease.
-- [ ] Lwk try AAC again + try to find a way to fit 10k sentences into 250mb (the limit for publishing anki decks)
 - [ ] Add the loop for gathering the x most common words before generating
 - [ ] Add full guide in readme + breakdown of the API costs breakdown of generating 10k sentences
 - [ ] Add google translate adapter

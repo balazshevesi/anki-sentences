@@ -21,6 +21,8 @@ export type PhraseTranslation = {
   alternatives: string[];
 };
 
+export type TranslationProvider = "argos" | "google";
+
 export type DeckBuildConfig = {
   deckName: string;
   outputPath: string;
@@ -28,12 +30,19 @@ export type DeckBuildConfig = {
   sentenceLanguage: LanguageCode;
   translationLanguage: LanguageCode;
   sentenceTranslationLimit: number;
-  argosSourceLanguage: string;
-  argosTargetLanguage: string;
+  translationProvider: TranslationProvider;
+  translationSourceLanguage: string;
+  translationTargetLanguage: string;
   argosAlternatives: number;
   sentenceWordCount: WordCountFilter;
   sentenceLimit: number;
   argosTranslateUrl: string;
+  argosTranslationCachePath?: string;
+  googleTranslateUrl: string;
+  googleTranslationCachePath?: string;
+  googleTranslateAccessToken?: string;
+  googleTranslateApiKey?: string;
+  googleTranslateQuotaProject?: string;
   sentenceExclusions: string[];
   googleTtsAccessToken?: string;
   googleTtsLanguageCode?: string;

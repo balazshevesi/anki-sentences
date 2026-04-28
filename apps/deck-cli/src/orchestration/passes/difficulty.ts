@@ -11,11 +11,11 @@ export async function runDifficultyPass(
 ): Promise<PipelineCsvRow[]> {
   const rows = await readPipelineCsvRows(csvPath);
   const frequencyLookup = await integrations.wordFrequency.getLookup(
-    config.argosSourceLanguage,
+    config.translationSourceLanguage,
   );
   if (!frequencyLookup.sourceFile) {
     console.warn(
-      `No frequency list found for '${config.argosSourceLanguage}'. Falling back to default rarity hints.`,
+      `No frequency list found for '${config.translationSourceLanguage}'. Falling back to default rarity hints.`,
     );
   }
 

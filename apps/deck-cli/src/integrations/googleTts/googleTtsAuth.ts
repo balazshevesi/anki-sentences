@@ -23,11 +23,11 @@ function toAuthResolutionError(message: string): Error {
   return new Error(
     [
       message,
-      "Google Text-to-Speech requires OAuth2 credentials (API keys are not supported).",
+      "Google Cloud API requests require OAuth2 credentials when an API key is not configured.",
       "Use one of these approaches:",
       "- Preferred local setup: `gcloud auth application-default login`",
       "- Service account setup: set GOOGLE_APPLICATION_CREDENTIALS to a service account JSON key file",
-      "- Manual token setup: set audio.accessToken in deck.config.jsonc or GOOGLE_TTS_ACCESS_TOKEN",
+      "- Manual token setup: set the relevant accessToken config field or GOOGLE_TTS_ACCESS_TOKEN/GOOGLE_TRANSLATE_ACCESS_TOKEN",
     ].join("\n"),
   );
 }

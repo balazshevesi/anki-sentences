@@ -1,5 +1,10 @@
 import promiseLimit from "promise-limit";
 import type { WordFrequencyInfo } from "../../contracts/cardPayload";
+import {
+  createTranslationCacheKey,
+  getPersistentTranslationCache,
+  type CachedTranslation,
+} from "../translationCache";
 import type {
   PhraseTranslation,
   TranslatePhrase,
@@ -22,18 +27,26 @@ type ArgosTranslateResponse = {
   alternatives?: string[];
 };
 
-type BasicTranslation = {
-  translatedText: string;
-  alternatives: string[];
-};
-
 type WordTranslatorOptions = TranslatorOptions & {
   getWordFrequencyInfo: (word: string) => WordFrequencyInfo;
 };
 
+function createCacheKey(options: TranslatorOptions, text: string): string {
+  return createTranslationCacheKey({
+    provider: "argos_translate",
+    sourceLanguage: options.sourceLanguage,
+    targetLanguage: options.targetLanguage,
+    alternatives: options.alternatives,
+    text,
+  });
+}
+
 function createBaseTranslator(options: TranslatorOptions): TranslatePhrase {
-  const cache = new Map<string, Promise<PhraseTranslation>>();
+  const inFlightCache = new Map<string, Promise<PhraseTranslation>>();
   const translateLimit = promiseLimit(options.concurrency) as PromiseLimitFn;
+  const persistentCache = options.cachePath
+    ? getPersistentTranslationCache(options.cachePath)
+    : null;
 
   return async (text: string) => {
     const normalizedText = text.trim();
@@ -44,31 +57,43 @@ function createBaseTranslator(options: TranslatorOptions): TranslatePhrase {
       };
     }
 
-    const cacheKey = normalizedText.toLowerCase();
-    const cached = cache.get(cacheKey);
-    if (cached) {
-      return cached;
+    const cacheKey = createCacheKey(options, normalizedText);
+    const inFlight = inFlightCache.get(cacheKey);
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const cachedTranslation = await persistentCache?.get(cacheKey);
+    if (cachedTranslation) {
+      return cachedTranslation;
     }
 
     const requestPromise = translateLimit(() =>
       translateText(options, normalizedText),
-    ).catch((error: unknown) => {
-      console.warn(
-        `Translation unavailable for '${normalizedText}', leaving empty translation:`,
-        error,
-      );
-      return {
-        translatedText: "",
-        alternatives: [],
-      };
-    });
+    )
+      .then(async (translation) => {
+        await persistentCache?.set(cacheKey, translation);
+        return translation;
+      })
+      .catch((error: unknown) => {
+        console.warn(
+          `Translation unavailable for '${normalizedText}', leaving empty translation:`,
+          error,
+        );
+        return {
+          translatedText: "",
+          alternatives: [],
+        };
+      });
 
-    cache.set(cacheKey, requestPromise);
+    inFlightCache.set(cacheKey, requestPromise);
     return requestPromise;
   };
 }
 
-export function createPhraseTranslator(options: TranslatorOptions): TranslatePhrase {
+export function createPhraseTranslator(
+  options: TranslatorOptions,
+): TranslatePhrase {
   return createBaseTranslator(options);
 }
 
@@ -90,7 +115,7 @@ export function createWordTranslator(
 async function translateText(
   options: TranslatorOptions,
   text: string,
-): Promise<BasicTranslation> {
+): Promise<CachedTranslation> {
   const requestBody: ArgosTranslateRequest = {
     q: text,
     source: options.sourceLanguage,

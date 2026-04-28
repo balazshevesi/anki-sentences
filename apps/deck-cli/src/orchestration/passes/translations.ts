@@ -82,28 +82,45 @@ export async function runTranslationMetadataPass(
   );
 
   const frequencyLookup = await integrations.wordFrequency.getLookup(
-    config.argosSourceLanguage,
+    config.translationSourceLanguage,
   );
   if (!frequencyLookup.sourceFile) {
     console.warn(
-      `No frequency list found for '${config.argosSourceLanguage}'. Falling back to default rarity hints.`,
+      `No frequency list found for '${config.translationSourceLanguage}'. Falling back to default rarity hints.`,
     );
   }
 
+  const translationEndpoint =
+    config.translationProvider === "google"
+      ? config.googleTranslateUrl
+      : config.argosTranslateUrl;
+  const translationCachePath =
+    config.translationProvider === "google"
+      ? config.googleTranslationCachePath
+      : config.argosTranslationCachePath;
+
   const translateWord = integrations.translation.createWordTranslator({
-    endpoint: config.argosTranslateUrl,
-    sourceLanguage: config.argosSourceLanguage,
-    targetLanguage: config.argosTargetLanguage,
+    endpoint: translationEndpoint,
+    sourceLanguage: config.translationSourceLanguage,
+    targetLanguage: config.translationTargetLanguage,
     alternatives: config.argosAlternatives,
     concurrency: runtime.translationConcurrency,
+    cachePath: translationCachePath,
+    accessToken: config.googleTranslateAccessToken,
+    apiKey: config.googleTranslateApiKey,
+    quotaProject: config.googleTranslateQuotaProject,
     getWordFrequencyInfo: frequencyLookup.getWordFrequency,
   });
   const translatePhrase = integrations.translation.createPhraseTranslator({
-    endpoint: config.argosTranslateUrl,
-    sourceLanguage: config.argosSourceLanguage,
-    targetLanguage: config.argosTargetLanguage,
+    endpoint: translationEndpoint,
+    sourceLanguage: config.translationSourceLanguage,
+    targetLanguage: config.translationTargetLanguage,
     alternatives: config.argosAlternatives,
     concurrency: runtime.translationConcurrency,
+    cachePath: translationCachePath,
+    accessToken: config.googleTranslateAccessToken,
+    apiKey: config.googleTranslateApiKey,
+    quotaProject: config.googleTranslateQuotaProject,
   });
 
   const candidateMap = selectNgramCandidates(

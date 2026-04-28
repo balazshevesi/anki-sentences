@@ -3,10 +3,10 @@
 
   // Ordered pass list. Remove entries to skip a pass.
   "passes": [
-    // "retrieve",
-    // "enrich-translations",
-    // "enrich-difficulty",
-    // "enrich-audio",
+    "retrieve",
+    "enrich-translations",
+    "enrich-difficulty",
+    "enrich-audio",
     "build-apkg",
   ],
 
@@ -18,7 +18,6 @@
     "outputPath": "../../output/example.apkg",
     "words": [
       "wie",
-      "meine",
       "doch",
       "vielleicht",
       "müssen",
@@ -34,11 +33,23 @@
     "sentenceExclusions": [],
   },
 
-  "argos": {
+  "translation": {
+    // Use "argos" for local Argos or "google" for Google Cloud Translation.
+    "provider": "google",
     "sourceLanguage": "de",
     "targetLanguage": "en",
-    "alternatives": 3,
-    "translateUrl": "http://127.0.0.1:8000/translate",
+    "argos": {
+      "translateUrl": "http://127.0.0.1:8000/translate",
+      "cachePath": "../../output/argos-translate-cache.json",
+      "alternatives": 3,
+    },
+    "google": {
+      "translateUrl": "https://translation.googleapis.com/language/translate/v2",
+      "cachePath": "../../output/google-translate-cache.json",
+      "accessToken": null,
+      "apiKey": null,
+      "quotaProject": null,
+    },
   },
 
   "audio": {

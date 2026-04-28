@@ -88,9 +88,13 @@
       ],
       "additionalProperties": false
     },
-    "argos": {
+    "translation": {
       "type": "object",
       "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["argos", "google"]
+        },
         "sourceLanguage": {
           "type": "string",
           "pattern": "^[a-z_]{2,16}$"
@@ -99,23 +103,77 @@
           "type": "string",
           "pattern": "^[a-z_]{2,16}$"
         },
-        "alternatives": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
+        "argos": {
+          "type": "object",
+          "properties": {
+            "translateUrl": {
+              "type": "string",
+              "minLength": 1,
+              "format": "uri"
+            },
+            "cachePath": {
+              "type": "string",
+              "minLength": 1
+            },
+            "alternatives": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["translateUrl", "alternatives"],
+          "additionalProperties": false
         },
-        "translateUrl": {
-          "type": "string",
-          "minLength": 1,
-          "format": "uri"
+        "google": {
+          "type": "object",
+          "properties": {
+            "translateUrl": {
+              "type": "string",
+              "minLength": 1,
+              "format": "uri"
+            },
+            "cachePath": {
+              "type": "string",
+              "minLength": 1
+            },
+            "accessToken": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "apiKey": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "quotaProject": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
         }
       },
-      "required": [
-        "sourceLanguage",
-        "targetLanguage",
-        "alternatives",
-        "translateUrl"
-      ],
+      "required": ["provider", "sourceLanguage", "targetLanguage", "argos"],
       "additionalProperties": false
     },
     "audio": {
@@ -258,7 +316,7 @@
     "passes",
     "csvPath",
     "deck",
-    "argos",
+    "translation",
     "audio",
     "runtime",
     "anki"

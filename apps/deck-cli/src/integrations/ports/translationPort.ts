@@ -17,6 +17,10 @@ export type TranslatorOptions = {
   targetLanguage: string;
   alternatives: number;
   concurrency: number;
+  cachePath?: string;
+  accessToken?: string;
+  apiKey?: string;
+  quotaProject?: string;
 };
 
 export interface TranslationPort {

@@ -18,6 +18,8 @@ import {
 const DEFAULT_DECK_CONFIG_PATH = fileURLToPath(
   new URL("../../deck.config.jsonc", import.meta.url),
 );
+const DEFAULT_GOOGLE_TRANSLATE_URL =
+  "https://translation.googleapis.com/language/translate/v2";
 
 export const DEFAULT_DECK_CONFIG_SCHEMA_PATH = fileURLToPath(
   new URL("../../deck.config.schema.json", import.meta.url),
@@ -59,8 +61,9 @@ const DeckConfigSchema = z
         sentenceExclusions: z.array(z.string().trim().min(1)),
       })
       .strict(),
-    argos: z
+    translation: z
       .object({
+        provider: z.enum(["argos", "google"]),
         sourceLanguage: z
           .string()
           .trim()
@@ -69,10 +72,30 @@ const DeckConfigSchema = z
           .string()
           .trim()
           .regex(/^[a-z_]{2,16}$/),
-        alternatives: z.number().int().nonnegative(),
-        translateUrl: z.string().trim().min(1).url(),
+        argos: z
+          .object({
+            translateUrl: z.string().trim().min(1).url(),
+            cachePath: z.string().trim().min(1).optional(),
+            alternatives: z.number().int().nonnegative(),
+          })
+          .strict(),
+        google: z
+          .object({
+            translateUrl: z.string().trim().min(1).url().optional(),
+            cachePath: z.string().trim().min(1).optional(),
+            accessToken: z.string().trim().min(1).nullable().optional(),
+            apiKey: z.string().trim().min(1).nullable().optional(),
+            quotaProject: z.string().trim().min(1).nullable().optional(),
+          })
+          .strict()
+          .optional(),
       })
-      .strict(),
+      .strict()
+      .refine(
+        (translation) =>
+          translation.provider !== "google" || translation.google,
+        "translation.google is required when translation.provider is 'google'.",
+      ),
     audio: z
       .object({
         outputDir: z.string().trim().min(1),
@@ -119,12 +142,22 @@ const DeckConfigSchema = z
       sentenceLanguage: config.deck.sentenceLanguage as LanguageCode,
       translationLanguage: config.deck.translationLanguage as LanguageCode,
       sentenceTranslationLimit: config.deck.sentenceTranslationLimit,
-      argosSourceLanguage: config.argos.sourceLanguage,
-      argosTargetLanguage: config.argos.targetLanguage,
-      argosAlternatives: config.argos.alternatives,
+      translationProvider: config.translation.provider,
+      translationSourceLanguage: config.translation.sourceLanguage,
+      translationTargetLanguage: config.translation.targetLanguage,
+      argosAlternatives: config.translation.argos.alternatives,
       sentenceWordCount: config.deck.sentenceWordCount as WordCountFilter,
       sentenceLimit: config.deck.sentenceLimit,
-      argosTranslateUrl: config.argos.translateUrl,
+      argosTranslateUrl: config.translation.argos.translateUrl,
+      argosTranslationCachePath: config.translation.argos.cachePath,
+      googleTranslateUrl:
+        config.translation.google?.translateUrl ?? DEFAULT_GOOGLE_TRANSLATE_URL,
+      googleTranslationCachePath: config.translation.google?.cachePath,
+      googleTranslateAccessToken:
+        config.translation.google?.accessToken ?? undefined,
+      googleTranslateApiKey: config.translation.google?.apiKey ?? undefined,
+      googleTranslateQuotaProject:
+        config.translation.google?.quotaProject ?? undefined,
       sentenceExclusions: Array.from(
         new Set(
           config.deck.sentenceExclusions.map((value) =>
@@ -194,6 +227,23 @@ export async function loadDeckConfig(
     outputPath: resolvePath(config.deck.outputPath),
     argosTranslateUrl:
       Bun.env.ARGOS_TRANSLATE_URL?.trim() || config.deck.argosTranslateUrl,
+    argosTranslationCachePath: config.deck.argosTranslationCachePath
+      ? resolvePath(config.deck.argosTranslationCachePath)
+      : undefined,
+    googleTranslateUrl:
+      Bun.env.GOOGLE_TRANSLATE_URL?.trim() || config.deck.googleTranslateUrl,
+    googleTranslationCachePath: config.deck.googleTranslationCachePath
+      ? resolvePath(config.deck.googleTranslationCachePath)
+      : undefined,
+    googleTranslateAccessToken:
+      config.deck.googleTranslateAccessToken ??
+      Bun.env.GOOGLE_TRANSLATE_ACCESS_TOKEN,
+    googleTranslateApiKey:
+      config.deck.googleTranslateApiKey ?? Bun.env.GOOGLE_TRANSLATE_API_KEY,
+    googleTranslateQuotaProject:
+      config.deck.googleTranslateQuotaProject ??
+      Bun.env.GOOGLE_TRANSLATE_QUOTA_PROJECT ??
+      Bun.env.GOOGLE_CLOUD_QUOTA_PROJECT,
     googleTtsAccessToken:
       config.deck.googleTtsAccessToken ?? Bun.env.GOOGLE_TTS_ACCESS_TOKEN,
     googleTtsLanguageCode:
