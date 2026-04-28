@@ -45,6 +45,10 @@
   class="absolute top-full left-1/2 z-10 mt-1.5 min-w-44 max-w-sm -translate-x-1/2 border border-gray-400 bg-white px-3 py-2 text-left text-base leading-normal text-neutral-800 shadow-lg"
   bind:this={popoverElement}
 >
+  <div
+    class="pointer-events-none absolute top-0 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rotate-45 border-t border-l border-gray-400 bg-white"
+  ></div>
+
   {#if translation.translatedText}
     <div class="font-bold">{translation.translatedText}</div>
 
