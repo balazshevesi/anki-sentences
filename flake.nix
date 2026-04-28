@@ -23,6 +23,7 @@
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             bun
+            git
             uv
             python312
             ruff
@@ -32,25 +33,30 @@
 
           shellHook = ''
             export UV_PROJECT_ENVIRONMENT=".venv"
+            repo_root="$(${pkgs.git}/bin/git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
-            if [ ! -f apps/deck-cli/.env ] && [ -f apps/deck-cli/.env.example ]; then
-              cp apps/deck-cli/.env.example apps/deck-cli/.env
+            # create env file
+            if [ ! -f "$repo_root/apps/deck-cli/.env" ] && [ -f "$repo_root/apps/deck-cli/.env.example" ]; then
+              cp "$repo_root/apps/deck-cli/.env.example" "$repo_root/apps/deck-cli/.env"
               echo "Created apps/deck-cli/.env from apps/deck-cli/.env.example"
             fi
 
-            if [ -f apps/deck-cli/package.json ]; then
+            # bun install for deck-cli
+            if [ -f "$repo_root/apps/deck-cli/package.json" ]; then
               echo "Installing JS deps in apps/deck-cli/"
-              bun install --cwd apps/deck-cli
+              bun install --cwd "$repo_root/apps/deck-cli"
             fi
 
-            if [ -f apps/card-template/package.json ]; then
+            # bun install for card-template
+            if [ -f "$repo_root/apps/card-template/package.json" ]; then
               echo "Installing JS deps in apps/card-template/"
-              bun install --cwd apps/card-template
+              bun install --cwd "$repo_root/apps/card-template"
             fi
 
-            if [ -f apps/argos-translate-service/pyproject.toml ]; then
+            # uv sync for argos translation
+            if [ -f "$repo_root/apps/argos-translate-service/pyproject.toml" ]; then
               echo "Installing Python deps in apps/argos-translate-service/"
-              uv sync --directory apps/argos-translate-service
+              uv sync --directory "$repo_root/apps/argos-translate-service"
             fi
 
             echo "Dev shell ready."

@@ -1,6 +1,6 @@
 # Anki Language Sentence Study Decks
 
-A toolkit for building sentence-based Anki decks from Tatoeba data.
+A toolkit for building sentence-based [Anki](https://apps.ankiweb.net/) decks from [Tatoeba](https://tatoeba.org/en/) data.
 
 The project takes a list of target words, or the top N words from a frequency list, finds useful example sentences, enriches each card with translations, difficulty metadata, and Google Text-to-Speech audio, then exports a ready-to-import `.apkg` file.
 
@@ -10,90 +10,39 @@ This repository is built around one config-driven pipeline.
 
 Each generated deck can include:
 
-- Source-language example sentences from Tatoeba
-- Sentence translations from Tatoeba
-- Word-by-word and n-gram translation hints from Argos Translate or Google Translate
+- Source-language example sentences from [Tatoeba](https://tatoeba.org/en/)
+- Sentence translations from [Tatoeba](https://tatoeba.org/en/)
+- Word-by-word and n-gram translation hints from [Argos Translate](https://github.com/argosopentech/argos-translate) or Google Translate
 - Difficulty scores based on local frequency data
-- Google Text-to-Speech audio files and Anki `[sound:...]` tags
+- Google Text-to-Speech audio files and [Anki](https://apps.ankiweb.net/) `[sound:...]` tags
 - Word-level audio timestamp metadata for the card UI
-- A bundled Svelte Anki card template
-- A final `.apkg` package that can be imported into Anki
-
-## Repository Layout
-
-- `apps/deck-cli/` - Bun/TypeScript CLI for the full deck generation pipeline
-- `apps/deck-cli/deck.config.jsonc` - main deck configuration file
-- `apps/deck-cli/deck.config.schema.json` - generated JSON Schema for the config file
-- `apps/deck-cli/src/orchestration/` - ordered pipeline passes
-- `apps/deck-cli/src/deck/` - CSV, APKG, card, difficulty, and template logic
-- `apps/deck-cli/src/integrations/` - Tatoeba, frequency list, Argos, Google Translate, and Google TTS adapters
-- `apps/card-template/` - Svelte card UI bundled into a single Anki template artifact
-- `apps/argos-translate-service/` - small FastAPI wrapper around Argos Translate
-- `docs/googleAuth.md` - local Google Cloud authentication notes
-- `output/` - generated CSVs, audio, caches, and APKG files
+- A bundled [Svelte](https://svelte.dev/) [Anki](https://apps.ankiweb.net/) card template
+- A final `.apkg` package that can be imported into [Anki](https://apps.ankiweb.net/)
 
 ## Requirements
 
-The easiest development environment is the Nix shell:
+Use the [Nix](https://nixos.org/) shell to install required packages:
 
 ```bash
 nix develop
 ```
 
-If flakes are not enabled globally:
-
-```bash
-nix develop --extra-experimental-features "nix-command flakes"
-```
-
-Without Nix, install equivalent tools yourself:
-
-- Bun
-- Python 3.11+
-- uv
-- ffmpeg
-- Google Cloud CLI, if using Google APIs through Application Default Credentials
-
-## Install
-
-```bash
-bun install --cwd apps/deck-cli
-bun install --cwd apps/card-template
-uv sync --directory apps/argos-translate-service
-```
-
 ## Quick Start
 
-Edit `apps/deck-cli/deck.config.jsonc`, then run the pipeline:
+Edit [`apps/deck-cli/deck.config.jsonc`](./apps/deck-cli/deck.config.jsonc), then run:
 
 ```bash
 cd apps/deck-cli
-bun run deck:pipeline
+bun run build
 ```
 
-`deck:pipeline` builds the card template first, then runs the configured passes in order.
-
-By default, generated files are written under `output/` from paths configured in `deck.config.jsonc`.
+By default, generated files are written under `output/` from paths configured in [`apps/deck-cli/deck.config.jsonc`](./apps/deck-cli/deck.config.jsonc).
 
 ## Configuration
 
-The pipeline is controlled by `apps/deck-cli/deck.config.jsonc`.
+The pipeline is controlled by [`apps/deck-cli/deck.config.jsonc`](./apps/deck-cli/deck.config.jsonc).
 
-Important fields:
-
-- `passes` - ordered list of pipeline passes to run
-- `csvPath` - intermediate CSV used by all passes
-- `deck.name` - Anki deck name
-- `deck.outputPath` - final `.apkg` output path
-- `deck.words` - explicit target words
-- `deck.commonWordLimit` - add the top N words from the local frequency list
-- `deck.sentenceLanguage` - Tatoeba language code for sentence lookup, for example `deu`
-- `deck.translationLanguage` - Tatoeba language code for sentence translations, for example `eng`
-- `translation.provider` - `argos` or `google`
-- `audio.outputDir` - generated Google TTS audio directory
-- `runtime.*` - concurrency and n-gram tuning knobs
-
-The checked-in config references `./deck.config.schema.json`, so editors with JSON Schema support should provide validation and completion.
+The checked-in config references [`apps/deck-cli/deck.config.schema.json`](./apps/deck-cli/deck.config.schema.json), so editors with JSON Schema support should provide validation and completion.
 
 To run with another config file:
 
@@ -101,24 +50,26 @@ To run with another config file:
 DECK_CONFIG_PATH=/absolute/or/relative/path.jsonc bun run src/index.ts
 ```
 
+The default CLI entrypoint is [`apps/deck-cli/src/index.ts`](./apps/deck-cli/src/index.ts).
+
 ## Pipeline Passes
 
 Available pass names:
 
-- `retrieve` - fetch matching Tatoeba sentence rows into the CSV
+- `retrieve` - fetch matching [Tatoeba](https://tatoeba.org/en/) sentence rows into the CSV
 - `enrich-translations` - add word and n-gram translation metadata
 - `enrich-translation-alternatives` - fill missing translation alternatives where available
 - `enrich-difficulty` - score and sort cards by difficulty
 - `enrich-audio` - generate Google TTS audio and timestamp metadata
-- `build-apkg` - build the Anki package
+- `build-apkg` - build the [Anki](https://apps.ankiweb.net/) package
 
-You can remove passes from `deck.config.jsonc` when iterating on a specific stage. For example, after retrieving sentences once, you can rerun only enrichment or packaging passes against the existing CSV.
+You can remove passes from [`apps/deck-cli/deck.config.jsonc`](./apps/deck-cli/deck.config.jsonc) when iterating on a specific stage. For example, after retrieving sentences once, you can rerun only enrichment or packaging passes against the existing CSV.
 
 ## Translation Providers
 
-### Argos Translate
+### [Argos Translate](https://github.com/argosopentech/argos-translate)
 
-Argos runs locally through the FastAPI service in `apps/argos-translate-service/`.
+[Argos Translate](https://github.com/argosopentech/argos-translate) runs locally through the FastAPI service in [`apps/argos-translate-service/`](./apps/argos-translate-service/).
 
 Start it from the deck CLI directory:
 
@@ -175,16 +126,6 @@ Set the provider to `google`:
 }
 ```
 
-Supported environment overrides:
-
-- `GOOGLE_TRANSLATE_API_KEY`
-- `GOOGLE_TRANSLATE_ACCESS_TOKEN`
-- `GOOGLE_TRANSLATE_URL`
-- `GOOGLE_TRANSLATE_QUOTA_PROJECT`
-- `GOOGLE_CLOUD_QUOTA_PROJECT`
-
-Argos and Google translation caches should use separate files.
-
 ## Google Text-to-Speech
 
 The audio pass uses Google Cloud Text-to-Speech and requires OAuth2 credentials. API keys are not supported for this endpoint.
@@ -200,18 +141,11 @@ Make sure the relevant APIs are enabled in your Google Cloud project:
 - Cloud Text-to-Speech API
 - Cloud Translation API, if using Google Translate
 
-Optional audio overrides can be set in config or environment variables:
-
-- `GOOGLE_TTS_ACCESS_TOKEN`
-- `GOOGLE_TTS_LANGUAGE_CODE`
-- `GOOGLE_TTS_VOICE`
-- `GOOGLE_CLOUD_QUOTA_PROJECT`
-
-`ffmpeg` must be available on `PATH`; the CLI transcodes generated speech to AAC before packaging it into Anki.
+`ffmpeg` must be available on `PATH`; the CLI transcodes generated speech to AAC before packaging it into [Anki](https://apps.ankiweb.net/).
 
 ## Card Template
 
-The card UI lives in `apps/card-template/` and is bundled into a single HTML artifact:
+The card UI lives in [`apps/card-template/`](./apps/card-template/) and is bundled into a single HTML artifact:
 
 ```bash
 cd apps/deck-cli
@@ -220,41 +154,24 @@ bun run template:build
 
 The generated artifact is written to `apps/card-template/dist/index.html`. The APKG build uses this template automatically.
 
-## Maintenance Commands
+## Usefull Commands
 
-Run these from `apps/deck-cli/` unless noted otherwise.
-
-```bash
-bun run test
-bun run typecheck
-bun run lint
-bun run format:check
-bun run config:schema
-bun run sentenceRetrieval:update
-bun run wordFrequencies:words
-```
-
-Useful commands:
-
-- `bun run test` - run TypeScript tests
-- `bun run typecheck` - typecheck the deck CLI and card template
-- `bun run lint` - typecheck and run Ruff against the Argos service
-- `bun run config:schema` - regenerate `deck.config.schema.json`
-- `bun run sentenceRetrieval:update` - update local Tatoeba language metadata
+- `bun run config:schema` - regenerate [`apps/deck-cli/deck.config.schema.json`](./apps/deck-cli/deck.config.schema.json)
+- `bun run sentenceRetrieval:update` - update local [Tatoeba](https://tatoeba.org/en/) language metadata
 - `bun run wordFrequencies:words` - update local frequency word data
 
 ## Data Sources
 
-- Tatoeba sentence search API: `https://api.tatoeba.org`
-- Tatoeba language metadata: `https://tatoeba.org/en/downloads`
-- Frequency lists: `https://github.com/hermitdave/FrequencyWords`
-- Argos Translate: `https://github.com/argosopentech/argos-translate`
-- Google Cloud Translation: `https://cloud.google.com/translate`
-- Google Cloud Text-to-Speech: `https://cloud.google.com/text-to-speech`
+- [Tatoeba](https://tatoeba.org/en/) sentence search API: <https://api.tatoeba.org>
+- [Tatoeba](https://tatoeba.org/en/) language metadata: <https://tatoeba.org/en/downloads>
+- Frequency lists: <https://github.com/hermitdave/FrequencyWords>
+- [Argos Translate](https://github.com/argosopentech/argos-translate): <https://github.com/argosopentech/argos-translate>
+- Google Cloud Translation: <https://cloud.google.com/translate>
+- Google Cloud Text-to-Speech: <https://cloud.google.com/text-to-speech>
 
 ## Project Status + Notes
 
-This project is feature-complete for its original goal: generating personal Anki sentence decks from Tatoeba with translation hints, difficulty ordering, audio, and a bundled card UI.
+This project is feature-complete for its original goal: generating personal [Anki](https://apps.ankiweb.net/) sentence decks from [Tatoeba](https://tatoeba.org/en/) with translation hints, difficulty ordering, audio, and a bundled card UI.
 
 Future work is expected to be maintenance, source updates, small quality fixes.
 

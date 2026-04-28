@@ -1,74 +1,110 @@
 {
+  // JSON Schema used by editors for validation and autocompletion.
   "$schema": "./deck.config.schema.json",
 
-  // Ordered pass list. Remove entries to skip a pass.
+  // Ordered pipeline passes. Remove entries when you want to rerun only part of the pipeline.
   "passes": [
-    "retrieve", // retrives sentences, along with their full translations
-    "enrich-translations", // enrich the sentences with word-by-word translations
-    "enrich-translation-alternatives", // will (potentially) missing alternatives for the word-by-word translations
-    "enrich-difficulty", // calculate the difficulty score for each sentence, and order them accordingly
-    "enrich-audio", // generate text-to-speech-audio
-    "build-apkg", // build the card template and create the actuall apkg
+    "retrieve", // Fetch source sentences and their full sentence translations.
+    "enrich-translations", // Add word-by-word and n-gram translation metadata.
+    "enrich-translation-alternatives", // Fill missing word translation alternatives where possible.
+    "enrich-difficulty", // Calculate and sort by sentence difficulty.
+    "enrich-audio", // Generate text-to-speech audio and word timestamp metadata.
+    "build-apkg", // Build the card template and write the final Anki .apkg file.
   ],
 
-  // CSV path used by all pipeline passes.
+  // Intermediate CSV used by all passes. Relative paths are resolved from this config file.
   "csvPath": "../../output/example.csv",
 
   "deck": {
+    // Display name of the Anki deck inside Anki.
     "name": "EN-HU sentence deck",
+    // Final .apkg output path. Relative paths are resolved from this config file.
     "outputPath": "../../output/example.apkg",
+    // Explicit target words to retrieve sentences for. Must be non-empty unless commonWordLimit is greater than 0.
     "words": [],
-    // Add the top N frequency-list words for translation.sourceLanguage before retrieving sentences.
+    // Add the top N words from the frequency list for translation.sourceLanguage.
     "commonWordLimit": 20,
+    // Tatoeba language code for source sentences, for example "deu" for German.
     "sentenceLanguage": "deu",
+    // Tatoeba language code for full sentence translations, for example "eng" for English.
     "translationLanguage": "eng",
+    // Maximum number of full sentence translations to keep per source sentence.
     "sentenceTranslationLimit": 3,
+    // Tatoeba word-count filter for sentence length. Examples: "15-50", "-10", "10-", or "!1-5".
     "sentenceWordCount": "15-50",
+    // Maximum number of source sentence candidates to fetch per target word.
     "sentenceLimit": 10,
+    // Case-insensitive words or regex patterns. Sentences matching any entry are skipped.
     "sentenceExclusions": [],
   },
 
   "translation": {
-    // Use "argos" for local Argos or "google" for Google Cloud Translation.
+    // Translation backend for word and n-gram metadata: "argos" or "google".
     "provider": "google",
+    // Source language code sent to the translation provider, for example "de".
     "sourceLanguage": "de",
+    // Target language code sent to the translation provider, for example "en".
     "targetLanguage": "en",
     "argos": {
+      // URL of the local Argos Translate service started by `bun run argos:start`.
       "translateUrl": "http://127.0.0.1:8000/translate",
+      // Cache file for Argos translation responses. Relative paths are resolved from this config file.
       "cachePath": "../../output/argos-translate-cache.json",
+      // Number of alternative translations to request/store per word or n-gram.
       "alternatives": 2,
     },
     "google": {
+      // Google Translate endpoint. Usually leave this as the default v2 endpoint.
       "translateUrl": "https://translation.googleapis.com/language/translate/v2",
+      // Cache file for Google translation responses. Relative paths are resolved from this config file.
       "cachePath": "../../output/google-translate-cache.json",
+      // Optional OAuth access token. Null means use GOOGLE_TRANSLATE_ACCESS_TOKEN or Application Default Credentials.
       "accessToken": null,
+      // Optional Google Translate API key. Null means use GOOGLE_TRANSLATE_API_KEY or token-based auth.
       "apiKey": null,
+      // Optional quota/billing project. Null means use GOOGLE_TRANSLATE_QUOTA_PROJECT or GOOGLE_CLOUD_QUOTA_PROJECT.
       "quotaProject": null,
     },
   },
 
   "audio": {
+    // Directory where generated audio files are written. Relative paths are resolved from this config file.
     "outputDir": "../../output/example-audio",
+    // Set true to regenerate audio even when files already exist.
     "forceRegenerate": false,
+    // Optional Google Text-to-Speech OAuth access token. Null means use GOOGLE_TTS_ACCESS_TOKEN or ADC.
     "accessToken": null,
+    // Optional Google TTS language code override, for example "de-DE". Null lets the app infer/default it.
     "languageCode": null,
+    // Optional Google TTS voice name override. Null lets Google choose the default voice.
     "voiceName": null,
+    // Google TTS speaking speed. Valid range is 0.25 to 2.
     "speakingRate": 1,
+    // Google TTS pitch adjustment in semitones. Valid range is -20 to 20.
     "pitch": 0,
+    // Number of audio generation requests to run at the same time.
     "concurrency": 2,
+    // Optional Google Cloud quota/billing project. Null means use GOOGLE_CLOUD_QUOTA_PROJECT.
     "quotaProject": null,
   },
 
   "runtime": {
+    // Number of target words to query from Tatoeba at the same time.
     "wordRetrievalConcurrency": 1,
+    // Number of sentence rows to enrich with metadata at the same time.
     "sentenceMetadataConcurrency": 1,
+    // Number of translation requests to run at the same time.
     "translationConcurrency": 1,
+    // Maximum number of matching n-gram translations stored on each card.
     "ngramTranslationLimitPerCard": 6,
+    // Only translate n-grams that appear in at least this many cards.
     "ngramMinCardCount": 2,
+    // Only translate n-grams that appear in at least this percentage of cards.
     "ngramMinCardPercentage": 3,
   },
 
   "anki": {
+    // Zero-based index of the card field Anki should use for sorting in the browser.
     "sortField": 0,
   },
 }
