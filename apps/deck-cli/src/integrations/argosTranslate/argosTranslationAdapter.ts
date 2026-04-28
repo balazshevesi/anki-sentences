@@ -68,6 +68,11 @@ function createBaseTranslator(options: TranslatorOptions): TranslatePhrase {
       return cachedTranslation;
     }
 
+    const inFlightAfterCacheRead = inFlightCache.get(cacheKey);
+    if (inFlightAfterCacheRead) {
+      return inFlightAfterCacheRead;
+    }
+
     const requestPromise = translateLimit(() =>
       translateText(options, normalizedText),
     )

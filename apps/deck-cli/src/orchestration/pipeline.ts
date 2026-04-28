@@ -5,6 +5,7 @@ import {
   runBuildApkgPass,
   runDifficultyPass,
   runSentenceRetrievalPass,
+  runTranslationAlternativesPass,
   runTranslationMetadataPass,
 } from "./passes";
 import type {
@@ -59,6 +60,21 @@ export async function runDeckPipeline(config: {
         );
         console.log(
           `[translations] Added word and n-gram translation metadata to ${rows.length} rows in ${config.csvPath} (${formatDuration(Date.now() - passStartedAt)})`,
+        );
+        break;
+      }
+
+      case "enrich-translation-alternatives": {
+        console.log(
+          `[translation-alternatives] Adding missing translation alternatives to rows from ${config.csvPath}...`,
+        );
+        const rows = await runTranslationAlternativesPass(
+          config.deck,
+          config.csvPath,
+          config.runtime,
+        );
+        console.log(
+          `[translation-alternatives] Added missing translation alternatives to ${rows.length} rows in ${config.csvPath} (${formatDuration(Date.now() - passStartedAt)})`,
         );
         break;
       }

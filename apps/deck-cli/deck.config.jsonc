@@ -5,6 +5,7 @@
   "passes": [
     "retrieve",
     "enrich-translations",
+    "enrich-translation-alternatives",
     "enrich-difficulty",
     "enrich-audio",
     "build-apkg",

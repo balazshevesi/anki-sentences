@@ -149,7 +149,7 @@ cd apps/deck-cli
 bun run argos:start
 ```
 
-3. Run the full pass pipeline (retrieve -> enrich translations -> enrich difficulty -> enrich audio -> build apkg):
+3. Run the full pass pipeline (retrieve -> enrich translations -> enrich translation alternatives -> enrich difficulty -> enrich audio -> build apkg):
 
 ```bash
 cd apps/deck-cli
@@ -188,6 +188,7 @@ Pass names:
 
 - `retrieve`
 - `enrich-translations`
+- `enrich-translation-alternatives`
 - `enrich-difficulty`
 - `enrich-audio`
 - `build-apkg`

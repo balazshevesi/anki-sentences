@@ -9,6 +9,7 @@ export type { WordTranslation } from "../contracts/cardPayload";
 export const PIPELINE_PASS_NAMES = [
   "retrieve",
   "enrich-translations",
+  "enrich-translation-alternatives",
   "enrich-difficulty",
   "enrich-audio",
   "build-apkg",
