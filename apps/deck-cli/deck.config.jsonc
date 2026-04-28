@@ -3,11 +3,11 @@
 
   // Ordered pass list. Remove entries to skip a pass.
   "passes": [
-    // "retrieve", // retrives sentences, along with their full translations
-    // "enrich-translations", // enrich the sentences with word-by-word translations
-    // "enrich-translation-alternatives", // will (potentially) missing alternatives for the word-by-word translations
-    // "enrich-difficulty", // calculate the difficulty score for each sentence, and order them accordingly
-    // "enrich-audio", // generate text-to-speech-audio
+    "retrieve", // retrives sentences, along with their full translations
+    "enrich-translations", // enrich the sentences with word-by-word translations
+    "enrich-translation-alternatives", // will (potentially) missing alternatives for the word-by-word translations
+    "enrich-difficulty", // calculate the difficulty score for each sentence, and order them accordingly
+    "enrich-audio", // generate text-to-speech-audio
     "build-apkg", // build the card template and create the actuall apkg
   ],
 
@@ -17,20 +17,14 @@
   "deck": {
     "name": "EN-HU sentence deck",
     "outputPath": "../../output/example.apkg",
-    "words": [
-      "wie",
-      "doch",
-      "vielleicht",
-      "müssen",
-      "denn",
-      "diese",
-      "wirklich",
-    ],
+    "words": [],
+    // Add the top N frequency-list words for translation.sourceLanguage before retrieving sentences.
+    "commonWordLimit": 20,
     "sentenceLanguage": "deu",
     "translationLanguage": "eng",
     "sentenceTranslationLimit": 3,
     "sentenceWordCount": "15-50",
-    "sentenceLimit": 1,
+    "sentenceLimit": 10,
     "sentenceExclusions": [],
   },
 
@@ -42,7 +36,7 @@
     "argos": {
       "translateUrl": "http://127.0.0.1:8000/translate",
       "cachePath": "../../output/argos-translate-cache.json",
-      "alternatives": 3,
+      "alternatives": 2,
     },
     "google": {
       "translateUrl": "https://translation.googleapis.com/language/translate/v2",

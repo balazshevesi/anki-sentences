@@ -28,6 +28,7 @@ export type DeckBuildConfig = {
   deckName: string;
   outputPath: string;
   words: string[];
+  commonWordLimit: number;
   sentenceLanguage: LanguageCode;
   translationLanguage: LanguageCode;
   sentenceTranslationLimit: number;

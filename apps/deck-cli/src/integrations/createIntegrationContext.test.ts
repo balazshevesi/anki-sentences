@@ -57,6 +57,7 @@ describe("createIntegrationContext", () => {
         lookupCalls.push(languageCode);
         return {
           sourceFile: `${languageCode}.csv`,
+          getMostCommonWords: () => ["the"],
           getWordFrequency: () => ({
             rank: 1,
             occurrencePercentage: 42,

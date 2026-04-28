@@ -34,7 +34,8 @@ const DeckConfigSchema = z
       .object({
         name: z.string().trim().min(1),
         outputPath: z.string().trim().min(1),
-        words: z.array(z.string().trim().min(1)).min(1),
+        words: z.array(z.string().trim().min(1)).default([]),
+        commonWordLimit: z.number().int().nonnegative().default(0),
         sentenceLanguage: z
           .string()
           .trim()
@@ -60,7 +61,11 @@ const DeckConfigSchema = z
         sentenceLimit: z.number().int().positive(),
         sentenceExclusions: z.array(z.string().trim().min(1)),
       })
-      .strict(),
+      .strict()
+      .refine(
+        (deck) => deck.words.length > 0 || deck.commonWordLimit > 0,
+        "deck.words must contain at least one word unless deck.commonWordLimit is greater than 0.",
+      ),
     translation: z
       .object({
         provider: z.enum(["argos", "google"]),
@@ -137,6 +142,7 @@ const DeckConfigSchema = z
     csvPath: toCsvPath(config.csvPath),
     deck: {
       words: Array.from(new Set(config.deck.words)),
+      commonWordLimit: config.deck.commonWordLimit,
       deckName: config.deck.name,
       outputPath: toApkgPath(config.deck.outputPath),
       sentenceLanguage: config.deck.sentenceLanguage as LanguageCode,

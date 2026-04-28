@@ -14,6 +14,7 @@ import {
 function buildConfig(words: string[]): DeckBuildConfig {
   return {
     words,
+    commonWordLimit: 0,
     deckName: "test",
     outputPath: "../output/test.apkg",
     sentenceLanguage: "eng",

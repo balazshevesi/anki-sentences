@@ -8,12 +8,14 @@ const MODULE_DIR = new URL("./", import.meta.url);
 
 type FrequencyRow = {
   rank: number;
+  word: string;
   count: number;
   occurrencePercentage: number;
 };
 
 type FrequencyLookup = {
   getWordFrequency: (word: string) => WordFrequencyInfo;
+  getMostCommonWords: (limit: number) => string[];
   sourceFile: string | null;
 };
 
@@ -106,6 +108,7 @@ function parseFrequencyCsv(content: string): Map<string, FrequencyRow> {
 
     frequencyMap.set(word, {
       rank,
+      word,
       count,
       occurrencePercentage,
     });
@@ -143,6 +146,7 @@ function parseFrequencyTxt(content: string): Map<string, FrequencyRow> {
       row.word,
       {
         rank: index + 1,
+        word: row.word,
         count: row.count,
         occurrencePercentage: (row.count / totalCount) * 100,
       },
@@ -216,6 +220,9 @@ function getRarityHint(rank: number | null, listSize: number): string {
 
 function createLookup(map: Map<string, FrequencyRow>): FrequencyLookup {
   const listSize = map.size;
+  const rankedWords = [...map.values()]
+    .sort((left, right) => left.rank - right.rank)
+    .map((row) => row.word);
   const fallback: WordFrequencyInfo = {
     rank: null,
     occurrencePercentage: null,
@@ -225,6 +232,13 @@ function createLookup(map: Map<string, FrequencyRow>): FrequencyLookup {
 
   return {
     sourceFile: null,
+    getMostCommonWords: (limit: number): string[] => {
+      if (!Number.isSafeInteger(limit) || limit <= 0) {
+        return [];
+      }
+
+      return rankedWords.slice(0, limit);
+    },
     getWordFrequency: (word: string): WordFrequencyInfo => {
       if (!word.trim()) {
         return {
@@ -261,6 +275,7 @@ export async function loadWordFrequencyLookup(
   if (!normalizedLanguageCode) {
     return {
       sourceFile: null,
+      getMostCommonWords: () => [],
       getWordFrequency: () => ({
         rank: null,
         occurrencePercentage: null,
@@ -288,12 +303,14 @@ export async function loadWordFrequencyLookup(
     const lookup = createLookup(map);
     return {
       sourceFile: url.pathname,
+      getMostCommonWords: lookup.getMostCommonWords,
       getWordFrequency: lookup.getWordFrequency,
     };
   }
 
   return {
     sourceFile: null,
+    getMostCommonWords: () => [],
     getWordFrequency: () => ({
       rank: null,
       occurrencePercentage: null,
