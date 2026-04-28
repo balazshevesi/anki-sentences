@@ -11,14 +11,8 @@ function escapeSqliteStringLiteral(value: string): string {
   return value.replaceAll("'", "''");
 }
 
-function neutralizeAnkiMustacheInBundle(value: string): string {
-  return value.replaceAll("{{", "{ {");
-}
-
 const FFMPEG_BINARY = "ffmpeg";
 const TEMPLATE_AUDIO_EXTENSION = "mp3";
-
-const ANKI_COMPAT_POLYFILLS = `<script>(function(){if(typeof globalThis==="undefined"){Object.defineProperty(Object.prototype,"__globalThis__",{get:function(){return this},configurable:true});__globalThis__.globalThis=__globalThis__;delete Object.prototype.__globalThis__;}if(!Object.fromEntries){Object.fromEntries=function(iterable){if(iterable==null){throw new TypeError("Cannot convert undefined or null to object")}var obj={};if(Array.isArray(iterable)){for(var i=0;i<iterable.length;i+=1){var arrayItem=iterable[i];if(!arrayItem||arrayItem.length<2){throw new TypeError("Iterator value "+arrayItem+" is not an entry object")}obj[arrayItem[0]]=arrayItem[1];}return obj;}var iterator=iterable[typeof Symbol!="undefined"&&Symbol.iterator?Symbol.iterator:"@@iterator"];if(typeof iterator!="function"){throw new TypeError("Object is not iterable")}var stepIterator=iterator.call(iterable);for(var step=stepIterator.next();!step.done;step=stepIterator.next()){var item=step.value;if(!item||item.length<2){throw new TypeError("Iterator value "+item+" is not an entry object")}obj[item[0]]=item[1];}return obj;};}if(!Array.prototype.at){Array.prototype.at=function(index){var length=this.length>>>0;var relativeIndex=Number(index)||0;var normalizedIndex=relativeIndex>=0?relativeIndex:length+relativeIndex;if(normalizedIndex<0||normalizedIndex>=length){return undefined;}return this[normalizedIndex];};}if(!String.prototype.replaceAll){String.prototype.replaceAll=function(searchValue,replaceValue){if(searchValue instanceof RegExp){if(!searchValue.global){throw new TypeError("String.prototype.replaceAll called with a non-global RegExp argument")}return this.replace(searchValue,replaceValue);}return this.split(String(searchValue)).join(String(replaceValue));};}})();</script>`;
 
 function sanitizeCardPayloadForTemplate(
   rawPayload: string,
@@ -141,21 +135,13 @@ export async function runBuildApkgPass(
 ): Promise<{ cardCount: number }> {
   const rows = await readPipelineCsvRows(csvPath);
   const templateBundle = await loadQuestionTemplateBundle();
-  const questionFormatHtml = neutralizeAnkiMustacheInBundle(
-    templateBundle.html,
-  );
 
-  const questionFormat = `
-    <div id="front" class="card-template-loading" style="visibility: hidden">{{Sentence}}</div>
-    <div id="cardPayload" hidden>{{cardPayload}}</div>
-    <card-config hidden autoplay="true" replaykeybind="r"></card-config>
-    ${ANKI_COMPAT_POLYFILLS}
-    ${questionFormatHtml}`;
+  const questionFormat = templateBundle.html;
   const answerFormat = `
     {{FrontSide}}
     <hr id="answer">
-    <div class="mx-auto max-w-3xl p-5 font-serif leading-normal sm:p-6">
-      <div class="text-center text-2xl leading-normal sm:text-3xl sm:leading-relaxed">{{SentenceTranslation}}</div>
+    <div class="card-template-answer">
+      <div class="card-template-answer-translation">{{SentenceTranslation}}</div>
     </div>`;
 
   const deck = new Anki(config.deckName, {

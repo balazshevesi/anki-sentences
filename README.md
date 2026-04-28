@@ -124,6 +124,17 @@ cd apps/deck-cli
 bun run deck:pipeline
 ```
 
+## Updating the Anki card UI
+
+The card UI build produces a pasteable Anki template artifact at `apps/card-template/dist/index.html`.
+
+```bash
+cd apps/deck-cli
+bun run template:build
+```
+
+Copy the full contents of `apps/card-template/dist/index.html` into the front template of an existing Anki note type. The generated file includes the Anki mount fields, compatibility polyfills, and the bundled UI script. CSS is emitted inline for copy-paste updates; the APKG build still extracts it into the note type CSS automatically.
+
 ## Pipeline passes
 
 The pipeline is now fully config-driven.
@@ -162,9 +173,11 @@ If `cardPayload.audioMetadata` contains ready Google TTS entries, matching `.aac
 
 ## TODO (the project is currently like 90% complete, maybe like 5h left of work)
 
-- [x] MAJOR: work around ankis wierd built in audio, and somehow, hook my audio playback into it.
-- [ ] Final tweaks to UI template, like a proper css-reset, propper support for dark/light, proper audio(may not really possible though?)
+- [ ] Tweak UI interactions a little
+- [ ] Rework the word-by-word translation pipeline, it would probably be best to just have one big js object which would essentially contain the translations for all words. This dictionary could be loaded into the anki window object. Maybe provide this as an alternative option available to configure in the config?
+- [x] Tweak the pipeline of how the UI gets mounted into the app in order to allow for the script part to be compleately copy-pasteble. Users should be able to just create a new build of the UI and copy-paste it into their existing anki deck with ease.
+- [ ] Lwk try AAC again + try to find a way to fit 10k sentences into 250mb (the limit for publishing anki decks)
 - [ ] Add the loop for gathering the x most common words before generating
-- [ ] Add full guide in readme
-- [ ] Add more details (license, inspiration, etc) and stuff in the readme 
-- [ ] Double check that all the scripts make sense
+- [ ] Add full guide in readme + breakdown of the API costs breakdown of generating 10k sentences
+- [ ] Add google translate adapter
+- [ ] Add more details (license, inspiration, etc) and stuff in the readme

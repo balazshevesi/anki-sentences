@@ -56,7 +56,7 @@ const readCardConfig = (
 } => {
   return {
     autoplay: parseBoolean(
-      configElement!.getAttribute("autoplay"),
+      configElement?.getAttribute("autoplay") ?? null,
       DEFAULT_AUTOPLAY,
     ),
     replayKeybind: parseReplayKeybind(
@@ -202,7 +202,7 @@ const installGlobalEventListeners = (window: AnkiWindow): void => {
 
       const replayKeybind = readCardConfig(
         getLastMatch<Element>("card-config"),
-      )!.replayKeybind!.toLowerCase();
+      ).replayKeybind?.toLowerCase();
 
       if (!replayKeybind || event.key.trim().toLowerCase() !== replayKeybind)
         return;

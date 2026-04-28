@@ -30,27 +30,6 @@ function extractInlineCss(html: string): {
   };
 }
 
-function toClassicScriptTagAttributes(attributes: string): string {
-  return attributes
-    .replace(/\s+type=("module"|'module')/gi, "")
-    .replace(
-      /\s+crossorigin(?:=(?:"[^"]*"|'[^']*'|[^\s>]+))?/gi,
-      "",
-    )
-    .trim();
-}
-
-function downgradeModuleScriptsForAnki(html: string): string {
-  return html.replace(/<script\b([^>]*)>/gi, (_match, rawAttributes) => {
-    const attributes =
-      typeof rawAttributes === "string"
-        ? toClassicScriptTagAttributes(rawAttributes)
-        : "";
-
-    return attributes.length > 0 ? `<script ${attributes}>` : "<script>";
-  });
-}
-
 export async function loadQuestionFormatHtml(): Promise<string> {
   if (!existsSync(APP_DIST_INDEX_HTML_PATH)) {
     throw new Error(
@@ -66,7 +45,7 @@ export async function loadQuestionTemplateBundle(): Promise<QuestionTemplateBund
   const { htmlWithoutCss, css } = extractInlineCss(questionFormatHtml);
 
   return {
-    html: downgradeModuleScriptsForAnki(htmlWithoutCss),
+    html: htmlWithoutCss,
     css,
   };
 }

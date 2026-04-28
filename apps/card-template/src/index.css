@@ -1,2 +1,12 @@
 @import "tailwindcss";
 @import "./ankiCssReset.css";
+
+@layer components {
+  .card-template-answer {
+    @apply mx-auto max-w-3xl p-5 font-serif leading-normal sm:p-6;
+  }
+
+  .card-template-answer-translation {
+    @apply text-center text-2xl leading-normal sm:text-3xl sm:leading-relaxed;
+  }
+}
