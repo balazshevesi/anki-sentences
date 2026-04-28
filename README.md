@@ -4,7 +4,7 @@ A toolkit for building sentence-based Anki decks from Tatoeba data.
 
 The project takes a list of target words, or the top N words from a frequency list, finds useful example sentences, enriches each card with translations, difficulty metadata, and Google Text-to-Speech audio, then exports a ready-to-import `.apkg` file.
 
-This repository is intentionally small and mostly complete. It is built around one config-driven pipeline rather than a general-purpose product surface.
+This repository is built around one config-driven pipeline.
 
 ## What It Builds
 
@@ -256,7 +256,9 @@ Useful commands:
 
 This project is feature-complete for its original goal: generating personal Anki sentence decks from Tatoeba with translation hints, difficulty ordering, audio, and a bundled card UI.
 
-Future work is expected to be maintenance, source updates, small quality fixes, or deck-specific tuning rather than major new features.
+Future work is expected to be maintenance, source updates, small quality fixes.
+
+Feel free to reach out if you have any questions :)
 
 ## License
 
